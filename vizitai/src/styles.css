@@ -156,3 +156,6 @@ p.link-name { color: var(--label); }
 .hidden-svc { opacity: .5; }
 .toggle { margin-left: auto; color: var(--blue); }
 .muted-left { color: var(--label2); margin: .2rem 0 .6rem; }
+.banner { display: block; width: 100%; background: color-mix(in srgb, var(--blue) 14%, var(--card)); color: var(--blue); text-align: center; min-height: 44px; border-bottom: .5px solid var(--sep); }
+.tab { position: relative; }
+.badge { position: absolute; top: 6px; left: calc(50% + 8px); width: 10px; height: 10px; border-radius: 50%; background: var(--red); }

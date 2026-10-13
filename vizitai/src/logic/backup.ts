@@ -63,3 +63,10 @@ export async function shareBackup(json: string, name: string): Promise<'shared' 
   setTimeout(() => URL.revokeObjectURL(url), 1000); // revoking at once cancels the download in Safari/Firefox
   return 'downloaded';
 }
+
+const WEEK_MS = 7 * 24 * 3600 * 1000;
+export function needsBackup(lastBackupAt: string | null, hasData: boolean, now: Date = new Date()): boolean {
+  if (!hasData) return false;
+  if (!lastBackupAt) return true;
+  return now.getTime() - new Date(lastBackupAt).getTime() > WEEK_MS;
+}

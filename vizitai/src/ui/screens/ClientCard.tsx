@@ -2,7 +2,7 @@ import { useRef } from 'preact/hooks';
 import { repo } from '../../db/repo';
 import { formatWhen } from '../../i18n/format';
 import { t } from '../../i18n/lt';
-import { openAppt, openNew } from '../actions';
+import { openAppt, openNew, repeatFrom } from '../actions';
 import { useLive } from '../hooks';
 import { statusLabel } from '../status';
 import { ui } from '../store';
@@ -48,6 +48,7 @@ export function ClientCard({ id }: { id: string }) {
       booking.current = false;
     }
   };
+  const latest = [...d.upcoming, ...d.past].filter((e) => e.appt.status !== 'cancelled').sort((a, b) => b.appt.start.localeCompare(a.appt.start))[0];
   const visit = (e: (typeof d.upcoming)[number], n: number, prefix: string) => (
     <li key={e.appt.id}>
       <button data-testid={`${prefix}-${n}`} onClick={() => openAppt(e.appt.id)}>
@@ -70,6 +71,7 @@ export function ClientCard({ id }: { id: string }) {
         <p class="stat" data-testid="card-visits">{t('client.visitCount', { n: d.visitCount })}</p>
         <p class="stat" data-testid="card-cancelled">{t('client.cancelledCount', { n: d.cancelled })}</p>
         <p class="stat" data-testid="card-noshow">{t('client.noshowCount', { n: d.noshow })}</p>
+        {latest && <button class="action-row" data-testid="card-repeat" onClick={() => repeatFrom(latest.appt)}>{t('repeat.action')}</button>}
         <p class="label">{t('client.upcoming')}</p>
         <ul class="visits">{d.upcoming.length ? d.upcoming.map((e, n) => visit(e, n, 'upcoming')) : <li class="muted">{t('client.none')}</li>}</ul>
         <p class="label">{t('client.past')}</p>

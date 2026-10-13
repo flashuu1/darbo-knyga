@@ -4,7 +4,7 @@ import { repo } from '../../db/repo';
 import { formatWhen } from '../../i18n/format';
 import { t } from '../../i18n/lt';
 import { nowLocal, snap } from '../../logic/time';
-import { closeSheet, confirmCancel, moveWithToast, noShowWithToast, restoreWithToast } from '../actions';
+import { closeSheet, confirmCancel, moveWithToast, noShowWithToast, repeatFrom, restoreWithToast } from '../actions';
 import { useLive, useServices } from '../hooks';
 import { statusLabel } from '../status';
 import { ui } from '../store';
@@ -57,6 +57,7 @@ export function AppointmentSheet({ id }: { id: string }) {
       <div class="actions-list">
         {appt.status === 'booked' && <button class="action-row" data-testid="act-move" onClick={openMove}>{t('act.move')}</button>}
         {appt.status === 'booked' && past && <button class="action-row" data-testid="act-noshow" onClick={after(() => noShowWithToast(id))}>{t('act.noshow')}</button>}
+        {appt.kind === 'client' && <button class="action-row" data-testid="act-repeat" onClick={() => { closeSheet(); repeatFrom(appt); }}>{t('repeat.action')}</button>}
         {appt.status === 'booked' && <button class="action-row destructive" data-testid="act-cancel" onClick={() => { closeSheet(); confirmCancel(id); }}>{t('act.cancelAppt')}</button>}
         {appt.status !== 'booked' && <button class="action-row" data-testid="act-restore" onClick={after(() => restoreWithToast(id))}>{t('act.restore')}</button>}
       </div>

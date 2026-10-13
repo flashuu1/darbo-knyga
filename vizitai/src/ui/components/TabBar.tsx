@@ -1,5 +1,6 @@
 import { t, type Key } from '../../i18n/lt';
 import { CalendarIcon, GearIcon, PeopleIcon } from '../icons';
+import { useNeedsBackup } from '../hooks';
 import { ui, useStore } from '../store';
 
 export type Tab = 'calendar' | 'clients' | 'settings';
@@ -11,12 +12,14 @@ const TABS: { id: Tab; label: Key; icon: () => preact.JSX.Element }[] = [
 
 export function TabBar() {
   const { tab } = useStore(ui);
+  const stale = useNeedsBackup();
   return (
     <nav class="tabbar">
       {TABS.map(({ id, label, icon: Icon }) => (
         <button key={id} data-testid={`tab-${id}`} class={tab === id ? 'tab active' : 'tab'} onClick={() => ui.set({ tab: id })}>
           <Icon />
           <span>{t(label)}</span>
+          {id === 'settings' && stale && <span class="badge" data-testid="tab-settings-badge" />}
         </button>
       ))}
     </nav>

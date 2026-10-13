@@ -1,7 +1,8 @@
 import { formatDayLong, formatDayShort, monthName, weekdayShort } from '../../i18n/format';
 import { t } from '../../i18n/lt';
 import { addDays, todayStr, weekStart } from '../../logic/time';
-import { openNewToday } from '../actions';
+import { openNewToday, runBackup } from '../actions';
+import { useNeedsBackup } from '../hooks';
 import { ChevronIcon, PlusIcon } from '../icons';
 import { ui, useStore, type UiState } from '../store';
 import { MonthGrid } from '../components/MonthGrid';
@@ -16,6 +17,7 @@ function titleFor(view: UiState['view'], date: string) {
 
 export function CalendarScreen() {
   const { view, date } = useStore(ui);
+  const stale = useNeedsBackup();
   const step = (dir: -1 | 1) => {
     const d = ui.get().date;
     ui.set({ date: view === 'week' ? addDays(d, 7 * dir) : view === 'month' ? addDays(`${d.slice(0, 8)}15`, 30 * dir) : addDays(d, dir) });
@@ -38,6 +40,7 @@ export function CalendarScreen() {
           {monthName(date)} <ChevronIcon />
         </button>
       </div>
+      {view === 'day' && stale && <button class="banner" data-testid="backup-banner" onClick={() => void runBackup()}>{t('backup.banner')}</button>}
       {view === 'day' && <WeekStrip />}
       {view === 'week' && (
         <div class="weekhead">

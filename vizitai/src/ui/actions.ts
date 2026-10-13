@@ -4,7 +4,7 @@ import type { CancelReason } from '../db/types';
 import { formatDayShort, weekdayShort } from '../i18n/format';
 import { t } from '../i18n/lt';
 import { backupFileName, BackupError, exportData, importData, parseBackup, shareBackup, type BackupFile } from '../logic/backup';
-import { datePart, timePart } from '../logic/time';
+import { addDays, datePart, timePart } from '../logic/time';
 import { ui } from './store';
 
 let toastId = 0;
@@ -103,4 +103,22 @@ export async function chooseImport(file: File) {
     { label: t('backup.replace'), role: 'destructive', onPress: () => void doImport(parsed) },
     { label: t('btn.dismiss'), role: 'cancel', onPress: () => {} },
   ] } });
+}
+
+export function repeatFrom(e: { start: string; clientId: string | null; serviceId: string | null }) {
+  const clientId = e.clientId;
+  if (!clientId) return;
+  const weeks = [4, 6, 8];
+  ui.set({
+    action: {
+      title: t('repeat.title'),
+      items: [
+        ...weeks.map((n) => ({
+          label: t('repeat.weeks', { n }),
+          onPress: () => openNew(`${addDays(datePart(e.start), 7 * n)}T${timePart(e.start)}`, { clientId, serviceId: e.serviceId ?? undefined }),
+        })),
+        { label: t('btn.dismiss'), role: 'cancel' as const, onPress: () => {} },
+      ],
+    },
+  });
 }

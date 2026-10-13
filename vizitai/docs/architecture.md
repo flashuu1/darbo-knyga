@@ -318,3 +318,10 @@ Every service defaults to 15 minutes; the length is edited per service in Nustat
 - **Name suggestions with the keyboard up.** The first screen shrinks to the part above the keyboard and the main button, so every suggestion that fits is visible and the list scrolls on its own; dragging the list puts the keyboard away. Up to 8 suggestions.
 - **An expense is not a visit.** Its sheet shows only the amount (change), Perkelti (date and time) and Ištrinti išlaidą (with Anuliuoti); no status, cancel, no-show or restore. It is red, never the green of a paid visit.
 - **Išlaidos tab** (fourth tab): one month at a time (arrows), that month's money in, expenses and balance, the expenses per kind, and every expense entered, newest first; a tap opens it.
+
+## Performance rules
+
+- **Scrolling never waits for JavaScript.** Touch listeners on scrolling areas are passive. The one exception is the two-finger zoom of the timeline: its non-passive `touchmove` listener exists only while two fingers are down. The timeline scroller has `touch-action: pan-y`.
+- **Animate only `transform` and `opacity`** (compositor), never `top`, `bottom`, `height` or `width`. No `backdrop-filter` over scrolling content.
+- **Do not re-render what did not change.** A live query that returns the same data keeps the previous value (no render). The 15-minute rows of a column are a memoised component. Entries and clients are read in one IndexedDB transaction.
+- **The calendar stays mounted** behind the other tabs, so coming back is instant and keeps the scroll position and zoom. Each calendar column uses `contain: layout style`.

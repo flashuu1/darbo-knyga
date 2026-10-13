@@ -126,3 +126,34 @@ test('the empty-day message fades out by itself and at once when she scrolls; a 
   await page.getByTestId('timeline').evaluate((el) => { el.scrollTop += 80; }); // a scroll the app did not make itself
   await expect(wrap).toHaveClass(/gone/);
 });
+
+test('the calendar stays mounted behind the other tabs: coming back is instant and keeps the scroll and zoom', async ({ page }) => {
+  await openApp(page);
+  await page.waitForTimeout(700);
+  await page.getByTestId('timeline').evaluate((el) => { el.scrollTop += 120; });
+  const before = await page.getByTestId('timeline').evaluate((el) => el.scrollTop);
+  await page.getByTestId('tab-clients').click();
+  await expect(page.getByTestId('clients')).toBeVisible();
+  await expect(page.getByTestId('timeline')).toBeHidden();
+  await page.getByTestId('tab-expenses').click();
+  await page.getByTestId('tab-calendar').click();
+  await expect(page.getByTestId('timeline')).toBeVisible();
+  expect(Math.abs((await page.getByTestId('timeline').evaluate((el) => el.scrollTop)) - before)).toBeLessThan(2);
+});
+
+test('pinch runs on a passive scroller: the non-passive touchmove listener only exists while two fingers are down', async ({ page }) => {
+  await openApp(page);
+  // a synthetic two-finger start adds the listener, the end removes it again (one-finger scrolling never waits for JS)
+  const flags = await page.evaluate(() => {
+    const el = document.querySelector('[data-testid="timeline"]')!;
+    const calls: boolean[] = [];
+    const add = el.addEventListener.bind(el), rem = el.removeEventListener.bind(el);
+    el.addEventListener = ((type: string, fn: any, o: any) => { if (type === 'touchmove') calls.push(!!(o && o.passive === false)); return add(type, fn, o); }) as any;  
+    el.removeEventListener = ((type: string, fn: any, o: any) => { if (type === 'touchmove') calls.push(false); return rem(type, fn, o); }) as any;  
+    const mk = (type: string, n: number) => { const list = Array.from({ length: n }, (_, i) => ({ identifier: i + 1, target: el, clientX: 100 + i * 50, clientY: 300 })); const ev = new Event(type, { bubbles: true, cancelable: true }); Object.assign(ev, { touches: type === 'touchend' ? [] : list, changedTouches: list }); el.dispatchEvent(ev); };
+    mk('touchstart', 2); mk('touchend', 0);
+    return calls;
+  });
+  expect(flags[0]).toBe(true); // attached non-passive when two fingers land
+  expect(flags.length).toBeGreaterThanOrEqual(2); // and removed when they lift
+});

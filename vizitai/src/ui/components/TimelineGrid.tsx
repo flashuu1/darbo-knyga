@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'preact';
+import { Component, type CSSProperties } from 'preact';
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { repo, type Entry } from '../../db/repo';
 import { layoutLanes, visibleRange } from '../../logic/layout';
@@ -15,6 +15,30 @@ import { EntryBlock } from './EntryBlock';
 const toMin = (hm: string) => +hm.slice(0, 2) * 60 + +hm.slice(3, 5);
 /** Most lanes side by side before the rest collapse into a "+N" chip. */
 const MAX_LANES = { day: 3, week: 2 };
+
+/**
+ * The tappable 15-minute rows of one column. They only change when the day, the visible range or the working hours do,
+ * so a re-render of the calendar (a new minute, new data) skips all of these buttons.
+ */
+type SlotsProps = { d: string; startMin: number; rows: number; workFrom: number; workTo: number };
+class Slots extends Component<SlotsProps> {
+  shouldComponentUpdate(n: SlotsProps) {
+    const p = this.props;
+    return n.d !== p.d || n.startMin !== p.startMin || n.rows !== p.rows || n.workFrom !== p.workFrom || n.workTo !== p.workTo;
+  }
+  render({ d, startMin, rows, workFrom, workTo }: SlotsProps) {
+    return (
+      <>
+        {Array.from({ length: rows }, (_, i) => {
+          const m = startMin + i * 15;
+          const slot = `${d}T${hhmm(m)}`;
+          const cls = ['slot', i % 4 === 0 ? 'h' : i % 2 === 0 ? 'hh' : 'q', m < workFrom || m >= workTo ? 'off' : ''].join(' ');
+          return (<button key={slot} class={cls} data-testid={`slot-${slot}`} aria-label={slot.slice(11)} onClick={() => openNew(slot)} />);
+        })}
+      </>
+    );
+  }
+}
 
 /** Zoom level: how much detail the entries show, and which hours get a label and a line (all set directly, so a pinch never re-renders). */
 function applyLevel(root: HTMLElement, z: number, startMin: number) {
@@ -129,8 +153,21 @@ export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; com
     };
     const minuteAt = (y: number) => live.current.startMin + ((y - (col()?.getBoundingClientRect().top ?? 0)) / rowPx()) * 15;
 
+    // Two fingers need preventDefault (no native scroll while zooming), and a non-passive touchmove listener makes
+    // iOS wait for JavaScript before every scroll frame. So it is only attached while two fingers are down;
+    // one-finger scrolling and sideways swipes run on passive listeners (the browser scrolls on its own).
+    const pinchMove = (e: TouchEvent) => {
+      if (!pinch || e.touches.length !== 2) return;
+      e.preventDefault();
+      pinch.z = pinchZoom(pinch.z0, pinch.d0, dist(e.touches));
+      pinch.midY = (e.touches[0]!.clientY + e.touches[1]!.clientY) / 2;
+      applyZoom(pinch.z, pinch.midY, pinch.anchorMin);
+    };
+    const endPinchListener = () => el.removeEventListener('touchmove', pinchMove);
+
     const start = (e: TouchEvent) => {
       if (e.touches.length === 2) {
+        el.addEventListener('touchmove', pinchMove, { passive: false });
         slide = null; pad.style.transition = 'none'; pad.style.transform = '';
         const midY = (e.touches[0]!.clientY + e.touches[1]!.clientY) / 2;
         pinch = { d0: dist(e.touches), z0: ui.get().zoom, z: ui.get().zoom, anchorMin: minuteAt(midY), midY };
@@ -141,13 +178,7 @@ export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; com
       }
     };
     const move = (e: TouchEvent) => {
-      if (pinch && e.touches.length === 2) {
-        e.preventDefault();
-        pinch.z = pinchZoom(pinch.z0, pinch.d0, dist(e.touches));
-        pinch.midY = (e.touches[0]!.clientY + e.touches[1]!.clientY) / 2;
-        applyZoom(pinch.z, pinch.midY, pinch.anchorMin);
-        return;
-      }
+      if (pinch) return; // handled by pinchMove
       if (!slide || e.touches.length !== 1) return;
       if (ui.get().drag) { slide = null; return; } // a long-press drag is never a swipe
       const p = e.touches[0]!;
@@ -157,7 +188,6 @@ export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; com
         else if (Math.abs(dy) > 10) slide.lock = 'v';
       }
       if (slide.lock === 'h' && live.current.onSwipe) {
-        e.preventDefault();
         slide.dx = dx;
         pad.style.transition = 'none';
         pad.style.transform = `translateX(${dx * 0.9}px)`;
@@ -169,6 +199,7 @@ export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; com
           const z = snapZoom(clampZoom(pinch.z));
           applyZoom(z, pinch.midY, pinch.anchorMin); // whole pixels per row once the fingers are up
           root.classList.remove('pinching');
+          endPinchListener();
           pinch = null;
           saveZoom(z);
           ui.set({ zoom: z });
@@ -204,16 +235,17 @@ export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; com
         window.setTimeout(() => { pad.style.transition = ''; }, 360);
       }, 130);
     };
-    const cancel = () => { if (pinch) { const z = snapZoom(clampZoom(pinch.z)); applyZoom(z, pinch.midY, pinch.anchorMin); saveZoom(z); ui.set({ zoom: z }); } root.classList.remove('pinching'); pinch = null; slide = null; };
+    const cancel = () => { if (pinch) { const z = snapZoom(clampZoom(pinch.z)); applyZoom(z, pinch.midY, pinch.anchorMin); saveZoom(z); ui.set({ zoom: z }); } root.classList.remove('pinching'); endPinchListener(); pinch = null; slide = null; };
     const onScroll = () => { if (performance.now() > ownScroll.current) setEmptyShown(false); };
     el.addEventListener('touchstart', start, { passive: true });
-    el.addEventListener('touchmove', move, { passive: false });
+    el.addEventListener('touchmove', move, { passive: true });
     el.addEventListener('touchend', finish);
     el.addEventListener('touchcancel', cancel);
     el.addEventListener('scroll', onScroll, { passive: true });
     return () => {
       el.removeEventListener('touchstart', start);
       el.removeEventListener('touchmove', move);
+      endPinchListener();
       el.removeEventListener('touchend', finish);
       el.removeEventListener('touchcancel', cancel);
       el.removeEventListener('scroll', onScroll);
@@ -246,12 +278,7 @@ export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; com
               return (
                 // Day view keeps one column across day flips so a dragged entry (and its gesture) stays mounted.
                 <div key={dates.length === 1 ? 'day' : d} class={['col', d === today ? 'today' : '', drag?.over?.date === d ? 'drop' : ''].filter(Boolean).join(' ')} data-col-date={d} data-range-start={startMin} data-rows={rows} data-testid={`col-${d}`}>
-                  {Array.from({ length: rows }, (_, i) => {
-                    const m = startMin + i * 15;
-                    const slot = `${d}T${hhmm(m)}`;
-                    const cls = ['slot', i % 4 === 0 ? 'h' : i % 2 === 0 ? 'hh' : 'q', m < workFrom || m >= workTo ? 'off' : ''].join(' ');
-                    return (<button key={slot} class={cls} data-testid={`slot-${slot}`} aria-label={slot.slice(11)} onClick={() => openNew(slot)} />);
-                  })}
+                  <Slots d={d} startMin={startMin} rows={rows} workFrom={workFrom} workTo={workTo} />
                   {[
                     ...dayEntries.map((e) => {
                       const l = lay.placed.get(e.appt.id) ?? { col: 0, cols: 1 };

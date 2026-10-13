@@ -12,7 +12,9 @@ export function App() {
   return (
     <div class="app" data-testid="app">
       <main class="screen">
-        {tab === 'calendar' ? <CalendarScreen /> : tab === 'clients' ? <ClientsScreen /> : tab === 'expenses' ? <ExpensesScreen /> : <SettingsScreen />}
+        {/* The calendar is the heavy screen: it stays mounted (hidden) so coming back is instant and keeps its scroll and zoom. */}
+        <div class="tabpane" hidden={tab !== 'calendar'}><CalendarScreen /></div>
+        {tab === 'clients' ? <ClientsScreen /> : tab === 'expenses' ? <ExpensesScreen /> : tab === 'settings' ? <SettingsScreen /> : null}
       </main>
       <TabBar />
       <Sheets />

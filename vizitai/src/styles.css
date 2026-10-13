@@ -144,6 +144,8 @@ svg { flex: none; }
 /* ==========================================================================
    Calendar: week strip
    ========================================================================== */
+.tabpane { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.tabpane[hidden] { display: none; }
 .cal { display: flex; flex-direction: column; min-height: 0; flex: 1; background: var(--page); }
 .weekstrip { padding: 0 var(--s2) var(--s1); overflow: hidden; }
 .weekstrip-row { display: flex; }
@@ -174,7 +176,7 @@ svg { flex: none; }
    Calendar: timeline
    ========================================================================== */
 .timeline { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; --row: round(nearest, calc(2.75rem * var(--zoom, 1)), 1px); }
-.grid-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; background: var(--page); }
+.grid-scroll { flex: 1; min-height: 0; touch-action: pan-y; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; background: var(--page); }
 .grid-pad { padding: .7rem 0 1.4rem; }
 .grid { position: relative; display: flex; height: calc(var(--row) * var(--rows));
   /* hour, half-hour and quarter lines, solid 1px hairlines that run through the time column too */
@@ -190,7 +192,7 @@ svg { flex: none; }
 .now-label { position: absolute; right: 6px; top: calc(var(--row) * var(--at)); transform: translateY(-50%); z-index: 2;
   font-size: .85rem; font-weight: 700; color: #fff; background: var(--red); border-radius: 6px; padding: 3px 5px; line-height: 1;
   font-variant-numeric: tabular-nums; }
-.col { position: relative; flex: 1; min-width: 0; --lpad: 3px; --rpad: 8px; --gap: 3px; }
+.col { position: relative; flex: 1; min-width: 0; contain: layout style; --lpad: 3px; --rpad: 8px; --gap: 3px; }
 .grid.week .col { --lpad: 2px; --rpad: 2px; --gap: 3px; border-left: 1px solid var(--line-half); }
 .grid.week .col:first-of-type { border-left: 0; }
 .grid.week .col.today { background: color-mix(in srgb, var(--red) 6%, transparent); }
@@ -274,7 +276,7 @@ svg { flex: none; }
 /* Empty day: centred in the visible timeline, never inside the scrolling content. */
 .empty-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 3; }
 .empty-card { display: flex; flex-direction: column; align-items: center; gap: var(--s2); padding: var(--s4) var(--s6); border-radius: var(--r-xl);
-  background: color-mix(in srgb, var(--page) 86%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  background: color-mix(in srgb, var(--page) 94%, transparent);
   animation: fade-in var(--t-med) var(--ease-out); }
 .empty-card p { margin: 0; color: var(--label-2); font-size: .95rem; font-weight: 500; }
 .empty-icon { display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 50%;

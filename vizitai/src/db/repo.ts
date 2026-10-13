@@ -33,9 +33,12 @@ export function createRepo(db: VizitaiDB) {
   const serviceMap = async () => new Map((await db.services.toArray()).map((s) => [s.id, s]));
 
   async function toEntries(list: Appointment[]): Promise<Entry[]> {
-    const services = await serviceMap();
     const ids = [...new Set(list.map((a) => a.clientId).filter((x): x is string => !!x))];
-    const clients = new Map((await db.clients.bulkGet(ids)).filter((c): c is Client => !!c).map((c) => [c.id, c]));
+    // one read transaction for both lookups (every IndexedDB transaction has a fixed cost)
+    const [services, clients] = await db.transaction('r', db.services, db.clients, async () => [
+      await serviceMap(),
+      new Map((await db.clients.bulkGet(ids)).filter((c): c is Client => !!c).map((c) => [c.id, c])),
+    ] as const);
     return list.map((appt) => {
       const service = appt.serviceId ? services.get(appt.serviceId) ?? null : null;
       const label = appt.kind === 'client' ? clients.get(appt.clientId ?? '')?.name ?? '' : appt.title ?? '';

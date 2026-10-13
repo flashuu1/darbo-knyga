@@ -3,6 +3,7 @@ import './styles.css';
 import { isStandalone } from './pwa/standalone';
 import { InstallScreen } from './ui/screens/Install';
 import { initUpdates } from './pwa/updates';
+import { isBusy } from './ui/store';
 
 async function boot() {
   const root = document.getElementById('app')!;
@@ -14,11 +15,15 @@ async function boot() {
     import('./db/db'), import('./db/seed'), import('./pwa/persist'), import('./app'),
   ]);
   await ensureSeed(db);
+  if (import.meta.env.MODE === 'e2e') {
+    const [{ repo }, { ui }] = await Promise.all([import('./db/repo'), import('./ui/store')]);
+    (window as unknown as Record<string, unknown>).__vizitai = { db, repo, ui };
+  }
   const settings = await db.settings.get('settings');
   if (settings?.persistGranted !== true) {
     await db.settings.update('settings', { persistGranted: await requestPersistence() });
   }
   render(<App />, root);
-  initUpdates(() => false);
+  initUpdates(isBusy);
 }
 void boot();

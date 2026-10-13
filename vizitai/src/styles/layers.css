@@ -217,9 +217,15 @@ p.link-name { color: var(--label); }
 .flow.kb-open .flow-pane:first-child { bottom: calc(max(0px, var(--kb, 0px) - env(safe-area-inset-bottom)) + 76px); padding-bottom: var(--s3); }
 
 /* her own choices (personal entries, expenses) */
-.suggest.options li button.on { color: var(--accent); font-weight: 600; }
-.suggest.options .check { color: var(--accent); font-size: 1.1rem; opacity: 0; }
-.suggest.options li button.on .check { opacity: 1; }
+/* iOS-style selection: an empty circle that fills and ticks when pressed */
+.suggest.options li button { justify-content: flex-start; gap: var(--s3); transition: background var(--t-fast); }
+.suggest.options li button.on { background: color-mix(in srgb, var(--accent) 9%, transparent); font-weight: 600; }
+.radio { flex: none; display: grid; place-items: center; width: 26px; height: 26px; box-sizing: border-box; border-radius: 50%; border: 2px solid var(--label-3); color: #fff;
+  transition: background var(--t-fast), border-color var(--t-fast), transform var(--t-fast) var(--ease-spring); }
+.radio svg { transform: scale(0); transition: transform var(--t-med) var(--ease-spring); }
+.on .radio { background: var(--accent); border-color: var(--accent); }
+.on .radio svg { transform: scale(1); }
+.suggest.options li button:active .radio { transform: scale(.86); }
 .entry-amount.out { color: var(--red); background: color-mix(in srgb, var(--red) 14%, transparent); font-variant-numeric: tabular-nums; }
 .amount-row .value.out { color: var(--red); }
 

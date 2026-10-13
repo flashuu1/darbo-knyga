@@ -8,6 +8,7 @@ import { cleanName } from '../../logic/names';
 import { datePart } from '../../logic/time';
 import { closeSheet, highlight } from '../actions';
 import { useLive, useOptions, useServices } from '../hooks';
+import { CheckIcon } from '../icons';
 import { useKeyboardHeight } from '../keyboard';
 import { ui, type Origin } from '../store';
 import { DateTimePicker } from './DateTimePicker';
@@ -141,7 +142,7 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
                 {options.map((o, i) => (
                   <li key={o.id}>
                     <button data-testid={`option-${i}`} class={o.id === optionId ? 'on' : ''} aria-pressed={o.id === optionId} onClick={() => { setOptionId(o.id); setClash(null); }}>
-                      <span>{o.name}</span><span class="check" aria-hidden="true">✓</span>
+                      <span class="radio" aria-hidden="true"><CheckIcon /></span><span class="opt-name">{o.name}</span>
                     </button>
                   </li>
                 ))}

@@ -186,3 +186,18 @@ test('the Išlaidos tab shows the month: what came in, the expenses, per kind an
   await page.getByTestId('exp-next').click(); // November: nothing
   await expect(page.getByTestId('exp-empty')).toBeVisible();
 });
+
+test('every choice has an empty circle that fills and ticks when it is picked', async ({ page }) => {
+  await openApp(page);
+  await seedOptions(page);
+  await page.getByTestId('slot-2026-10-14T12:00').click();
+  await page.getByTestId('type-personal').click();
+  const bg = (i: number) => page.getByTestId(`option-${i}`).locator('.radio').evaluate((el) => getComputedStyle(el).backgroundColor);
+  await expect(page.getByTestId('option-0').locator('.radio')).toBeVisible(); // visible before anything is picked
+  const empty = await bg(0);
+  await page.getByTestId('option-0').click();
+  await expect.poll(() => bg(0)).not.toBe(empty);
+  expect(await bg(1)).toBe(empty); // the others stay empty: one choice at a time
+  await page.getByTestId('option-1').click();
+  await expect.poll(() => bg(0)).toBe(empty);
+});

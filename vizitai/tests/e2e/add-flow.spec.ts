@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { openApp, seedAppts } from './helpers';
+import { openApp, seedAppts, pickTime } from './helpers';
 
 /** Types the name on the first screen and presses return (keyboard "Toliau") to reach Paslauga. */
 async function nameThenEnter(page: Page, name: string) {
@@ -108,7 +108,7 @@ test('an overlap warns on the first Išsaugoti and saves on the second', async (
   await page.getByTestId('slot-2026-10-14T10:15').click();
   await nameThenEnter(page, 'Jonas');
   await page.getByTestId('time-row').click();
-  await page.getByTestId('pick-time-10:00').click(); // 15-minute defaults: the same start clashes
+  await pickTime(page, '10:00'); // 15-minute defaults: the same start clashes
   await page.getByTestId('btn-save-time').click();
   await expect(page.getByTestId('overlap-warning')).toHaveText('Šiuo laiku jau užregistruota: Ona – Kirpimas');
   await expect(page.getByTestId('sheet')).toBeVisible();
@@ -123,7 +123,7 @@ test('Asmeninis uses a title and skips the services', async ({ page }) => {
   await page.getByTestId('type-personal').click();
   await nameThenEnter(page, 'Pietūs');
   await expect(page.getByTestId('svc-0')).toBeHidden();
-  await expect(page.getByTestId('pick-slots')).toBeVisible(); // straight to Laikas
+  await expect(page.getByTestId('timewheel')).toBeVisible(); // straight to Laikas
   await page.getByTestId('btn-save-time').click();
   await expect(page.getByTestId('col-2026-10-14')).toContainText('Pietūs');
 });
@@ -137,7 +137,7 @@ test('the calendar picker books another day and time', async ({ page }) => {
   await page.getByTestId('pick-next').click();
   await expect(page.getByTestId('pick-month')).toHaveText('lapkritis 2026');
   await page.getByTestId('pick-day-2026-11-03').click();
-  await page.getByTestId('pick-time-14:30').click();
+  await pickTime(page, '14:30');
   await page.getByTestId('btn-back').click();
   await expect(page.getByTestId('time-value')).toHaveText('lapkričio 3 d., an · 14:30');
   await page.getByTestId('btn-save').click();
@@ -164,4 +164,49 @@ test('"+" proposes the next free slot today and dayStart on other days', async (
   await page.getByTestId('chip-2026-10-15').click();
   await page.getByTestId('btn-add').click();
   await expect.poll(() => page.evaluate(() => (window as any).__vizitai.ui.get().sheet?.start)).toBe('2026-10-15T08:00'); // eslint-disable-line @typescript-eslint/no-explicit-any
+});
+
+test('the time wheels book any minute, not just quarter hours', async ({ page }) => {
+  await openApp(page);
+  await page.getByTestId('slot-2026-10-14T10:30').click();
+  await nameThenEnter(page, 'Ona');
+  await page.getByTestId('time-row').click();
+  await pickTime(page, '14:37');
+  await expect(page.getByTestId('wheel-h-14')).toHaveClass(/on/);
+  await expect(page.getByTestId('wheel-m-37')).toHaveClass(/on/);
+  await page.getByTestId('btn-back').click();
+  await expect(page.getByTestId('time-value')).toHaveText('spalio 14 d., tr · 14:37');
+  await page.getByTestId('btn-save').click();
+  await expect(page.getByTestId('sheet')).toHaveCount(0);
+  await expect.poll(() => page.evaluate(async () => (await (window as any).__vizitai.db.appointments.toArray()).map((a: { start: string }) => a.start))).toEqual(['2026-10-14T14:37']); // eslint-disable-line @typescript-eslint/no-explicit-any
+});
+
+test('the wheels can be scrolled, and the picked row follows the scroll', async ({ page }) => {
+  await openApp(page);
+  await page.getByTestId('slot-2026-10-14T10:30').click();
+  await nameThenEnter(page, 'Ona');
+  await page.getByTestId('time-row').click();
+  await expect(page.getByTestId('wheel-h-10')).toHaveClass(/on/);
+  await page.getByTestId('wheel-m').evaluate((el) => { el.scrollTop = 17 * 44; });
+  await expect(page.getByTestId('wheel-m-17')).toHaveClass(/on/);
+  await page.getByTestId('btn-save-time').click();
+  await expect.poll(() => page.evaluate(async () => (await (window as any).__vizitai.db.appointments.toArray()).map((a: { start: string }) => a.start))).toEqual(['2026-10-14T10:17']); // eslint-disable-line @typescript-eslint/no-explicit-any
+});
+
+test('typing two letters suggests matching clients, best match first, and tapping one fills it in', async ({ page }) => {
+  await openApp(page);
+  await seedAppts(page, [
+    { name: 'Ona Jonaitė', start: '2026-10-01T10:00' }, { name: 'Jonas Petraitis', start: '2026-10-02T10:00' },
+    { name: 'Jonė Kazlauskienė', start: '2026-10-03T10:00' }, { name: 'Jonė Kazlauskienė', start: '2026-10-04T10:00' },
+    { name: 'Marijona Šimkutė', start: '2026-10-05T10:00' }, { name: 'Rasa', start: '2026-10-06T10:00' },
+  ]);
+  await page.getByTestId('slot-2026-10-14T13:00').click();
+  await page.getByTestId('field-name').fill('jo');
+  await expect(page.getByTestId('suggest-0')).toContainText('Jonė Kazlauskienė'); // starts with it, booked most
+  await expect(page.getByTestId('suggest-1')).toContainText('Jonas Petraitis');
+  await expect(page.getByTestId('suggest-2')).toContainText('Ona Jonaitė'); // a later word starts with it
+  await expect(page.getByTestId('suggest-3')).toContainText('Marijona Šimkutė'); // contains it
+  await expect(page.getByTestId('suggest-4')).toHaveCount(0);
+  await page.getByTestId('suggest-1').click();
+  await expect(page.getByTestId('flow-who')).toHaveText('Jonas Petraitis');
 });

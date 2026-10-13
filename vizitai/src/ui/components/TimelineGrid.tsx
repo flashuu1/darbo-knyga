@@ -89,7 +89,7 @@ export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; com
               const byId = new Map(live.map((e) => [e.appt.id, e]));
               return (
                 // Day view keeps one column across day flips so a dragged entry (and its gesture) stays mounted.
-                <div key={dates.length === 1 ? 'day' : d} class={d === today ? 'col today' : 'col'} data-col-date={d} data-range-start={startMin} data-rows={rows} data-testid={`col-${d}`}>
+                <div key={dates.length === 1 ? 'day' : d} class={['col', d === today ? 'today' : '', drag?.over?.date === d ? 'drop' : ''].filter(Boolean).join(' ')} data-col-date={d} data-range-start={startMin} data-rows={rows} data-testid={`col-${d}`}>
                   {Array.from({ length: rows }, (_, i) => {
                     const m = startMin + i * 15;
                     const slot = `${d}T${hhmm(m)}`;

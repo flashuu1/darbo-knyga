@@ -1,17 +1,17 @@
 import type { Entry } from '../db/repo';
-import { AUTOSCROLL_ZONE_PX, EDGE_HOLD_MS, edgeSide, exceedsThreshold, HOLD_MS, startFromY } from '../logic/drag';
-import { addDays, timePart } from '../logic/time';
+import { AUTOSCROLL_ZONE_PX, CHIP_DWELL_MS, EDGE_HOLD_MS, EDGE_REPEAT_MS, edgeSide, exceedsThreshold, HOLD_MS, startFromY } from '../logic/drag';
+import { addDays, timePart, weekStart } from '../logic/time';
 import { moveWithToast } from './actions';
 import { ui } from './store';
 
 /** Long-press (400 ms) then drag. Listeners live on the entry element so the gesture survives day flips
  *  (TimelineGrid keeps this element mounted while a drag is active). */
 export function bindEntryDrag(el: HTMLElement, getEntry: () => Entry): () => void {
-  let timer = 0, edgeTimer = 0, raf = 0;
-  let pid = -1, sx = 0, sy = 0, lx = 0, ly = 0, grabDY = 0, side = 0;
+  let timer = 0, edgeTimer = 0, dwellTimer = 0, dwellKey = '', raf = 0;
+  let pid = -1, sx = 0, sy = 0, lx = 0, ly = 0, grabDY = 0, grabDX = 0, side = 0;
   let lifted = false, justDragged = false, dirty = false, idle = 0;
 
-  const clearTimers = () => { clearTimeout(timer); clearTimeout(edgeTimer); cancelAnimationFrame(raf); side = 0; };
+  const clearTimers = () => { clearTimeout(timer); clearTimeout(edgeTimer); clearTimeout(dwellTimer); dwellKey = ''; cancelAnimationFrame(raf); side = 0; };
   const reset = () => { clearTimers(); pid = -1; lifted = false; ui.set({ drag: null }); };
 
   function target(): { date: string; start: string } | null {
@@ -19,6 +19,7 @@ export function bindEntryDrag(el: HTMLElement, getEntry: () => Entry): () => voi
     if (!hit) return null;
     const entry = getEntry();
     const chip = hit.closest<HTMLElement>('[data-chip-date]');
+    armDwell(chip?.dataset.chipDate ?? '');
     if (chip) return { date: chip.dataset.chipDate!, start: `${chip.dataset.chipDate}T${timePart(entry.appt.start)}` };
     const col = hit.closest<HTMLElement>('[data-col-date]');
     if (!col) return null;
@@ -35,6 +36,21 @@ export function bindEntryDrag(el: HTMLElement, getEntry: () => Entry): () => voi
     if (d.x === lx && d.y === ly && d.over?.start === over?.start) return; // nothing changed: no re-render
     ui.set({ drag: { ...d, x: lx, y: ly, over, label: over ? over.start : d.entry.appt.start } });
   }
+  /** Holding over the first or last day of the week strip pages the strip, so any date can be reached. */
+  function armDwell(chipDate: string) {
+    const ws = weekStart(ui.get().date);
+    const key = chipDate === ws ? 'prev' : chipDate && chipDate === addDays(ws, 6) ? 'next' : '';
+    if (key === dwellKey) return;
+    clearTimeout(dwellTimer);
+    dwellKey = key;
+    if (!key) return;
+    const page = () => {
+      ui.set({ date: addDays(ui.get().date, key === 'prev' ? -7 : 7) });
+      dirty = true;
+      dwellTimer = window.setTimeout(page, CHIP_DWELL_MS);
+    };
+    dwellTimer = window.setTimeout(page, CHIP_DWELL_MS);
+  }
   function armEdge() {
     const s = ui.get().view === 'day' ? edgeSide(lx, window.innerWidth) : 0;
     if (s === side) return;
@@ -44,7 +60,7 @@ export function bindEntryDrag(el: HTMLElement, getEntry: () => Entry): () => voi
     const flip = () => {
       ui.set({ date: addDays(ui.get().date, s) });
       dirty = true;
-      edgeTimer = window.setTimeout(flip, EDGE_HOLD_MS);
+      edgeTimer = window.setTimeout(flip, EDGE_REPEAT_MS);
     };
     edgeTimer = window.setTimeout(flip, EDGE_HOLD_MS);
   }
@@ -67,8 +83,9 @@ export function bindEntryDrag(el: HTMLElement, getEntry: () => Entry): () => voi
     const r = el.getBoundingClientRect();
     lifted = true;
     grabDY = sy - r.top;
+    grabDX = sx - r.left;
     try { el.setPointerCapture(pid); } catch { /* pointer already gone */ }
-    ui.set({ drag: { entry, label: entry.appt.start, x: lx, y: ly, grabDY, left: r.left, width: r.width, over: null } });
+    ui.set({ drag: { entry, label: entry.appt.start, x: lx, y: ly, grabDY, grabDX, left: r.left, width: r.width, over: null } });
     update();
     loop();
   }

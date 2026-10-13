@@ -60,10 +60,16 @@ describe('rule 4: search by folded key', () => {
 });
 
 describe('appointments', () => {
-  it('snaps start to the grid and keeps wall-clock text', async () => {
+  it('keeps the exact minute she picked (no grid) as wall-clock text', async () => {
     const s = await firstService();
     const a = await repo.createAppointment({ kind: 'client', name: 'Ona', serviceId: s.id, start: '2026-10-25T10:07' });
-    expect(a.start).toBe('2026-10-25T10:00');
+    expect(a.start).toBe('2026-10-25T10:07');
+    const moved = await repo.moveAppointment(a.id, '2026-10-26T14:53');
+    expect(moved.after.start).toBe('2026-10-26T14:53');
+  });
+  it('rejects a malformed start', async () => {
+    const s = await firstService();
+    await expect(repo.createAppointment({ kind: 'client', name: 'Ona', serviceId: s.id, start: '2026-10-25 10:07' })).rejects.toThrow();
   });
   it('creates personal entries with a title and no client or service', async () => {
     const a = await repo.createAppointment({ kind: 'personal', title: ' Pietūs ', start: '2026-10-14T12:00' });
@@ -222,5 +228,74 @@ describe('updateClient', () => {
     expect((await repo.getClient(ona.id))?.name).toBe('Ona');
     await repo.updateClient(zita.id, { name: 'ZITA', phone: ' 123 ' });
     expect(await repo.getClient(zita.id)).toMatchObject({ name: 'ZITA', nameKey: 'zita', phone: '123' });
+  });
+});
+
+describe('name suggestions (they have to stay useful as the client list grows)', () => {
+  it('ranks names that start with the text first, then later words, then the busiest client', async () => {
+    const s = (await repo.listServices(true))[0];
+    const mk = async (name: string, n = 1) => { for (let i = 0; i < n; i++) await repo.createAppointment({ kind: 'client', name, serviceId: s.id, start: `2026-09-0${i + 1}T10:00` }); };
+    await mk('Ona Jonaitė'); // later word starts with "jon"
+    await mk('Jonas Petraitis', 1);
+    await mk('Jonė Kazlauskienė', 3); // most visits among the prefix matches
+    await mk('Marijona Šimkutė'); // only contains "jon"
+    expect((await repo.searchClients('jon')).map((c) => c.name)).toEqual(['Jonė Kazlauskienė', 'Jonas Petraitis', 'Ona Jonaitė', 'Marijona Šimkutė']);
+  });
+  it('matches without diacritics and from two letters; one letter only matches the start of a word', async () => {
+    const s = (await repo.listServices(true))[0];
+    await repo.createAppointment({ kind: 'client', name: 'Žydrūnė Banienė', serviceId: s.id, start: '2026-09-01T10:00' });
+    await repo.createAppointment({ kind: 'client', name: 'Rasa Žilienė', serviceId: s.id, start: '2026-09-02T10:00' });
+    expect((await repo.searchClients('zy')).map((c) => c.name)).toEqual(['Žydrūnė Banienė']);
+    expect((await repo.searchClients('zi')).map((c) => c.name)).toEqual(['Rasa Žilienė']);
+    expect((await repo.searchClients('e')).map((c) => c.name)).toEqual([]); // 'e' is not the start of any word
+    expect((await repo.searchClients('b')).map((c) => c.name)).toEqual(['Žydrūnė Banienė']);
+  });
+  it('returns at most 6 and works with a few hundred clients', async () => {
+    const s = (await repo.listServices(true))[0];
+    for (let i = 0; i < 300; i++) await repo.matchOrCreateClient(`Klientas ${i}`);
+    await repo.createAppointment({ kind: 'client', name: 'Klientas 7', serviceId: s.id, start: '2026-09-01T10:00' });
+    const r = await repo.searchClients('kli');
+    expect(r).toHaveLength(6);
+    expect(r[0].name).toBe('Klientas 7'); // the one she actually books comes first
+  });
+});
+
+describe('contacts list: pending payment first, paid this month, then the next visit', () => {
+  const NOW = '2026-10-14T12:00';
+  it('orders, labels and expires the paid status at the end of the month', async () => {
+    const s = (await repo.listServices(true))[0];
+    const book = async (name: string, start: string, amount?: number) => {
+      const a = await repo.createAppointment({ kind: 'client', name, serviceId: s.id, start });
+      if (amount !== undefined) await repo.setAmount(a.id, amount);
+      return a;
+    };
+    await book('Aaa Laukia', '2026-10-14T09:00'); // visit passed, no amount: pending
+    await book('Bbb Seniai', '2026-10-10T09:00'); // pending for longer: before Aaa
+    await book('Ccc Sumokėjo', '2026-10-12T10:00', 4500);
+    await book('Ccc Sumokėjo', '2026-10-13T10:00', 1500); // sum 60,00 this month
+    await book('Ccc Sumokėjo', '2026-10-30T10:00'); // and a visit coming up
+    await book('Ddd Praeitą mėnesį', '2026-09-28T10:00', 5000); // paid last month: no longer shown as paid
+    await book('Eee Netrukus', '2026-10-20T10:00');
+    await book('Fff Vėliau', '2026-11-05T10:00');
+    await repo.matchOrCreateClient('Ggg Tuščias');
+    const rows = await repo.listClients(NOW);
+    expect(rows.map((r) => r.client.name)).toEqual(['Bbb Seniai', 'Aaa Laukia', 'Ccc Sumokėjo', 'Eee Netrukus', 'Fff Vėliau', 'Ddd Praeitą mėnesį', 'Ggg Tuščias']);
+    const by = Object.fromEntries(rows.map((r) => [r.client.name, r]));
+    expect(by['Bbb Seniai'].pending?.start).toBe('2026-10-10T09:00');
+    expect(by['Ccc Sumokėjo']).toMatchObject({ pending: null, paidCents: 6000, nextVisit: '2026-10-30T10:00' });
+    expect(by['Ddd Praeitą mėnesį'].paidCents).toBe(0);
+    expect(by['Ggg Tuščias']).toMatchObject({ pending: null, paidCents: 0, nextVisit: null, lastVisit: null });
+    // the paid status ends with the month: on 1 November the same data reads differently
+    const nov = await repo.listClients('2026-11-01T08:00');
+    expect(nov.find((r) => r.client.name === 'Ccc Sumokėjo')!.paidCents).toBe(0);
+  });
+  it('ignores cancelled and no-show visits', async () => {
+    const s = (await repo.listServices(true))[0];
+    const a = await repo.createAppointment({ kind: 'client', name: 'Hhh', serviceId: s.id, start: '2026-10-10T09:00' });
+    await repo.cancelAppointment(a.id, null);
+    const b = await repo.createAppointment({ kind: 'client', name: 'Iii', serviceId: s.id, start: '2026-10-10T09:00' });
+    await repo.markNoShow(b.id);
+    const rows = await repo.listClients(NOW);
+    expect(rows.every((r) => r.pending === null && r.paidCents === 0 && r.nextVisit === null)).toBe(true);
   });
 });

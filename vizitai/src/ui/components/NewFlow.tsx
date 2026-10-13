@@ -12,8 +12,8 @@ import { ui } from '../store';
 import { DateTimePicker } from './DateTimePicker';
 import { Sheet } from './Sheet';
 
-// Few enough that the list never needs scrolling above the keyboard.
-const MAX_SUGGESTIONS = 3;
+// Enough to find someone as the client list grows, few enough to stay clear of the keyboard.
+const MAX_SUGGESTIONS = 5;
 type Screen = 0 | 1 | 2; // 0 = client, 1 = service, 2 = time
 
 /**

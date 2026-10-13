@@ -15,7 +15,8 @@ export function EntryBlock({ e, startMin, col, cols, compact, anchor }: {
 }) {
   const { highlight } = useStore(ui);
   const now = useNow();
-  const due = isAmountDue(e.appt, now); // a visit whose time has come and still waits for its amount
+  const due = isAmountDue(e.appt, now);
+  const paid = !due && e.amountCents !== null && e.appt.status === 'booked'; // confirmed: she has received it
   const ref = useRef<HTMLButtonElement>(null);
   const latest = useRef(e);
   latest.current = e;
@@ -26,7 +27,7 @@ export function EntryBlock({ e, startMin, col, cols, compact, anchor }: {
   const style = {
     '--top': (minutesOfDay(e.appt.start) - startMin) / 15, '--len': rows, '--c': col, '--n': cols, '--svc': `var(--c-${e.color})`,
   } as CSSProperties;
-  const cls = ['entry', thin ? 'thin' : one ? 'one' : 'stack', compact ? 'compact' : '', due ? 'entry--due' : '', e.appt.status === 'noshow' ? 'noshow' : '',
+  const cls = ['entry', thin ? 'thin' : one ? 'one' : 'stack', compact ? 'compact' : '', due ? 'entry--due' : paid ? 'entry--paid' : '', e.appt.status === 'noshow' ? 'noshow' : '',
     highlight === e.appt.id ? 'highlight' : '', anchor ? 'anchor' : ''].filter(Boolean).join(' ');
   const svc = e.service?.name ?? (e.appt.kind === 'personal' ? t('type.personal') : '');
   return (
@@ -48,7 +49,7 @@ export function EntryBlock({ e, startMin, col, cols, compact, anchor }: {
       )}
       {e.appt.status === 'noshow' && <span class="entry-flag">{t('status.noshow')}</span>}
       {due && <span class="entry-amount" data-testid={`due-${e.appt.id}`}>{t('amount.add')}</span>}
-      {!due && e.amountCents !== null && e.appt.status === 'booked' && <span class="entry-amount paid" data-testid={`amount-${e.appt.id}`}>{formatEuro(e.amountCents)}</span>}
+      {paid && <span class="entry-amount paid" data-testid={`amount-${e.appt.id}`}>✓ {formatEuro(e.amountCents!)}</span>}
     </button>
   );
 }

@@ -10,10 +10,11 @@ describe('drag math', () => {
     expect(exceedsThreshold(5, 5)).toBe(false);
     expect(exceedsThreshold(0, 9)).toBe(true);
   });
-  it('snaps the dropped top edge to 15 minutes', () => {
+  it('drops on whole 5 minutes (smooth, not 15-minute jumps)', () => {
     expect(startFromY({ ...col, y: 250, grabDY: 0 })).toBe('2026-10-14T08:45');
-    expect(startFromY({ ...col, y: 261, grabDY: 0 })).toBe('2026-10-14T08:45');
-    expect(startFromY({ ...col, y: 275, grabDY: 0 })).toBe('2026-10-14T09:00');
+    expect(startFromY({ ...col, y: 261, grabDY: 0 })).toBe('2026-10-14T08:50');
+    expect(startFromY({ ...col, y: 275, grabDY: 0 })).toBe('2026-10-14T08:55');
+    expect(startFromY({ ...col, y: 292, grabDY: 0 })).toBe('2026-10-14T09:00');
   });
   it('accounts for where the entry was grabbed', () => {
     expect(startFromY({ ...col, y: 270, grabDY: 20 })).toBe('2026-10-14T08:45');

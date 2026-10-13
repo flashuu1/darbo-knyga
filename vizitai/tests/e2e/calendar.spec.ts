@@ -91,9 +91,13 @@ test('today shows a red now line at the current time, scrolled into view, and it
 
 test('hour labels sit on their hour line', async ({ page }) => {
   await openApp(page);
-  const label = page.locator('.hour-label', { hasText: '10:00' });
-  const l = (await label.boundingBox())!, s = (await page.getByTestId('slot-2026-10-14T10:00').boundingBox())!;
-  expect(Math.abs(l.y + l.height / 2 - s.y)).toBeLessThan(1.5);
+  await expect(page.getByTestId('slot-2026-10-14T10:00')).toBeVisible();
+  // measured in one frame: the timeline scrolls itself to "now" right after it opens
+  await expect.poll(() => page.evaluate(() => {
+    const l = [...document.querySelectorAll('.hour-label')].find((e) => e.textContent === '10:00')!.getBoundingClientRect();
+    const s = document.querySelector('[data-testid="slot-2026-10-14T10:00"]')!.getBoundingClientRect();
+    return Math.abs(l.top + l.height / 2 - s.top) < 1.5;
+  })).toBe(true);
 });
 
 test('the empty-day message is centred in the visible timeline, stays put while scrolling and lets taps through', async ({ page }) => {

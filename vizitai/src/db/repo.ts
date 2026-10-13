@@ -4,13 +4,24 @@ import type { Appointment, CancelReason, Client, Service, ServiceColor, Settings
 import type { VizitaiDB } from './db';
 import { DEFAULT_SETTINGS } from './seed';
 import { cleanName, foldName, ltCollator } from '../logic/names';
-import { addDays, addMinutes, datePart, minutesOfDay, nowLocal, snap } from '../logic/time';
+import { addDays, addMinutes, datePart, minutesOfDay, nowLocal, parse } from '../logic/time';
 import { findOverlap, minutesFor, nextFreeSlot, PERSONAL_MINUTES, type Block } from '../logic/overlap';
 import { t } from '../i18n/lt';
 import { isValidCents } from '../logic/amount';
 
+/** One row of the contacts list (see listClients). */
+export interface ClientRow {
+  client: Client;
+  /** Date (YYYY-MM-DD) of the last visit that took place. */
+  lastVisit: string | null;
+  /** The longest-waiting past visit that still has no amount. */
+  pending: { id: string; start: string } | null;
+  /** Sum of the amounts entered for visits in the current month. */
+  paidCents: number;
+  /** Start of the next booked visit. */
+  nextVisit: string | null;
+}
 export interface Entry { appt: Appointment; label: string; service: Service | null; minutes: number; color: ServiceColor; amountCents: number | null }
-const SLOT = 15;
 const toMin = (hhmm: string) => +hhmm.slice(0, 2) * 60 + +hhmm.slice(3, 5);
 
 export function createRepo(db: VizitaiDB) {
@@ -94,11 +105,24 @@ export function createRepo(db: VizitaiDB) {
       for (const a of appts) { if (!ids.includes(a.clientId!)) ids.push(a.clientId!); if (ids.length === limit) break; }
       return (await db.clients.bulkGet(ids)).filter((c): c is Client => !!c);
     },
-    async searchClients(query: string, limit = 8): Promise<Client[]> {
+    /**
+     * Suggestions while typing a name. Ranked: the name starts with the text, then a later word starts with it,
+     * then it appears anywhere (from 2 letters); inside a rank the client she books most, then most recently.
+     */
+    async searchClients(query: string, limit = 6): Promise<Client[]> {
       const q = foldName(query);
       if (!q) return this.recentClients(5);
-      const all = await db.clients.toArray();
-      return all.filter((c) => c.nameKey.includes(q)).sort((a, b) => ltCollator.compare(a.name, b.name)).slice(0, limit);
+      const rank = (c: Client) => (c.nameKey.startsWith(q) ? 0 : c.nameKey.split(' ').some((w) => w.startsWith(q)) ? 1 : q.length >= 2 && c.nameKey.includes(q) ? 2 : -1);
+      const hits = (await db.clients.toArray()).map((c) => ({ c, r: rank(c) })).filter((x) => x.r >= 0);
+      const stats = new Map<string, { n: number; last: string }>();
+      for (const { c } of hits) {
+        const list = await db.appointments.where('clientId').equals(c.id).toArray();
+        stats.set(c.id, { n: list.length, last: list.reduce((m, a) => (a.start > m ? a.start : m), '') });
+      }
+      return hits
+        .sort((x, y) => x.r - y.r || stats.get(y.c.id)!.n - stats.get(x.c.id)!.n || stats.get(y.c.id)!.last.localeCompare(stats.get(x.c.id)!.last) || ltCollator.compare(x.c.name, y.c.name))
+        .slice(0, limit)
+        .map((x) => x.c);
     },
     async updateClient(id: string, p: { name?: string; phone?: string }) {
       const patch: Partial<Client> = { updatedAt: now() };
@@ -118,7 +142,8 @@ export function createRepo(db: VizitaiDB) {
     },
 
     async createAppointment(i: { kind: 'client' | 'personal'; name?: string; title?: string; serviceId?: string | null; start: string }): Promise<Appointment> {
-      const start = snap(i.start, SLOT);
+      parse(i.start); // throws on a malformed time; any minute is allowed (the time wheel is not limited to a grid)
+      const start = i.start;
       let clientId: string | null = null, title: string | null = null;
       if (i.kind === 'client') clientId = (await this.matchOrCreateClient(i.name ?? '')).id;
       else { title = cleanName(i.title ?? ''); if (!title) throw new Error('empty-title'); }
@@ -133,7 +158,8 @@ export function createRepo(db: VizitaiDB) {
     getAppointment: (id: string) => db.appointments.get(id),
     async updateAppointment(id: string, p: Partial<Pick<Appointment, 'serviceId'>>) { return (await mutate(id, (a) => ({ ...a, ...p }))).after; },
     moveAppointment(id: string, to: string) {
-      const target = snap(to, SLOT);
+      parse(to);
+      const target = to;
       return mutate(id, (a) => ({ ...a, start: target, moves: [...a.moves, { at: now(), from: a.start, to: target }] }));
     },
     cancelAppointment(id: string, reason: CancelReason | null) {
@@ -182,15 +208,38 @@ export function createRepo(db: VizitaiDB) {
       return free;
     },
 
-    async listClients(now_: string = nowLocal()): Promise<{ client: Client; lastVisit: string | null }[]> {
+    /**
+     * The contacts list, in the order she needs it: clients waiting for an amount first (the longest-waiting
+     * first), then those who already paid this month (latest first), then those with a coming visit (soonest
+     * first), then everybody else A-Z. "Paid" shows until the end of the month, then the row falls back to
+     * the next visit or nothing.
+     */
+    async listClients(now_: string = nowLocal()): Promise<ClientRow[]> {
       const clients = await db.clients.toArray();
       const appts = await db.appointments.toArray();
-      const last = new Map<string, string>();
+      const month = now_.slice(0, 7);
+      const by = new Map<string, ClientRow & { paidLast: string }>();
+      for (const client of clients) by.set(client.id, { client, lastVisit: null, pending: null, paidCents: 0, nextVisit: null, paidLast: '' });
       for (const a of appts) {
-        if (!a.clientId || a.status === 'cancelled' || a.start > now_) continue;
-        if (!last.has(a.clientId) || a.start > last.get(a.clientId)!) last.set(a.clientId, a.start);
+        const r = a.clientId ? by.get(a.clientId) : undefined;
+        if (!r || a.status === 'cancelled') continue;
+        if (a.start <= now_) {
+          if (a.status === 'noshow') continue;
+          if (!r.lastVisit || a.start > r.lastVisit) r.lastVisit = a.start;
+          if (isValidCents(a.amountCents)) {
+            if (a.start.startsWith(month)) { r.paidCents += a.amountCents; if (a.start > r.paidLast) r.paidLast = a.start; }
+          } else if (!r.pending || a.start < r.pending.start) r.pending = { id: a.id, start: a.start };
+        } else if (a.status === 'booked' && (!r.nextVisit || a.start < r.nextVisit)) r.nextVisit = a.start;
       }
-      return clients.sort((a, b) => ltCollator.compare(a.name, b.name)).map((client) => ({ client, lastVisit: last.has(client.id) ? datePart(last.get(client.id)!) : null }));
+      const group = (r: ClientRow) => (r.pending ? 0 : r.paidCents > 0 ? 1 : r.nextVisit ? 2 : 3);
+      return [...by.values()]
+        .map((r): ClientRow & { paidLast: string } => ({ ...r, lastVisit: r.lastVisit ? datePart(r.lastVisit) : null }))
+        .sort((a, b) => group(a) - group(b)
+          || (group(a) === 0 ? a.pending!.start.localeCompare(b.pending!.start)
+            : group(a) === 1 ? b.paidLast.localeCompare(a.paidLast)
+            : group(a) === 2 ? a.nextVisit!.localeCompare(b.nextVisit!) : 0)
+          || ltCollator.compare(a.client.name, b.client.name))
+        .map((r): ClientRow => ({ client: r.client, lastVisit: r.lastVisit, pending: r.pending, paidCents: r.paidCents, nextVisit: r.nextVisit }));
     },
     async clientDetail(id: string, now_: string = nowLocal()) {
       const client = await db.clients.get(id);

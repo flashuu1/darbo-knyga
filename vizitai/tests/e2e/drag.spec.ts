@@ -12,7 +12,17 @@ async function seedAppts(page: Page, list: Parameters<typeof seedOnly>[1]) {
 const bound = (page: Page, id: string) =>
   expect.poll(() => page.getByTestId(`entry-${id}`).evaluate((el) => !el.dispatchEvent(new MouseEvent('contextmenu', { cancelable: true })))).toBe(true);
 
+/** Puts the entry in the middle of the timeline, away from the auto-scroll zones at its edges. */
+async function centre(page: Page, id: string) {
+  await page.evaluate((x) => {
+    const el = document.querySelector(`[data-testid="entry-${x}"]`)!;
+    const sc = document.querySelector('[data-testid="timeline"]')!;
+    sc.scrollTop += el.getBoundingClientRect().top - (sc.getBoundingClientRect().top + sc.getBoundingClientRect().height * 0.4);
+  }, id);
+  await page.waitForTimeout(60);
+}
 async function lift(page: Page, id: string) {
+  await centre(page, id);
   await bound(page, id);
   const box = (await page.getByTestId(`entry-${id}`).boundingBox())!;
   const x = box.x + box.width / 2, y = box.y + 10;
@@ -141,6 +151,7 @@ test('a second finger holding another entry cannot take over the drag', async ({
   await openApp(page);
   const [a, b] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T10:00' }, { name: 'Rasa', start: '2026-10-14T11:30' }]);
   await expect(page.getByTestId(`entry-${b}`)).toBeVisible();
+  await centre(page, a);
   const row = await rowHeight(page);
   const boxA = (await page.getByTestId(`entry-${a}`).boundingBox())!;
   const boxB = (await page.getByTestId(`entry-${b}`).boundingBox())!;
@@ -196,4 +207,41 @@ test('holding still while lifted does not re-render the app every frame', async 
   });
   expect(writes).toBe(0);
   await page.mouse.up();
+});
+
+test('the lifted entry follows the finger in every direction, not only up and down', async ({ page }) => {
+  await openApp(page);
+  const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T10:00' }]);
+  const { x, y } = await lift(page, id);
+  const g0 = (await page.getByTestId('drag-ghost').boundingBox())!;
+  await page.mouse.move(x - 60, y + 90, { steps: 6 });
+  await expect.poll(async () => (await page.getByTestId('drag-ghost').boundingBox())!.x).toBeCloseTo(g0.x - 60, -1);
+  await expect.poll(async () => (await page.getByTestId('drag-ghost').boundingBox())!.y).toBeCloseTo(g0.y + 90, -1);
+  await page.mouse.up();
+});
+
+test('hovering a day in the week strip highlights it, and dropping there moves the entry to that day', async ({ page }) => {
+  await openApp(page);
+  const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T10:00' }]);
+  const { x, y } = await lift(page, id);
+  const chip = (await page.getByTestId('chip-2026-10-17').boundingBox())!;
+  await page.mouse.move(x, y - 20, { steps: 3 });
+  await page.mouse.move(chip.x + chip.width / 2, chip.y + chip.height / 2, { steps: 8 });
+  await expect(page.getByTestId('chip-2026-10-17')).toHaveClass(/drop/);
+  await page.mouse.up();
+  await expect.poll(async () => (await apptState(page, id)).start).toBe('2026-10-17T10:00');
+});
+
+test('holding over the last day of the strip pages to the next week, so any date can be reached', async ({ page }) => {
+  await openApp(page);
+  const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T10:00' }]);
+  const { x, y } = await lift(page, id);
+  const sun = (await page.getByTestId('chip-2026-10-18').boundingBox())!;
+  await page.mouse.move(x, y - 20, { steps: 3 });
+  await page.mouse.move(sun.x + sun.width / 2, sun.y + sun.height / 2, { steps: 8 });
+  await expect(page.getByTestId('chip-2026-10-25')).toBeVisible({ timeout: 4000 }); // the strip now shows 19-25 October
+  const mon = (await page.getByTestId('chip-2026-10-22').boundingBox())!;
+  await page.mouse.move(mon.x + mon.width / 2, mon.y + mon.height / 2, { steps: 6 });
+  await page.mouse.up();
+  await expect.poll(async () => (await apptState(page, id)).start).toBe('2026-10-22T10:00');
 });

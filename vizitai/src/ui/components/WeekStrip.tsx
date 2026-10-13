@@ -16,7 +16,7 @@ export function useDirection(v: string): number {
 }
 
 export function WeekStrip() {
-  const { date } = useStore(ui);
+  const { date, drag } = useStore(ui);
   const today = datePart(useNow());
   const start = weekStart(date);
   const dir = useDirection(start);
@@ -26,7 +26,7 @@ export function WeekStrip() {
     <div class="weekstrip">
       <div key={start} class={dir ? `weekstrip-row slide-in-${dir > 0 ? 'next' : 'prev'}` : 'weekstrip-row'}>
         {days.map((d) => (
-          <button key={d} class={['chip-day', d === date ? 'sel' : '', d === today ? 'today' : ''].filter(Boolean).join(' ')} data-chip-date={d} data-testid={`chip-${d}`}
+          <button key={d} class={['chip-day', d === date ? 'sel' : '', d === today ? 'today' : '', drag?.over?.date === d ? 'drop' : ''].filter(Boolean).join(' ')} data-chip-date={d} data-testid={`chip-${d}`}
             aria-pressed={d === date} onClick={() => ui.set({ date: d })}>
             <span class="wd">{weekdayShort(d)}</span>
             <span class="num">{+d.slice(8, 10)}</span>

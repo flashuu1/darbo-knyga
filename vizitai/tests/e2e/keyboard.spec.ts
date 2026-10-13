@@ -48,7 +48,7 @@ test.describe('keyboard opens inside the tap that opens the new sheet', () => {
     const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T10:00' }]);
     await page.getByTestId(`entry-${id}`).click();
     await page.getByTestId('act-repeat').click();
-    await expect(page.getByTestId('pick-slots')).toBeVisible();
+    await expect(page.getByTestId('timewheel')).toBeVisible();
     await expect(page.getByTestId('kb-primer')).not.toBeFocused();
     await expect(page.getByTestId('field-name')).not.toBeFocused();
   });
@@ -102,15 +102,15 @@ test.describe('the name field and the backdrop', () => {
     expect(await appts(page)).toHaveLength(0);
   });
 
-  test('at most 3 suggestions are shown', async ({ page }) => {
+  test('at most 5 suggestions are shown', async ({ page }) => {
     await openApp(page);
-    await seedAppts(page, ['Ona', 'Jonas', 'Rasa', 'Asta', 'Inga', 'Eglė'].map((name, i) => ({ name, start: `2026-10-0${i + 1}T10:00` })));
+    await seedAppts(page, ['Ona', 'Jonas', 'Rasa', 'Asta', 'Inga', 'Eglė', 'Dalia'].map((name, i) => ({ name, start: `2026-10-0${i + 1}T10:00` })));
     await page.getByTestId('slot-2026-10-14T10:30').click();
-    await expect(page.getByTestId('suggest-2')).toBeVisible();
-    await expect(page.getByTestId('suggest-3')).toHaveCount(0);
-    await page.getByTestId('field-name').fill('a'); // Jonas, Rasa, Asta, Inga match
-    await expect(page.getByTestId('suggest-2')).toBeVisible();
-    await expect(page.getByTestId('suggest-3')).toHaveCount(0);
+    await expect(page.getByTestId('suggest-4')).toBeVisible(); // recents: the five latest
+    await expect(page.getByTestId('suggest-5')).toHaveCount(0);
+    await page.getByTestId('field-name').fill('a'); // Rasa, Asta (start with a letter a? no: words starting with a) and Dalia, Inga, Jonas... ranked, max 5
+    await expect(page.getByTestId('suggest-0')).toBeVisible();
+    await expect(page.getByTestId('suggest-5')).toHaveCount(0);
   });
 });
 
@@ -145,7 +145,7 @@ test.describe('a hidden service is never preselected', () => {
     await page.getByTestId('tab-clients').click();
     await page.getByTestId('client-row-0').click();
     await page.getByTestId('card-repeat').click();
-    await expect(page.getByTestId('pick-slots')).toBeVisible();
+    await expect(page.getByTestId('timewheel')).toBeVisible();
     await page.getByTestId('btn-back').click();
     await expect(page.getByTestId('flow-who')).toHaveText('Ona');
     await expect(page.getByTestId('svc-0')).toHaveClass(/on/);

@@ -81,9 +81,9 @@ The app stores four record types. Clients are created automatically from the typ
 | `clientId` | string, nullable, indexed | Null when `kind = personal` |
 | `title` | string, nullable | Typed text for personal entries only |
 | `serviceId` | string, nullable | Null when `kind = personal` |
-| `start` | string `YYYY-MM-DDTHH:mm`, indexed | Local wall-clock time, snapped to the 15-minute grid |
+| `start` | string `YYYY-MM-DDTHH:mm`, indexed | Local wall-clock time, any minute (the time wheels are not limited to a grid) |
 | `status` | `booked` \| `cancelled` \| `noshow` | "Done" is derived: `booked` with a start in the past |
-| `cancelReason` | string, nullable | One of the preset reasons or null |
+| `cancelReason` | string, nullable | Always null for new cancellations (no reason is asked); kept for older data |
 | `cancelledAt` | ISO timestamp, nullable | |
 | `amountCents` | integer, optional | What she took for the visit, in euro cents. Absent or null = not entered yet. Unindexed, so no schema version bump |
 | `moves` | array of `{at, from, to}` | Reschedule history, appended on every move |
@@ -123,7 +123,7 @@ A full-height modal with three screens that slide (no layout shift when the keyb
 
 1. **Klientas.** Segmented control "Klientas | Asmeninis". Autofocused name field (the keyboard opens inside the tap that opened the modal) with the 3 most recent clients while it is empty and diacritic-insensitive matches while typing (max 3). Return ("Toliau") or tapping a client moves on; Enter never saves. Asmeninis: a title field, then straight to Laikas.
 2. **Paslauga.** Large service cards (service colour, check mark when selected; default = the client's last active service, otherwise the first), a "Laikas" summary row and "Išsaugoti". No keyboard.
-3. **Laikas.** An in-app month calendar (Monday first, dots on days with bookings, swipe or arrows between months) above a scrollable grid of 15-minute times (00:00–23:45; booked times are marked). Values are always snapped to 15 minutes. It replaces the native iOS date/time wheels everywhere (also used by "Perkelti").
+3. **Laikas.** An in-app month calendar (Monday first, dots on days with bookings, swipe or arrows between months) above two scrolling time wheels (hours, minutes; every minute 00–59 can be picked, tapping a number works too). The picked time is stored exactly as picked. It is used everywhere a time is chosen, including "Perkelti".
 
 A new booking from an empty slot takes 3 taps plus typing the name: tap the slot, (type the name, return), tap a service card, tap "Išsaugoti". The first "Išsaugoti" tap on an overlapping time shows "Šiuo laiku jau užregistruota: {vardas} – {paslauga}", the second saves. Every service and personal entry is 15 minutes long by default.
 
@@ -135,7 +135,7 @@ When a client visit's start time has passed and no amount is entered, its calend
 
 ## Open, reschedule and cancel
 
-Tap opens an entry. Long-press moves it. Cancel takes two taps, and choosing a reason is optional.
+Tap opens an entry. Long-press moves it. Cancel takes two taps and one confirmation; no reason is asked.
 
 **Open (tap).** The appointment sheet shows the name (tapping it opens the client card), the service chips (tapping one changes the service immediately), the date and time, and the status. Actions, top to bottom:
 
@@ -147,8 +147,8 @@ Tap opens an entry. Long-press moves it. Cancel takes two taps, and choosing a r
 **Reschedule (long-press and drag):**
 
 1. Hold an entry for 400 ms without moving. The entry lifts (scale 1.03 + shadow) and scrolling locks. Moving more than 8 px before 400 ms is treated as a scroll, not a drag.
-2. Drag vertically. The entry snaps to the 15-minute grid and a live label shows the new time.
-3. To change the date in Week view, drag across columns. In Day view, drop on a chip in the week strip (it keeps the time), or hold at the left or right screen edge for 600 ms to flip the day.
+2. Drag in any direction: the lifted entry follows the finger and a live label shows the new time (dropped on whole 5 minutes). The day under the finger is highlighted.
+3. To change the date in Week view, drag across columns. In Day view, drop on a chip in the week strip (it keeps the time), hold at the left or right screen edge (about 0.4 s, then one day every half second) to flip the day, or hold over the first or last day of the week strip to page to the next or previous week, so any date can be reached.
 4. Release to save immediately, append to `moves`, and show the toast "Perkelta: spalio 15 d., kt · 14:00" with "Anuliuoti" for 5 s.
 5. Dropping onto an overlap is allowed; the toast adds the overlap warning.
 6. While dragging, holding within 40 px of the top or bottom edge of the timeline scrolls it.
@@ -156,7 +156,7 @@ Tap opens an entry. Long-press moves it. Cancel takes two taps, and choosing a r
 **Cancel:**
 
 1. Tap "Atšaukti vizitą".
-2. An iOS action sheet titled "Atšaukti vizitą?" offers the reasons "Kliento prašymu", "Liga", "Kita", plus "Be priežasties" and "Palikti" (keep). Any reason button confirms in one tap.
+2. An iOS action sheet titled "Atšaukti vizitą?" offers "Atšaukti vizitą" (red) and "Palikti" (keep). No reason is asked.
 3. Set `status = cancelled` with `cancelReason` and `cancelledAt`. Show the toast "Vizitas atšauktas" with "Anuliuoti".
 4. The slot is free right away. In the timeline the cancelled entry shrinks to a thin, faded, struck-through line that does not block taps, so the slot can be booked again.
 
@@ -172,7 +172,7 @@ The app copies iOS system patterns rather than inventing its own: large-title na
 | Colour | iOS system palette, light and dark through `prefers-color-scheme`. Each service has one colour, used as the entry's left bar and tint. |
 | Shell | Manifest `display: standalone`. `viewport-fit=cover` and `env(safe-area-inset-*)` padding. 180×180 `apple-touch-icon`. `theme-color` and the status-bar style meta tag. |
 | Touch | Targets at least 44 × 44 pt. `-webkit-touch-callout: none` and `user-select: none` on entries so long-press never opens the text callout. `overscroll-behavior: none`. No double-tap zoom. |
-| Inputs | Font size at least 16 px so iOS does not zoom on focus. The build uses one native `<input type="datetime-local">` (laid transparently over its row) to get the iOS date and time wheels; values are snapped to 15 minutes in code, because iOS ignores `step`. Working hours use `<input type="time">`, snapped the same way. The wheels follow the phone's system language. |
+| Inputs | Font size at least 16 px so iOS does not zoom on focus. Dates and times are chosen in the app's own calendar and time wheels (no native date/time inputs). Working hours use `<input type="time">`, snapped to 15 minutes in code because iOS ignores `step`. |
 | Motion | Sheet and push transitions 250–350 ms. Disabled under `prefers-reduced-motion`. |
 | Feedback | No haptics are available, so every action shows a visual state change and a toast. |
 | Empty states | Plain Lithuanian sentences, for example "Šią dieną vizitų nėra", with one obvious next action. |
@@ -202,10 +202,6 @@ All strings live in one file (`src/i18n/lt.ts`), and the UI never uses inline li
 | `act.cancelAppt` | Atšaukti vizitą | Appointment sheet, destructive |
 | `act.restore` | Atkurti vizitą | Cancelled or no-show entry |
 | `cancel.question` | Atšaukti vizitą? | Action sheet title |
-| `cancel.reason.client` | Kliento prašymu | Action sheet |
-| `cancel.reason.ill` | Liga | Action sheet |
-| `cancel.reason.other` | Kita | Action sheet |
-| `cancel.reason.none` | Be priežasties | Action sheet |
 | `cancel.keep` | Palikti | Action sheet |
 | `status.booked` | Užregistruota | Status label |
 | `status.done` | Įvyko | Derived status label |
@@ -269,9 +265,9 @@ Automated (Playwright, WebKit, iPhone viewport):
 - [ ] Booking from an empty slot takes 3 taps plus typing the name.
 - [ ] Searching "zydrune" finds "Žydrūnė", and typing an existing name links that client instead of creating a duplicate.
 - [ ] The client list sorts with `Intl.Collator('lt')`.
-- [ ] A long-press drag snaps to 15 minutes, changes the date in Week view and via the week strip, and is undone by "Anuliuoti".
+- [ ] A long-press drag follows the finger freely, drops on whole 5 minutes, changes the date in Week view and via the week strip, and is undone by "Anuliuoti".
 - [ ] A quick swipe under 400 ms scrolls the timeline and never starts a drag.
-- [ ] Cancelling with a reason and without one both work, the freed slot accepts a new booking, and "Anuliuoti" restores the original.
+- [ ] Cancelling takes one confirmation (no reason), the freed slot accepts a new booking, and "Anuliuoti" restores the original.
 - [ ] An appointment at 10:00 on 2026-10-25 (the DST change) still shows 10:00.
 - [ ] Export, clear the data, then import gives identical record counts and contents.
 - [ ] A schema version bump with seeded data loses no records.
@@ -285,3 +281,21 @@ On the device (by hand):
 - [ ] Settings shows the result of the storage persistence request.
 - [ ] Remains usable at the largest iOS text size.
 - [ ] Long-press never opens the iOS text callout or the magnifier.
+
+
+## Contacts (Klientai) and payments
+
+The list is ordered by what needs her attention:
+1. **Waiting for an amount** (orange "Pridėti sumą"): clients with a visit whose time has passed and no amount yet, the longest-waiting first.
+2. **Paid this month** (green "✓ Sumokėta 45,00 €"): the sum of the amounts entered for visits in the current month. It shows until the end of the month; on the 1st the row falls back to the next visit, or nothing.
+3. **Coming visit** ("Kitas vizitas: …"), soonest first.
+4. Everybody else, A–Z with Lithuanian rules.
+A client can show several of these at once (for example paid and a next visit). In the calendar, an entry with an amount is green with "✓ 45,00 €"; one waiting for an amount is orange.
+
+## Name suggestions
+
+While typing a name (from the first letters; "contains" matches from 2 letters) the suggestions are ranked: names starting with the text, then names where a later word starts with it, then names containing it; inside each rank, the client she books most, then the most recent. At most 5 are shown.
+
+## Service lengths
+
+Every service defaults to 15 minutes; the length is edited per service in Nustatymai → Paslaugos and is remembered. A one-time migration (schema v2) turned the old built-in lengths (45/90/120/120/60/30) into 15; lengths she set herself are kept.

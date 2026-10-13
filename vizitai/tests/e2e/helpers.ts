@@ -19,3 +19,14 @@ export async function seedAppts(page: Page, list: { name: string; start: string;
 }
 export const apptState = (page: Page, id: string) =>
   page.evaluate((x) => (window as any).__vizitai.repo.getAppointment(x), id); // eslint-disable-line @typescript-eslint/no-explicit-any
+
+/** Sets the time wheels of the calendar picker (tapping a number). */
+export async function pickTime(page: Page, hm: string) {
+  await page.getByTestId(`wheel-h-${hm.slice(0, 2)}`).click();
+  await page.getByTestId(`wheel-m-${hm.slice(3, 5)}`).click();
+}
+/** The wheels show `hm` as the picked time. */
+export async function expectPickedTime(page: Page, hm: string) {
+  await expect(page.getByTestId(`wheel-h-${hm.slice(0, 2)}`)).toHaveClass(/on/);
+  await expect(page.getByTestId(`wheel-m-${hm.slice(3, 5)}`)).toHaveClass(/on/);
+}

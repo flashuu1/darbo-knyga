@@ -1,6 +1,6 @@
 import { useState } from 'preact/hooks';
 import { repo } from '../../db/repo';
-import { formatDayShort } from '../../i18n/format';
+import { formatDayShort, formatEuro, formatWhen } from '../../i18n/format';
 import { t } from '../../i18n/lt';
 import { foldName } from '../../logic/names';
 import { useLive } from '../hooks';
@@ -35,7 +35,12 @@ export function ClientsScreen() {
                   <span class="avatar" aria-hidden="true">{initials(r.client.name)}</span>
                   <span class="client-text">
                     <b>{r.client.name}</b>
-                    {r.lastVisit && <span>{t('client.lastVisit', { data: formatDayShort(r.lastVisit) })}</span>}
+                    <span class="client-status">
+                      {r.pending && <span class="pill due" data-testid={`client-pending-${i}`}>{t('client.pending')}</span>}
+                      {r.paidCents > 0 && <span class="pill paid" data-testid={`client-paid-${i}`}>✓ {t('client.paid', { suma: formatEuro(r.paidCents) })}</span>}
+                      {r.nextVisit && <span class="next" data-testid={`client-next-${i}`}>{t('client.next', { kada: formatWhen(r.nextVisit) })}</span>}
+                      {!r.pending && r.paidCents === 0 && !r.nextVisit && r.lastVisit && <span>{t('client.lastVisit', { data: formatDayShort(r.lastVisit) })}</span>}
+                    </span>
                   </span>
                   <span class="chev"><NextIcon /></span>
                 </button>

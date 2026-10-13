@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { apptState, openApp, seedAppts } from './helpers';
+import { apptState, openApp, seedAppts, pickTime } from './helpers';
 
 // Perkelti: the in-app calendar. Nothing moves until she confirms with "Perkelti".
 async function pickMove(page: Page, id: string, date: string, time: string) {
@@ -9,7 +9,7 @@ async function pickMove(page: Page, id: string, date: string, time: string) {
   const month = date.slice(0, 7);
   if (month !== before.slice(0, 7)) await page.getByTestId(month > before.slice(0, 7) ? 'pick-next' : 'pick-prev').click();
   await page.getByTestId(`pick-day-${date}`).click();
-  await page.getByTestId(`pick-time-${time}`).click();
+  await pickTime(page, time);
   await page.waitForTimeout(150);
   expect((await apptState(page, id)).start).toBe(before); // picking alone moves nothing
   await page.getByTestId('btn-move-confirm').click();
@@ -34,22 +34,23 @@ test('tapping a service chip changes the service immediately', async ({ page }) 
   await expect.poll(async () => (await apptState(page, id)).serviceId).not.toBe(before);
 });
 
-test('cancelling with a reason takes two taps; the slot frees up; Anuliuoti restores it', async ({ page }) => {
+test('cancelling takes two taps and one confirmation; the slot frees up; Anuliuoti restores it', async ({ page }) => {
   await openApp(page);
   const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T10:00' }]);
   await page.getByTestId(`entry-${id}`).click();
   await page.getByTestId('act-cancel').click();
   await expect(page.getByTestId('action-title')).toHaveText('Atšaukti vizitą?');
-  await expect(page.getByTestId('action-item-0')).toHaveText('Kliento prašymu');
-  await page.getByTestId('action-item-1').click(); // Liga
+  await expect(page.getByTestId('action-item-0')).toHaveText('Atšaukti vizitą'); // a plain confirmation: no reasons to pick
+  await expect(page.getByTestId('action-item-1')).toHaveText('Palikti');
+  await page.getByTestId('action-item-0').click();
   await expect(page.getByTestId('toast')).toContainText('Vizitas atšauktas');
-  await expect.poll(() => apptState(page, id)).toMatchObject({ status: 'cancelled', cancelReason: 'ill' });
+  await expect.poll(() => apptState(page, id)).toMatchObject({ status: 'cancelled', cancelReason: null });
   await page.getByTestId('toast-undo').click();
   await expect.poll(() => apptState(page, id)).toMatchObject({ status: 'booked', cancelReason: null });
   // cancelled again: the slot is free, the thin line does not block the tap
   await page.getByTestId(`entry-${id}`).click();
   await page.getByTestId('act-cancel').click();
-  await page.getByTestId('action-item-3').click();
+  await page.getByTestId('action-item-0').click();
   await expect.poll(async () => (await apptState(page, id)).status).toBe('cancelled');
   await page.getByTestId('slot-2026-10-14T10:00').click();
   await expect(page.getByTestId('sheet')).toBeVisible();
@@ -60,7 +61,7 @@ test('opening another sheet hides the undo toast, so a tap there cannot undo the
   const [a, b] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T10:00' }, { name: 'Jonas', start: '2026-10-14T11:00' }]);
   await page.getByTestId(`entry-${a}`).click();
   await page.getByTestId('act-cancel').click();
-  await page.getByTestId('action-item-3').click();
+  await page.getByTestId('action-item-0').click();
   await expect(page.getByTestId('toast-undo')).toBeVisible();
   await expect.poll(async () => (await apptState(page, a)).status).toBe('cancelled');
   await page.waitForTimeout(350); // the toast has finished rising into place
@@ -74,12 +75,12 @@ test('opening another sheet hides the undo toast, so a tap there cannot undo the
   expect((await apptState(page, a)).status).toBe('cancelled');
 });
 
-test('cancelling without a reason works', async ({ page }) => {
+test('cancelling never asks for a reason', async ({ page }) => {
   await openApp(page);
   const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T10:00' }]);
   await page.getByTestId(`entry-${id}`).click();
   await page.getByTestId('act-cancel').click();
-  await page.getByTestId('action-item-3').click(); // Be priežasties
+  await page.getByTestId('action-item-0').click();
   await expect.poll(() => apptState(page, id)).toMatchObject({ status: 'cancelled', cancelReason: null });
 });
 
@@ -88,7 +89,7 @@ test('"Palikti" keeps the appointment', async ({ page }) => {
   const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T10:00' }]);
   await page.getByTestId(`entry-${id}`).click();
   await page.getByTestId('act-cancel').click();
-  await page.getByTestId('action-item-4').click();
+  await page.getByTestId('action-item-1').click();
   await expect(page.getByTestId('action-title')).toHaveCount(0);
   expect((await apptState(page, id)).status).toBe('booked');
 });
@@ -132,7 +133,7 @@ test('the toast disappears after 5 seconds', async ({ page }) => {
   const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T10:00' }]);
   await page.getByTestId(`entry-${id}`).click();
   await page.getByTestId('act-cancel').click();
-  await page.getByTestId('action-item-3').click();
+  await page.getByTestId('action-item-0').click();
   await expect(page.getByTestId('toast')).toBeVisible();
   await page.clock.fastForward(5200);
   await expect(page.getByTestId('toast')).toHaveCount(0);
@@ -145,7 +146,7 @@ test('Perkelti: closing the picker without confirming moves nothing', async ({ p
   await page.getByTestId('act-move').click();
   await expect(page.getByTestId('btn-move-confirm')).toBeDisabled(); // nothing picked yet
   await page.getByTestId('pick-day-2026-10-16').click();
-  await page.getByTestId('pick-time-12:00').click();
+  await pickTime(page, '12:00');
   await expect(page.getByTestId('btn-move-confirm')).toBeEnabled();
   await page.getByTestId('btn-dismiss').click();
   await expect(page.getByTestId('move-sheet')).toHaveCount(0);

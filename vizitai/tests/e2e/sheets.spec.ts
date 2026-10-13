@@ -1,10 +1,13 @@
 import { test, expect, type Page } from '@playwright/test';
 import { apptState, openApp, seedAppts } from './helpers';
 
-async function dragDown(page: Page, from: { x: number; y: number }, dy: number, steps = 8) {
+async function dragDown(page: Page, from: { x: number; y: number }, dy: number, steps = 8, pauseMs = 0) {
   await page.mouse.move(from.x, from.y);
   await page.mouse.down();
-  await page.mouse.move(from.x, from.y + dy, { steps });
+  for (let i = 1; i <= steps; i++) {
+    await page.mouse.move(from.x, from.y + (dy * i) / steps);
+    if (pauseMs) await page.waitForTimeout(pauseMs); // a slow pull is not a flick
+  }
   await page.mouse.up();
 }
 const grabber = async (page: Page) => { const b = (await page.getByTestId('sheet').locator('.grabber').boundingBox())!; return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; };
@@ -25,7 +28,7 @@ test('a short pull springs back and the sheet stays', async ({ page }) => {
   await page.getByTestId(`entry-${id}`).click();
   await page.waitForTimeout(450);
   const before = (await page.getByTestId('sheet').boundingBox())!;
-  await dragDown(page, await grabber(page), 40);
+  await dragDown(page, await grabber(page), 40, 5, 60);
   await page.waitForTimeout(500);
   const after = (await page.getByTestId('sheet').boundingBox())!;
   expect(Math.abs(after.y - before.y)).toBeLessThan(2);
@@ -69,7 +72,7 @@ test('a sheet that closes by saving also plays out and leaves nothing behind', a
   const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T15:00' }]);
   await page.getByTestId(`entry-${id}`).click();
   await page.getByTestId('act-cancel').click();
-  await page.getByTestId('action-item-3').click();
+  await page.getByTestId('action-item-0').click();
   await expect(page.getByTestId('action-title')).toHaveCount(0); // the action sheet has gone too
   await expect(page.getByTestId('sheet')).toHaveCount(0);
   await expect.poll(async () => (await apptState(page, id)).status).toBe('cancelled');

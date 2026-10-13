@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openApp, seedAppts } from './helpers';
+import { openApp, seedAppts, expectPickedTime } from './helpers';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 test('the backup banner shows when data exists but no backup, and opens the export', async ({ page }) => {
@@ -36,9 +36,9 @@ test('Užregistruoti į priekį on an appointment opens the calendar for the sam
   await page.getByTestId('act-repeat').click();
   // no 4/6/8-week shortcuts: straight to the calendar, tomorrow at the visit's time preselected
   await expect(page.getByTestId('action-title')).toHaveCount(0);
-  await expect(page.getByTestId('pick-slots')).toBeVisible();
+  await expect(page.getByTestId('timewheel')).toBeVisible();
   await expect(page.getByTestId('pick-day-2026-10-15')).toHaveClass(/sel/);
-  await expect(page.getByTestId('pick-time-10:00')).toHaveClass(/sel/);
+  await expectPickedTime(page, '10:00');
   await page.getByTestId('pick-next').click();
   await page.getByTestId('pick-day-2026-11-25').click();
   await page.getByTestId('btn-back').click();
@@ -57,7 +57,7 @@ test('Užregistruoti į priekį on the client card repeats the latest visit', as
   const box = await page.getByTestId('card-repeat').boundingBox();
   expect(box!.height).toBeGreaterThanOrEqual(44);
   await page.getByTestId('card-repeat').click();
-  await expect(page.getByTestId('pick-time-09:30')).toHaveClass(/sel/); // the visit's time of day
+  await expectPickedTime(page, '09:30'); // the visit's time of day
   // like Registruoti: the card closes and the calendar (Day view) is behind the sheet, so the new entry is seen
   await expect(page.getByTestId('client-card')).toHaveCount(0);
   await expect(page.getByTestId('calendar')).toBeVisible();

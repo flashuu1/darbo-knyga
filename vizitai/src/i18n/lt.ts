@@ -11,9 +11,7 @@ export const lt = {
   'suggest.recent': 'Neseniai',
   'btn.save': 'Išsaugoti', 'btn.dismiss': 'Atšaukti', 'btn.close': 'Uždaryti',
   'act.move': 'Perkelti', 'act.noshow': 'Neatvyko', 'act.cancelAppt': 'Atšaukti vizitą', 'act.restore': 'Atkurti vizitą',
-  'cancel.question': 'Atšaukti vizitą?',
-  'cancel.reason.client': 'Kliento prašymu', 'cancel.reason.ill': 'Liga', 'cancel.reason.other': 'Kita',
-  'cancel.reason.none': 'Be priežasties', 'cancel.keep': 'Palikti',
+  'cancel.question': 'Atšaukti vizitą?', 'cancel.keep': 'Palikti',
   'status.booked': 'Užregistruota', 'status.done': 'Įvyko', 'status.cancelled': 'Atšaukta', 'status.noshow': 'Neatvyko',
   'appt.status': 'Būsena',
   'toast.moved': 'Perkelta: {data} · {laikas}', 'toast.cancelled': 'Vizitas atšauktas',
@@ -50,6 +48,7 @@ export const lt = {
   'overflow.more': '+{n}', 'overflow.aria': 'Kiti vizitai: {n}', 'overflow.title': 'Kiti vizitai šiuo metu',
   'overflow.item': '{laikas} · {vardas} – {paslauga}',
   // --- overhaul: flow ---
+  'client.paid': 'Sumokėta {suma}', 'client.pending': 'Pridėti sumą', 'client.next': 'Kitas vizitas: {kada}', 'wheel.hours': 'Valandos', 'wheel.minutes': 'Minutės',
   'btn.next': 'Toliau', 'picker.prev': 'Ankstesnis mėnuo', 'picker.next': 'Kitas mėnuo',
   // --- overhaul: amount ---
   'amount.title': 'Suma', 'amount.add': 'Pridėti sumą', 'amount.edit': 'Keisti sumą',

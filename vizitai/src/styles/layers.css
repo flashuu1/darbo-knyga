@@ -128,8 +128,8 @@ p.link-name { color: var(--label); }
 .primary:disabled { opacity: .4; }
 .flow-pane .warn { margin-bottom: var(--s3); }
 
-/* calendar + time picker */
-.picker { display: flex; flex-direction: column; flex: 1; min-height: 0; padding-top: var(--s1); }
+/* calendar + time wheels */
+.picker { display: flex; flex-direction: column; flex: 1; min-height: 0; padding-top: var(--s1); overflow-y: auto; overscroll-behavior: contain; }
 .picker-head { display: flex; align-items: center; justify-content: space-between; }
 .picker-title { font-size: 1.1rem; text-transform: capitalize; }
 .picker-nav { font-size: 1.9rem; line-height: 1; color: var(--accent); width: 48px; }
@@ -147,15 +147,17 @@ p.link-name { color: var(--label); }
 .pd.sel > span { background: var(--accent); color: var(--on-accent); transform: scale(1.06); }
 .dot { width: 5px; height: 5px; border-radius: 50%; background: transparent; display: block; }
 .dot.on { background: var(--label-3); }
-.picker-slots { position: relative; flex: 1; min-height: 120px; overflow-y: auto; overscroll-behavior: contain; display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s2); align-content: start;
-  padding: var(--s3) 2px calc(var(--s3) + env(safe-area-inset-bottom)); margin-top: var(--s2); border-top: .5px solid var(--sep); }
-.sheet.bottom .picker-slots { flex: none; max-height: 30dvh; }
-.ps { position: relative; min-height: 44px; border-radius: var(--r-md); background: var(--sheet-card); color: var(--label-2); font-size: 1rem; font-variant-numeric: tabular-nums;
-  transition: background var(--t-fast), color var(--t-fast), transform var(--t-press); }
-.ps.work { color: var(--label); }
-.ps:active { transform: scale(.96); }
-.ps.sel { background: var(--accent); color: var(--on-accent); font-weight: 650; }
-.ps .dot { position: absolute; top: 6px; right: 6px; }
+/* time wheels: two scroll-snapping columns, the row in the middle is the picked one */
+.timewheel { position: relative; flex: none; display: flex; align-items: center; justify-content: center; gap: 4px; height: 220px; margin: var(--s3) auto calc(var(--s2) + env(safe-area-inset-bottom)); width: min(100%, 300px);
+  -webkit-mask-image: linear-gradient(transparent, #000 28%, #000 72%, transparent); mask-image: linear-gradient(transparent, #000 28%, #000 72%, transparent); }
+.wheel-bar { position: absolute; left: 0; right: 0; top: 88px; height: 44px; border-radius: var(--r-md); background: var(--fill); pointer-events: none; }
+.wheel { position: relative; flex: 1; height: 220px; overflow-y: auto; scroll-snap-type: y mandatory; overscroll-behavior: contain; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.wheel::-webkit-scrollbar { display: none; }
+.wheel-pad { height: 88px; flex: none; }
+.wheel-item { display: block; width: 100%; height: 44px; min-height: 44px; scroll-snap-align: center; scroll-snap-stop: always; font-size: 1.45rem; font-weight: 500; color: var(--label-3);
+  font-variant-numeric: tabular-nums; transition: color var(--t-fast), transform var(--t-fast) var(--ease-out); }
+.wheel-item.on { color: var(--label); font-weight: 650; }
+.wheel-colon { font-size: 1.6rem; font-weight: 650; padding-bottom: 3px; }
 
 /* amounts */
 .amount-ctx { text-align: center; color: var(--label-2); margin: 0 0 var(--s2); font-size: .92rem; }
@@ -171,3 +173,22 @@ p.link-name { color: var(--label); }
 .entry-amount.paid { color: var(--label); background: var(--fill-2); font-variant-numeric: tabular-nums; }
 .entry.stack .entry-amount { align-self: flex-start; margin: 4px 0 0; }
 .entry.compact .entry-amount { display: none; }
+
+/* confirmed payment: green, in the calendar and in the contacts list */
+.entry--paid { --tint: color-mix(in srgb, var(--green) 20%, var(--entry-base)); }
+.entry--paid::before { background: var(--green); }
+.entry--paid .entry-time { color: var(--green-ink); }
+.entry-amount.paid { color: var(--green-ink); background: color-mix(in srgb, var(--green) 22%, transparent); }
+.chip-day.drop .num { background: var(--accent); color: var(--on-accent); transform: scale(1.18); }
+.client-status { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.client-text .pill { display: inline-flex; align-items: center; padding: 1px 8px; border-radius: 99px; font-size: .74rem; font-weight: 700; white-space: nowrap; }
+.client-text .pill.due { color: var(--due-ink); background: color-mix(in srgb, var(--due) 22%, transparent); }
+.client-text .pill.paid { color: var(--green-ink); background: color-mix(in srgb, var(--green) 20%, transparent); font-variant-numeric: tabular-nums; }
+.client-text .next { color: var(--label-2); font-size: .8rem; }
+
+/* week view: a narrower time column and names that wrap to two lines instead of being cut */
+.weekhead { padding-left: 3.2rem; }
+.grid.week .gutter { width: 3.2rem; }
+.grid.week .hour-label { font-size: .78rem; right: 6px; }
+.grid.week .now-label { font-size: .72rem; right: 3px; }
+.entry.compact .entry-name { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; white-space: normal; overflow: hidden; text-overflow: ellipsis; overflow-wrap: anywhere; }

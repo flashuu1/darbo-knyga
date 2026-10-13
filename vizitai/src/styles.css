@@ -18,7 +18,7 @@
   --sep: rgba(60, 60, 67, .2); --sep-strong: rgba(60, 60, 67, .3);
   --fill: rgba(120, 120, 128, .12); --fill-2: rgba(120, 120, 128, .2);
   /* timeline grid */
-  --line-hour: rgba(60, 60, 67, .26); --line-half: rgba(60, 60, 67, .14); --line-quarter: rgba(60, 60, 67, .14);
+  --line-hour: rgba(60, 60, 67, .34); --line-half: rgba(60, 60, 67, .17); --line-quarter: rgba(60, 60, 67, .08); --green-ink: #1a7f37;
   --offhours: rgba(116, 116, 128, .075);
   /* entry cards: tint = service colour mixed into --entry-base, ink = darker service colour */
   --entry-base: #ffffff; --entry-mix: 15%; --ink-mix: #000000; --ink-amt: 68%;
@@ -34,8 +34,8 @@
   --c-blue: #007aff; --c-green: #34c759; --c-indigo: #5856d6; --c-orange: #ff9500; --c-pink: #ff2d55;
   --c-purple: #af52de; --c-red: #ff3b30; --c-teal: #30b0c7; --c-yellow: #ffcc00; --c-gray: #8e8e93;
   /* geometry */
-  --row: 2.75rem;           /* one 15-minute row (>= 44pt touch target) */
-  --gutter: 3.3rem;
+  --row: round(up, 2.75rem, 4px); /* a whole number of pixels (multiple of 4), so every grid line lands on a pixel edge */           /* one 15-minute row (>= 44pt touch target) */
+  --gutter: 4.1rem;
   --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px; --s6: 24px;
   --r-xs: 6px; --r-sm: 8px; --r-md: 10px; --r-lg: 14px; --r-xl: 22px;
   /* motion: transform and opacity only */
@@ -51,7 +51,7 @@
     --label: #ffffff; --label-2: rgba(235, 235, 245, .6); --label-3: rgba(235, 235, 245, .3);
     --sep: rgba(84, 84, 88, .55); --sep-strong: rgba(84, 84, 88, .8);
     --fill: rgba(120, 120, 128, .24); --fill-2: rgba(120, 120, 128, .36);
-    --line-hour: rgba(235, 235, 245, .22); --line-half: rgba(235, 235, 245, .11); --line-quarter: rgba(235, 235, 245, .1);
+    --line-hour: rgba(235, 235, 245, .32); --line-half: rgba(235, 235, 245, .16); --line-quarter: rgba(235, 235, 245, .075); --green-ink: #5dd879;
     --offhours: rgba(120, 120, 128, .13);
     --entry-base: #1c1c1e; --entry-mix: 30%; --ink-mix: #ffffff; --ink-amt: 78%;
     --entry-edge: rgba(255, 255, 255, .06);
@@ -176,23 +176,27 @@ svg { flex: none; }
 .timeline { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .grid-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; background: var(--page); }
 .grid-pad { padding: .7rem 0 1.4rem; }
-.grid { position: relative; display: flex; height: calc(var(--row) * var(--rows)); }
-.gutter { position: relative; width: var(--gutter); flex: none; }
+.grid { position: relative; display: flex; height: calc(var(--row) * var(--rows));
+  /* hour, half-hour and quarter lines, solid 1px hairlines that run through the time column too */
+  background-image: linear-gradient(var(--line-hour) 0 1px, transparent 1px), linear-gradient(var(--line-half) 0 1px, transparent 1px), linear-gradient(var(--line-quarter) 0 1px, transparent 1px);
+  background-size: 100% calc(var(--row) * 4), 100% calc(var(--row) * 2), 100% var(--row); background-repeat: repeat-y; }
+.gutter { position: relative; width: var(--gutter); flex: none; border-right: 1px solid var(--line-hour); }
 /* Hour labels sit ON their line: centred vertically on the row boundary. */
-.hour-label { position: absolute; right: 7px; top: calc(var(--row) * var(--at)); transform: translateY(-50%);
-  font-size: .68rem; font-weight: 500; color: var(--label-2); font-variant-numeric: tabular-nums; line-height: 1; }
+.hour-label { position: absolute; right: 9px; top: calc(var(--row) * var(--at)); transform: translateY(-50%); padding: 2px 3px; background: var(--page); border-radius: 4px;
+  font-size: .95rem; font-weight: 650; color: var(--label); font-variant-numeric: tabular-nums; line-height: 1; letter-spacing: -.01em; }
 .hour-label.covered { opacity: 0; }
-.now-label { position: absolute; right: 4px; top: calc(var(--row) * var(--at)); transform: translateY(-50%); z-index: 2;
-  font-size: .68rem; font-weight: 700; color: #fff; background: var(--red); border-radius: 5px; padding: 2px 4px; line-height: 1;
+.now-label { position: absolute; right: 6px; top: calc(var(--row) * var(--at)); transform: translateY(-50%); z-index: 2;
+  font-size: .85rem; font-weight: 700; color: #fff; background: var(--red); border-radius: 6px; padding: 3px 5px; line-height: 1;
   font-variant-numeric: tabular-nums; }
-.col { position: relative; flex: 1; min-width: 0; border-bottom: 1px solid var(--line-hour); --lpad: 3px; --rpad: 8px; --gap: 3px; }
-.grid.week .col { --lpad: 1px; --rpad: 1px; --gap: 2px; border-left: .5px solid var(--line-half); }
-.grid.week .col.today { background: color-mix(in srgb, var(--red) 4%, transparent); }
+.col { position: relative; flex: 1; min-width: 0; --lpad: 3px; --rpad: 8px; --gap: 3px; }
+.grid.week .col { --lpad: 2px; --rpad: 2px; --gap: 3px; border-left: 1px solid var(--line-half); }
+.grid.week .col:first-of-type { border-left: 0; }
+.grid.week .col.today { background: color-mix(in srgb, var(--red) 6%, transparent); }
+.col.drop { background: color-mix(in srgb, var(--accent) 9%, transparent); }
 /* One button per 15 minutes: the tap target and the grid line on its top edge. */
-.slot { display: block; width: 100%; height: var(--row); min-height: 0; min-width: 0; box-sizing: border-box; border-top: 1px dashed var(--line-quarter); }
-.slot.hh { border-top: 1px solid var(--line-half); }
-.slot.h { border-top: 1px solid var(--line-hour); }
+.slot { display: block; width: 100%; height: var(--row); min-height: 0; min-width: 0; box-sizing: border-box; border: 0; }
 .slot.off { background: var(--offhours); }
+.slot:active { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 .slot:active { background: var(--fill); }
 
 .now-line { position: absolute; left: 0; right: 0; top: calc(var(--row) * var(--at)); height: 0; border-top: 2px solid var(--red);

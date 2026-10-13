@@ -1,4 +1,5 @@
 import type { Transaction } from 'dexie';
+import { t } from '../i18n/lt';
 
 export interface SchemaVersion {
   version: number;
@@ -18,4 +19,18 @@ export const versions: SchemaVersion[] = [
     },
   },
 ];
+// v2: every service defaults to 15 minutes. Services still carrying the old built-in lengths (45/90/120/120/60/30)
+// become 15; a length she set herself to anything else is kept.
+const OLD_DEFAULT_MINUTES = () => new Map<string, number>([
+  [t('service.default.cut'), 45], [t('service.default.color'), 90], [t('service.default.cutColor'), 120],
+  [t('service.default.highlights'), 120], [t('service.default.style'), 60], [t('service.default.other'), 30],
+]);
+versions.push({
+  version: 2,
+  stores: {},
+  upgrade: (tx) => {
+    const old = OLD_DEFAULT_MINUTES();
+    return tx.table('services').toCollection().modify((s: { name: string; minutes: number }) => { if (old.get(s.name) === s.minutes) s.minutes = 15; });
+  },
+});
 export const SCHEMA_VERSION = versions[versions.length - 1].version;

@@ -89,15 +89,13 @@ export async function restoreWithToast(id: string) {
   const { before } = await repo.restoreAppointment(id);
   showToast(t('toast.restored'), () => repo.putSnapshot(before));
 }
+/** "Atšaukti vizitą?": a plain confirmation, no reason to pick. */
 export function confirmCancel(id: string) {
-  const reasons: [CancelReason | null, 'cancel.reason.client' | 'cancel.reason.ill' | 'cancel.reason.other' | 'cancel.reason.none'][] = [
-    ['client', 'cancel.reason.client'], ['ill', 'cancel.reason.ill'], ['other', 'cancel.reason.other'], [null, 'cancel.reason.none'],
-  ];
   ui.set({
     action: {
       title: t('cancel.question'),
       items: [
-        ...reasons.map(([r, key]) => ({ label: t(key), onPress: () => void cancelWithToast(id, r) })),
+        { label: t('act.cancelAppt'), role: 'destructive' as const, onPress: () => void cancelWithToast(id, null) },
         { label: t('cancel.keep'), role: 'cancel' as const, onPress: () => {} },
       ],
     },

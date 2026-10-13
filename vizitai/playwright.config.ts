@@ -5,6 +5,8 @@ const PROD_PORT = process.env.E2E_PROD_PORT ?? '4180';
 const device = { ...devices['iPhone 17 Pro Max'], locale: 'lt-LT', timezoneId: 'Europe/Vilnius' };
 export default defineConfig({
   testDir: 'tests/e2e',
+  // On GitHub, failing tests become annotations (readable through the API) as well as log lines.
+  reporter: process.env.CI ? [['list'], ['github']] : 'list',
   fullyParallel: true,
   projects: [
     {

@@ -211,6 +211,8 @@ p.link-name { color: var(--label); }
   transform: translateY(calc(-1 * max(0px, calc(var(--kb, 0px) - env(safe-area-inset-bottom)))));
   background: var(--sheet); /* solid: a blur over a scrolling list makes it choppy on iOS */
   border-top: .5px solid var(--sep); transition: transform var(--t-med) var(--ease-out); }
+.sheet-bar { z-index: 30; animation: fade-in var(--t-med) var(--ease-out); }
+[data-leaving] .sheet-bar { animation: fade-out var(--t-fast) var(--ease-in) forwards; }
 .flow-pane { padding-bottom: calc(var(--s5) + 84px); }
 .flow-pane:first-child { padding-bottom: 140px; }
 /* keyboard up: the first pane is only the part above the keyboard and the button, so all of it is visible and scrolls on its own */

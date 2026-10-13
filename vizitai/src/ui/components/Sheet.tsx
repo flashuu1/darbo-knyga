@@ -16,8 +16,10 @@ const CLOSE_DISTANCE = 96; // px dragged down that closes
 const CLOSE_VELOCITY = 0.6; // px/ms flick that closes
 const NO_SWIPE = '.wheel, .picker-months, input, textarea, select, [data-no-sheet-swipe]'; // things that scroll or type sideways/vertically themselves
 
-export function Sheet({ title, left, right, onClose, onBackdrop, children, testId = 'sheet', variant = 'bottom' }: {
+export function Sheet({ title, left, right, bar, onClose, onBackdrop, children, testId = 'sheet', variant = 'bottom' }: {
   title: string; left?: ComponentChildren; right?: ComponentChildren; onClose: () => void;
+  /** A fixed bar at the bottom of the screen (above the keyboard while it is up), outside the sheet card. */
+  bar?: ComponentChildren;
   /** Tap on the dimmed area; defaults to onClose. */
   onBackdrop?: () => void;
   children: ComponentChildren; testId?: string; variant?: SheetVariant;
@@ -133,6 +135,7 @@ export function Sheet({ title, left, right, onClose, onBackdrop, children, testI
         </div>
         <div class="sheet-body" ref={bodyEl}>{children}</div>
       </div>
+      {bar}
     </div>
   );
 }

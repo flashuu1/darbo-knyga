@@ -119,3 +119,39 @@ test('the amount sheet and its buttons are comfortable touch targets and dismiss
   await expect(page.getByTestId('amount-sheet')).toHaveCount(0);
   expect(await amountOf(page, id)).toBeFalsy();
 });
+
+test('the Suma sheet opens the number pad and its confirm button sits at the bottom, riding above the keyboard', async ({ page }) => {
+  await openApp(page, '2026-10-14T10:40:00');
+  const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T09:00' }]);
+  await page.getByTestId(`entry-${id}`).click();
+  await expect(page.getByTestId('amount-sheet')).toBeVisible();
+  // the keyboard is raised inside the tap by the hidden field: it must already ask for the number pad
+  expect(await page.getByTestId('kb-primer').getAttribute('inputmode')).toBe('decimal');
+  expect(await page.getByTestId('amount-input').getAttribute('inputmode')).toBe('decimal');
+  const vh = page.viewportSize()!.height;
+  await page.waitForTimeout(450);
+  const closed = (await page.getByTestId('amount-confirm').boundingBox())!;
+  expect(closed.y + closed.height).toBeGreaterThan(vh - 60);
+  expect(closed.height).toBeGreaterThanOrEqual(44);
+  await page.evaluate(() => {
+    const vv = window.visualViewport!;
+    Object.defineProperty(vv, 'height', { configurable: true, get: () => window.innerHeight - 300 });
+    vv.dispatchEvent(new Event('resize'));
+  });
+  await expect.poll(async () => { const b = (await page.getByTestId('amount-confirm').boundingBox())!; return b.y + b.height; }).toBeLessThan(vh - 250);
+  // the options above stay: open the visit
+  await expect(page.getByTestId('amount-open-appt')).toBeVisible();
+  await page.getByTestId('amount-input').fill('30');
+  await page.getByTestId('amount-confirm').click();
+  await expect.poll(async () => (await apptState(page, id)).amountCents).toBe(3000);
+});
+
+test('a new booking raises the normal keyboard again after the number pad was used', async ({ page }) => {
+  await openApp(page, '2026-10-14T10:40:00');
+  const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T09:00' }]);
+  await page.getByTestId(`entry-${id}`).click();
+  await page.getByTestId('btn-dismiss').click();
+  await expect(page.getByTestId('amount-sheet')).toHaveCount(0);
+  await page.getByTestId('slot-2026-10-14T12:00').click();
+  expect(await page.getByTestId('kb-primer').getAttribute('inputmode')).toBe('text');
+});

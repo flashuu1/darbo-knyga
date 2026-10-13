@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { repo } from '../../db/repo';
 import { euroSign, formatAmountInput, parseAmountInput } from '../../i18n/format';
@@ -6,6 +7,7 @@ import { t } from '../../i18n/lt';
 import { closeSheet, openAppt } from '../actions';
 import { saveAmountWithToast } from '../amount';
 import { useLive } from '../hooks';
+import { useKeyboardHeight } from '../keyboard';
 import { Sheet } from './Sheet';
 
 /** Suma: what she took for a visit, in euros. Empty + confirm clears an entered amount. */
@@ -14,6 +16,7 @@ export function AmountSheet({ id }: { id: string }) {
   const client = useLive(async () => (appt?.clientId ? repo.getClient(appt.clientId) : undefined), [appt?.clientId], undefined);
   const [text, setText] = useState<string | null>(null);
   const input = useRef<HTMLInputElement>(null);
+  const kb = useKeyboardHeight();
   const busy = useRef(false);
   // The tap that opened the sheet focused the hidden primer, so the number keyboard is already up.
   useEffect(() => { input.current?.focus(); }, [appt !== undefined]);
@@ -35,7 +38,11 @@ export function AmountSheet({ id }: { id: string }) {
   return (
     <Sheet variant="dialog" title={t(appt.kind === 'expense' ? 'expense.amount' : 'amount.title')} onClose={closeSheet} testId="amount-sheet"
       left={<button data-testid="btn-dismiss" onClick={closeSheet}>{t('btn.dismiss')}</button>}
-      right={<button class="strong" data-testid="amount-confirm" disabled={!valid} onClick={confirm}>{t('amount.confirm')}</button>}>
+      bar={(
+        <div class="flow-bar sheet-bar" style={{ '--kb': `${kb}px` } as CSSProperties}>
+          <button class="primary" data-testid="amount-confirm" disabled={!valid} onClick={confirm}>{t('amount.confirm')}</button>
+        </div>
+      )}>
       <p class="amount-ctx" data-testid="amount-context">{client?.name ?? appt.title ?? ''} · {formatWhen(appt.start)}</p>
       <label class="amount-field">
         <input ref={input} data-testid="amount-input" inputMode="decimal" enterKeyHint="done" autocomplete="off" aria-label={t('amount.field')}

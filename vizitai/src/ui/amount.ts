@@ -8,7 +8,7 @@ import { ui } from './store';
 
 /** Opens the Suma sheet. Call synchronously from the tap so iOS raises the number keyboard (see primeKeyboard). */
 export function openAmount(id: string) {
-  primeKeyboard();
+  primeKeyboard('decimal');
   ui.set({ sheet: { type: 'amount', id } });
 }
 /** A tap on a calendar entry: a visit waiting for its amount opens Suma, everything else the appointment sheet. */

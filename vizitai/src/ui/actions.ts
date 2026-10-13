@@ -31,8 +31,11 @@ export const KB_PRIMER_ID = 'kb-primer';
  * up when focus then moves to another input. Call this first thing in every handler that opens the
  * New sheet (before any await); the sheet moves focus to the name field once it has rendered.
  */
-export function primeKeyboard() {
-  document.getElementById(KB_PRIMER_ID)?.focus({ preventScroll: true });
+export function primeKeyboard(mode: 'text' | 'decimal' = 'text') {
+  const el = document.getElementById(KB_PRIMER_ID) as HTMLInputElement | null;
+  if (!el) return;
+  el.inputMode = mode; // 'decimal' raises the number pad straight away (the keyboard type is fixed when it opens)
+  el.focus({ preventScroll: true });
 }
 export function openNew(start: string, extra: { clientId?: string; serviceId?: string; replaceId?: string } = {}) {
   primeKeyboard(); // slot and Kartoti taps call this synchronously from their tap handler

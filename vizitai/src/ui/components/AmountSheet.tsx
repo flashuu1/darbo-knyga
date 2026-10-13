@@ -10,8 +10,8 @@ import { useLive } from '../hooks';
 import { useKeyboardHeight } from '../keyboard';
 import { Sheet } from './Sheet';
 
-// iOS puts a Paste / autofill strip above the number pad that the viewport height does not include: stay clear of it
-const PASTE_BAR = 52;
+// iOS shows a strip (arrows and a tick) above the number pad: keep the bar just above it (measured from a screenshot on the iPhone, ~24 pt)
+const PASTE_BAR = 24;
 
 /** Suma: what she took for a visit, in euros. Empty + confirm clears an entered amount. */
 export function AmountSheet({ id }: { id: string }) {

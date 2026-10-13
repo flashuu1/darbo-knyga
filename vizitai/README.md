@@ -23,7 +23,7 @@ Run in this folder:
 
 The app is a GitHub Pages project site: repo `flashuu1/darbo-knyga`, URL **https://flashuu1.github.io/darbo-knyga/**. Prerequisite: Settings → Pages → Source is set to **GitHub Actions**. The origin `https://flashuu1.github.io` and the path `/darbo-knyga/` are permanent: her data lives in IndexedDB for that origin, so changing the account, repo name or path strands it. Other sites on the `flashuu1` account share the origin, so keep their IndexedDB names distinct from `vizitai`.
 
-The production build uses the base path from `site.config.json` (`VIZITAI_BASE` overrides it for experiments); `vite dev` and the e2e build use `/`. `npm run scan:bundle` fails if `dist/` does not match the base. A push to `main` runs `.github/workflows/deploy.yml` (lint, type-check, tests, build, bundle scan, then Pages). `ci.yml` also runs the e2e tests.
+The production build uses the base path from `site.config.json` (`VIZITAI_BASE` overrides it for experiments); `vite dev` and the e2e build use `/`. `npm run scan:bundle` fails if `dist/` does not match the base. A push to `main` runs `.github/workflows/deploy.yml` (lint, type-check, tests, build, bundle scan, then Pages). The e2e tests are not part of the GitHub pipeline: run `npm run e2e` locally before pushing.
 
 On the iPhone: open the URL in Safari, tap Share → Add to Home Screen, then always open the app from that icon.
 

@@ -19,6 +19,4 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npm run scan:bundle
-      - run: npx playwright install --with-deps webkit
-      - run: npm run e2e
-        env: { CI: 'true' }
+      # The browser (e2e) tests run on the developer machine before each push: npm run e2e

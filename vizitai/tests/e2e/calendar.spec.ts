@@ -12,6 +12,7 @@ test('entries render at their times and a bookings dot appears', async ({ page }
   await openApp(page);
   const [id] = await seedAppts(page, [{ name: 'Žydrūnė', start: '2026-10-14T10:00' }]);
   const entry = page.getByTestId(`entry-${id}`);
+  await expect(page.getByTestId('backup-banner')).toBeVisible(); // it shifts the grid; measure after it appears
   await expect(entry).toContainText('10:00');
   await expect(entry).toContainText('Žydrūnė');
   const slot = await page.getByTestId('slot-2026-10-14T10:00').boundingBox();

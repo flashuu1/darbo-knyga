@@ -2,7 +2,7 @@ import { useRef } from 'preact/hooks';
 import { repo } from '../../db/repo';
 import { formatWhen } from '../../i18n/format';
 import { t } from '../../i18n/lt';
-import { openAppt, openNew, repeatFrom } from '../actions';
+import { openAppt, openNew, primeKeyboard, repeatFrom } from '../actions';
 import { useLive } from '../hooks';
 import { statusLabel } from '../status';
 import { ui } from '../store';
@@ -37,6 +37,7 @@ export function ClientCard({ id }: { id: string }) {
   const book = async () => {
     if (booking.current) return;
     booking.current = true;
+    primeKeyboard(); // before the awaits, while still inside the tap
     try {
       await save();
       const start = await repo.defaultStartFor(ui.get().date);
@@ -44,6 +45,7 @@ export function ClientCard({ id }: { id: string }) {
       openNew(start, { clientId: id });
     } catch (e) {
       console.error(e);
+      (document.activeElement as HTMLElement | null)?.blur(); // drop the primed keyboard
     } finally {
       booking.current = false;
     }

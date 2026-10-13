@@ -11,6 +11,9 @@ import { useLive, useServices } from '../hooks';
 import { ui } from '../store';
 import { Sheet } from './Sheet';
 
+// Few enough that the chips and the time row stay reachable above the keyboard.
+const MAX_SUGGESTIONS = 3;
+
 export function NewSheet({ prefill }: { prefill: { start: string; clientId?: string; serviceId?: string } }) {
   const services = useServices(true);
   const [kind, setKind] = useState<'client' | 'personal'>('client');
@@ -21,21 +24,32 @@ export function NewSheet({ prefill }: { prefill: { start: string; clientId?: str
   const [clash, setClash] = useState<string | null>(null);
   const input = useRef<HTMLInputElement>(null);
   const matches = useLive(() => repo.searchClients(name), [name], [] as Client[]);
-  const sid = serviceId ?? services[0]?.id ?? null;
+  // A prefilled service (last used, or from Kartoti) may since have been hidden: fall back to the first chip.
+  const sid = services.some((s) => s.id === serviceId) ? serviceId : services[0]?.id ?? null;
   const [saving, setSaving] = useState(false);
   const busy = useRef(false);
   const canSave = cleanName(name).length > 0 && (kind === 'personal' || sid !== null);
 
+  const typed = useRef(false); // the owner has typed in or picked into the name field
+  // The tap that opened the sheet focused the hidden primer (iOS keyboard is up); hand focus to the name field.
   useEffect(() => { input.current?.focus(); }, []);
   useEffect(() => {
     if (prefill.clientId) void repo.getClient(prefill.clientId).then((c) => { if (c) void pick(c, !prefill.serviceId); });
   }, []);
 
   async function pick(c: Client, useLast = true) {
+    typed.current = true;
     setLinked(c); setName(c.name); setClash(null);
     if (useLast) { const last = await repo.lastServiceId(c.id); if (last) setServiceId(last); }
   }
   const touch = <T,>(set: (v: T) => void) => (v: T) => { set(v); setClash(null); };
+
+  // A tap on the dimmed area while she is typing only hides the keyboard; it never throws the booking away.
+  function onBackdrop() {
+    const el = input.current;
+    if (el && (name.length > 0 || (typed.current && document.activeElement === el))) { el.blur(); return; }
+    closeSheet();
+  }
 
   async function save() {
     if (!canSave || busy.current) return;
@@ -55,7 +69,7 @@ export function NewSheet({ prefill }: { prefill: { start: string; clientId?: str
   }
 
   return (
-    <Sheet title={t('sheet.new.title')} onClose={closeSheet}
+    <Sheet title={t('sheet.new.title')} onClose={closeSheet} onBackdrop={onBackdrop}
       left={<button data-testid="btn-dismiss" onClick={closeSheet}>{t('btn.dismiss')}</button>}
       right={<button class="strong" data-testid="btn-save" disabled={!canSave || saving} onClick={() => void save()}>{t('btn.save')}</button>}>
       <div class="segmented wide">
@@ -63,13 +77,14 @@ export function NewSheet({ prefill }: { prefill: { start: string; clientId?: str
           <button key={k} data-testid={`type-${k}`} class={kind === k ? 'seg on' : 'seg'} onClick={() => { setKind(k); setLinked(null); setClash(null); }}>{t(`type.${k}`)}</button>
         ))}
       </div>
-      <input ref={input} class="field" data-testid="field-name" value={name} autocomplete="off" autocapitalize="words"
+      <input ref={input} class="field" data-testid="field-name" value={name} autocomplete="off" autocapitalize="words" enterkeyhint="done"
         placeholder={kind === 'client' ? t('field.name') : t('field.title')}
-        onInput={(e) => { setName((e.target as HTMLInputElement).value); setLinked(null); setClash(null); }} />
+        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); (e.currentTarget as HTMLInputElement).blur(); } }}
+        onInput={(e) => { typed.current = true; setName((e.target as HTMLInputElement).value); setLinked(null); setClash(null); }} />
       {kind === 'client' && (
         <ul class="suggest">
           {!name.trim() && matches.length > 0 && <li class="suggest-head">{t('suggest.recent')}</li>}
-          {matches.filter((c) => c.id !== linked?.id).map((c, i) => (
+          {matches.filter((c) => c.id !== linked?.id).slice(0, MAX_SUGGESTIONS).map((c, i) => (
             <li key={c.id}><button data-testid={`suggest-${i}`} onClick={() => void pick(c)}>{c.name}</button></li>
           ))}
         </ul>

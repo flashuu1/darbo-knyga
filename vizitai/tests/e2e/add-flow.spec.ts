@@ -20,6 +20,7 @@ test('booking from an empty slot takes 3 taps plus typing the name', async ({ pa
     document.addEventListener('click', (e) => { if (e.isTrusted) (window as any).__taps++; }, true); // eslint-disable-line @typescript-eslint/no-explicit-any
   });
   await page.getByTestId('slot-2026-10-14T10:30').click();               // tap 1
+  await expect(page.getByTestId('field-name')).toBeFocused();             // keyboard up without a tap
   await page.getByTestId('field-name').fill('Žydrūnė');                  // typing, no tap (autofocus)
   await page.getByTestId('svc-1').click();                               // tap 2 (Dažymas)
   await page.getByTestId('btn-save').click();                            // tap 3
@@ -103,6 +104,7 @@ test('"+" proposes the next free slot today and dayStart on other days', async (
   await openApp(page, '2026-10-14T09:05:00');
   await page.getByTestId('btn-add').click();
   await expect.poll(() => page.evaluate(() => (window as any).__vizitai.ui.get().sheet?.start)).toBe('2026-10-14T09:15'); // eslint-disable-line @typescript-eslint/no-explicit-any
+  await expect(page.getByTestId('field-name')).toBeFocused();
   await page.getByTestId('btn-dismiss').click();
   await page.getByTestId('chip-2026-10-15').click();
   await page.getByTestId('btn-add').click();

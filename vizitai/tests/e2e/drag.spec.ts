@@ -1,5 +1,12 @@
 import { test, expect, type Page } from '@playwright/test';
-import { apptState, openApp, seedAppts } from './helpers';
+import { apptState, openApp, seedAppts as seedOnly } from './helpers';
+
+/** Seeding shows the backup banner a moment later, which pushes the grid down; measure only after that. */
+async function seedAppts(page: Page, list: Parameters<typeof seedOnly>[1]) {
+  const ids = await seedOnly(page, list);
+  await expect(page.getByTestId('backup-banner')).toBeVisible();
+  return ids;
+}
 
 /** Gesture listeners bind in a useEffect after paint; wait until they are attached (the contextmenu guard is one of them). */
 const bound = (page: Page, id: string) =>

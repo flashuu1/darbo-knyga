@@ -74,9 +74,12 @@ input, select { font: inherit; font-size: max(16px, 1rem); color: inherit; }
 .month-cell .count { font-size: .7rem; background: var(--blue); color: #fff; border-radius: 1rem; padding: 0 .4rem; }
 .col .entry.compact { padding: .1rem .25rem; }
 
-.sheet-root { position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-end; }
+/* Real, focusable, invisible: focused inside a tap so iOS raises the keyboard (see primeKeyboard). */
+.kb-primer { position: fixed; top: 0; left: 0; width: 1px; height: 1px; padding: 0; border: 0; opacity: 0; font-size: 16px; caret-color: transparent; pointer-events: none; }
+/* --vvh / --vvtop follow window.visualViewport while a sheet is open, so the sheet sits above the iOS keyboard. */
+.sheet-root { position: fixed; left: 0; right: 0; top: var(--vvtop, 0px); height: var(--vvh, 100dvh); z-index: 20; display: flex; align-items: flex-end; }
 .backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.35); animation: fade .3s; }
-.sheet { position: relative; width: 100%; max-height: 90dvh; display: flex; flex-direction: column; background: var(--bg); border-radius: 1.2rem 1.2rem 0 0;
+.sheet { position: relative; width: 100%; max-height: 90dvh; max-height: calc(var(--vvh, 100dvh) * .9); display: flex; flex-direction: column; background: var(--bg); border-radius: 1.2rem 1.2rem 0 0;
   padding-bottom: env(safe-area-inset-bottom); animation: rise .3s ease-out; }
 .grabber { width: 2.4rem; height: 5px; border-radius: 3px; background: var(--sep); margin: 6px auto 0; }
 .sheet-nav { display: flex; align-items: center; justify-content: space-between; padding: 0 .6rem; }

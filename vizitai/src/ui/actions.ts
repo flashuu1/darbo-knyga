@@ -14,11 +14,27 @@ export function showToast(text: string, undo?: () => Promise<void>) {
   ui.set({ toast: { id: ++toastId, text, undo } });
   toastTimer = window.setTimeout(() => ui.set({ toast: null }), 5000);
 }
+export const KB_PRIMER_ID = 'kb-primer';
+/**
+ * iOS raises the keyboard only for a focus() made synchronously inside the tap handler, and keeps it
+ * up when focus then moves to another input. Call this first thing in every handler that opens the
+ * New sheet (before any await); the sheet moves focus to the name field once it has rendered.
+ */
+export function primeKeyboard() {
+  document.getElementById(KB_PRIMER_ID)?.focus({ preventScroll: true });
+}
 export function openNew(start: string, extra: { clientId?: string; serviceId?: string } = {}) {
+  primeKeyboard(); // slot and Kartoti taps call this synchronously from their tap handler
   ui.set({ sheet: { type: 'new', start, ...extra } });
 }
 export async function openNewToday() {
-  openNew(await repo.defaultStartFor(ui.get().date));
+  primeKeyboard(); // before the await, while still inside the tap
+  try {
+    openNew(await repo.defaultStartFor(ui.get().date));
+  } catch (e) {
+    console.error(e);
+    (document.activeElement as HTMLElement | null)?.blur();
+  }
 }
 export const openAppt = (id: string) => ui.set({ sheet: { type: 'appt', id } });
 export const closeSheet = () => ui.set({ sheet: null });

@@ -66,6 +66,10 @@ describe('shareBackup', () => {
     vi.stubGlobal('navigator', { canShare: () => true, share: async () => { throw new DOMException('x', 'AbortError'); } });
     expect(await shareBackup('{}', 'x.json')).toBe('cancelled');
   });
+  it('treats any error named AbortError as a dismissed sheet', async () => {
+    vi.stubGlobal('navigator', { canShare: () => true, share: async () => { throw Object.assign(new Error('x'), { name: 'AbortError' }); } });
+    expect(await shareBackup('{}', 'x.json')).toBe('cancelled');
+  });
   it('reports shared on success', async () => {
     vi.stubGlobal('navigator', { canShare: () => true, share: async () => {} });
     expect(await shareBackup('{}', 'x.json')).toBe('shared');
@@ -77,5 +81,18 @@ describe('shareBackup', () => {
     vi.stubGlobal('URL', { createObjectURL: () => 'blob:x', revokeObjectURL: () => {} });
     expect(await shareBackup('{}', 'x.json')).toBe('downloaded');
     expect(click).toHaveBeenCalled();
+  });
+  it('defers revoking the object URL after a download', async () => {
+    vi.useFakeTimers();
+    try {
+      const revoke = vi.fn();
+      vi.stubGlobal('navigator', {});
+      vi.stubGlobal('document', { createElement: () => ({ click: () => {}, set href(_v: string) {}, set download(_v: string) {} }) });
+      vi.stubGlobal('URL', { createObjectURL: () => 'blob:x', revokeObjectURL: revoke });
+      await shareBackup('{}', 'x.json');
+      expect(revoke).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(1000);
+      expect(revoke).toHaveBeenCalledWith('blob:x');
+    } finally { vi.useRealTimers(); }
   });
 });

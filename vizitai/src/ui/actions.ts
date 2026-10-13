@@ -1,7 +1,9 @@
+import { db } from '../db/db';
 import { repo } from '../db/repo';
 import type { CancelReason } from '../db/types';
 import { formatDayShort, weekdayShort } from '../i18n/format';
 import { t } from '../i18n/lt';
+import { backupFileName, BackupError, exportData, importData, parseBackup, shareBackup, type BackupFile } from '../logic/backup';
 import { datePart, timePart } from '../logic/time';
 import { ui } from './store';
 
@@ -58,4 +60,46 @@ export function confirmCancel(id: string) {
       ],
     },
   });
+}
+
+let backingUp = false;
+export async function runBackup() {
+  if (backingUp) return;
+  backingUp = true;
+  try {
+    const json = JSON.stringify(await exportData(db));
+    const result = await shareBackup(json, backupFileName());
+    if (result === 'cancelled') return; // share sheet dismissed: nothing was saved
+    await repo.updateSettings({ lastBackupAt: new Date().toISOString() });
+    showToast(t('backup.exported'));
+  } catch (e) {
+    console.error(e);
+  } finally {
+    backingUp = false;
+  }
+}
+let importing = false;
+async function doImport(file: BackupFile) {
+  if (importing) return;
+  importing = true;
+  try {
+    await importData(db, file);
+    showToast(t('backup.imported'));
+  } catch (e) {
+    console.error(e);
+    showToast(t('backup.error.format'));
+  } finally {
+    importing = false;
+  }
+}
+export async function chooseImport(file: File) {
+  let parsed: BackupFile;
+  try { parsed = parseBackup(await file.text()); } catch (e) {
+    showToast(t(e instanceof BackupError && e.code === 'newer' ? 'backup.error.newer' : 'backup.error.format'));
+    return; // nothing was touched
+  }
+  ui.set({ action: { title: t('backup.confirm'), items: [
+    { label: t('backup.replace'), role: 'destructive', onPress: () => void doImport(parsed) },
+    { label: t('btn.dismiss'), role: 'cancel', onPress: () => {} },
+  ] } });
 }

@@ -51,7 +51,7 @@ export async function shareBackup(json: string, name: string): Promise<'shared' 
       await navigator.share({ files: [file] });
       return 'shared';
     } catch (e) {
-      if (e instanceof DOMException && e.name === 'AbortError') return 'cancelled';
+      if ((e as { name?: string })?.name === 'AbortError') return 'cancelled';
       throw e;
     }
   }
@@ -60,6 +60,6 @@ export async function shareBackup(json: string, name: string): Promise<'shared' 
   a.href = url;
   a.download = name;
   a.click();
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 1000); // revoking at once cancels the download in Safari/Firefox
   return 'downloaded';
 }

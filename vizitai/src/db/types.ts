@@ -9,3 +9,4 @@ export interface Appointment {
 }
 export interface Service { id: string; name: string; color: ServiceColor; minutes: number; order: number; active: boolean }
 export interface Settings { id: 'settings'; dayStart: string; dayEnd: string; slotMinutes: number; lastBackupAt: string | null; persistGranted: boolean | null }
+export const SERVICE_COLORS: ServiceColor[] = ['blue', 'green', 'indigo', 'orange', 'pink', 'purple', 'red', 'teal', 'yellow', 'gray'];

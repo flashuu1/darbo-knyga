@@ -95,7 +95,7 @@ The app stores four record types. Clients are created automatically from the typ
 Logic rules:
 
 1. On save, look up the typed name by `nameKey`. If it matches, link the existing client; if not, create a new client.
-2. The service's `minutes` is used only to size the block in the calendar and to detect overlaps. It never appears in a form.
+2. The service's `minutes` is used only to size the block in the calendar and to detect overlaps. It never appears in a booking form (it is edited only in Settings).
 3. An overlap means another `booked` appointment whose `[start, start + minutes)` intersects the new one. Overlaps warn but never block the save.
 4. Search compares `nameKey` with the folded query. `localeCompare` cannot be used here: under `lt` rules "Z" and "Ž" are different letters.
 5. Client lists sort with `Intl.Collator('lt')`.
@@ -113,7 +113,7 @@ The app opens on today's day view. A bottom tab bar has three tabs: Kalendorius,
 | New appointment sheet | Bottom sheet, see [Add appointment flow](#add-appointment-flow). | Opened by "+" in the nav bar or by tapping an empty row. |
 | Clients | Search field and alphabetical list (`Intl.Collator('lt')`) with the last visit date under each name. | Tap a client to open the card. |
 | Client card | Name (editable), optional phone, upcoming visits, past visits, visit count, cancellation and no-show count. "Registruoti" button. | "Registruoti" opens the new appointment sheet with the client filled in. |
-| Settings | Services (rename, reorder, colour, hide), working hours, backup export and import, storage status, app version. | |
+| Settings | Services (add, rename, reorder, colour, length in minutes, hide), working hours, backup export and import, storage status, app version. | |
 | Install screen | Shown only when the app is opened in a Safari tab: steps to add it to the Home Screen. | |
 
 ## Add appointment flow

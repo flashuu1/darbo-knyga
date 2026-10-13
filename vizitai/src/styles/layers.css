@@ -213,3 +213,20 @@ p.link-name { color: var(--label); }
   border-top: .5px solid var(--sep); transition: bottom var(--t-med) var(--ease-out); }
 .flow-pane { padding-bottom: calc(var(--s5) + 84px); }
 .flow-pane:first-child { padding-bottom: calc(var(--kb, 0px) + 140px); }
+
+/* switching Diena / Savaitė / Mėnuo: the new view eases in */
+.view-anim { animation: view-in 340ms var(--ease-spring) both; }
+@keyframes view-in { from { opacity: 0; transform: translateY(10px) scale(.985); } }
+.grid-pad { will-change: transform; }
+/* the empty-day message fades by itself (and at once when she scrolls) */
+.empty-overlay { transition: opacity 600ms var(--ease-out); }
+.empty-overlay.gone { opacity: 0; }
+.empty-card { background: color-mix(in srgb, var(--page) 70%, transparent); box-shadow: var(--shadow-1); }
+/* zoomed out: entries drop details so the whole day can be seen at a glance */
+.timeline[data-density='tight'] .entry { padding-top: 0; padding-bottom: 0; }
+.timeline[data-density='tight'] .entry-svc, .timeline[data-density='tight'] .one-svc, .timeline[data-density='tight'] .entry-amount, .timeline[data-density='tight'] .entry-flag { display: none; }
+.timeline[data-density='tight'] .entry-name, .timeline[data-density='tight'] .entry-time { font-size: .68rem; line-height: 1.1; }
+.timeline[data-density='tight'] .entry.one { align-items: center; }
+.timeline[data-density='tiny'] .entry > span, .timeline[data-density='tiny'] .entry .one-wrap { display: none; }
+.timeline[data-density='tiny'] .entry { padding: 0; border-radius: 3px; }
+.timeline[data-density='tight'] .hour-label, .timeline[data-density='tiny'] .hour-label { font-size: .8rem; }

@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'preact';
-import { useEffect, useRef } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { repo, type Entry } from '../../db/repo';
 import { layoutLanes, visibleRange } from '../../logic/layout';
 import { addDays, datePart, hhmm, minutesOfDay } from '../../logic/time';
@@ -9,7 +9,7 @@ import { useNow } from '../clock';
 import { useLive, useSettings } from '../hooks';
 import { CalendarIcon } from '../icons';
 import { ui, useStore } from '../store';
-import { useSwipe } from '../swipe';
+import { clampZoom, densityFor, pinchZoom, saveZoom } from '../../logic/zoom';
 import { EntryBlock } from './EntryBlock';
 
 const toMin = (hm: string) => +hm.slice(0, 2) * 60 + +hm.slice(3, 5);
@@ -29,8 +29,11 @@ export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; com
   const rows = (endMin - startMin) / 15;
   const workFrom = toMin(settings.dayStart), workTo = toMin(settings.dayEnd);
   const scroller = useRef<HTMLDivElement>(null);
-  const swipe = useSwipe(onSwipe);
-  const { drag } = useStore(ui);
+  const { drag, zoom } = useStore(ui);
+  const live = useRef({ startMin: 0, rows: 1, onSwipe });
+  const skipAnim = useRef(false);
+  const ownScroll = useRef(0); // until when scroll events come from the app itself, not from her finger
+  live.current = { startMin, rows, onSwipe };
   const nowMin = minutesOfDay(now);
   const showNow = dates.includes(today) && nowMin >= startMin && nowMin < endMin;
 
@@ -47,6 +50,7 @@ export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; com
     const rowPx = col.offsetHeight / rows;
     const colTop = col.getBoundingClientRect().top - el.getBoundingClientRect().top + el.scrollTop;
     const lead = dates.includes(datePart(now)) ? el.clientHeight * 0.3 : 0; // "now" sits a third of the way down
+    ownScroll.current = performance.now() + 300;
     el.scrollTop = Math.max(0, colTop + ((Math.max(target, startMin) - startMin) / 15) * rowPx - lead);
   }, [first, last, loaded]);
 
@@ -55,6 +59,7 @@ export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; com
   useEffect(() => {
     const el = scroller.current;
     if (!el || prevFirst.current === first) return;
+    if (skipAnim.current) { skipAnim.current = false; prevFirst.current = first; return; }
     const dir = first > prevFirst.current ? 1 : -1;
     prevFirst.current = first;
     if (ui.get().drag || !el.animate || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -64,13 +69,132 @@ export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; com
     );
   }, [first]);
 
+  // The empty-day message shows for a moment when an empty day opens, and fades out by itself or as soon as she scrolls.
+  const emptyDay = loaded && entries.length === 0 && dates.length === 1;
+  const [emptyShown, setEmptyShown] = useState(false);
+  useEffect(() => {
+    if (!emptyDay) { setEmptyShown(false); return; }
+    setEmptyShown(true);
+    const id = window.setTimeout(() => setEmptyShown(false), 2600);
+    return () => clearTimeout(id);
+  }, [emptyDay, first]);
+
+  // Gestures on the timeline: two fingers zoom the hours (apart = more hours in view), one finger sideways
+  // slides to the next/previous day or week, following the finger.
+  useEffect(() => {
+    const el = scroller.current;
+    const root = el?.parentElement;
+    const pad = el?.querySelector<HTMLElement>('.grid-pad');
+    if (!el || !root || !pad) return;
+    type Pinch = { d0: number; z0: number; z: number; anchorMin: number };
+    let pinch: Pinch | null = null;
+    let slide: { x0: number; y0: number; t0: number; dx: number; lock: 'h' | 'v' | null } | null = null;
+    const dist = (t: TouchList) => Math.hypot(t[0]!.clientX - t[1]!.clientX, t[0]!.clientY - t[1]!.clientY);
+    const col = () => el.querySelector<HTMLElement>('.col');
+    const rowPx = () => (col()?.offsetHeight ?? 44) / live.current.rows;
+    const minuteAt = (y: number) => live.current.startMin + ((y - (col()?.getBoundingClientRect().top ?? 0)) / rowPx()) * 15;
+
+    const start = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        slide = null; pad.style.transition = 'none'; pad.style.transform = '';
+        const midY = (e.touches[0]!.clientY + e.touches[1]!.clientY) / 2;
+        pinch = { d0: dist(e.touches), z0: ui.get().zoom, z: ui.get().zoom, anchorMin: minuteAt(midY) };
+      } else if (e.touches.length === 1 && !pinch && !ui.get().drag) {
+        const p = e.touches[0]!;
+        slide = { x0: p.clientX, y0: p.clientY, t0: performance.now(), dx: 0, lock: null };
+      }
+    };
+    const move = (e: TouchEvent) => {
+      if (pinch && e.touches.length === 2) {
+        e.preventDefault();
+        pinch.z = pinchZoom(pinch.z0, pinch.d0, dist(e.touches));
+        root.style.setProperty('--zoom', String(pinch.z));
+        const midY = (e.touches[0]!.clientY + e.touches[1]!.clientY) / 2;
+        const c = col();
+        if (c) { // keep the time between her fingers where it was
+          const top = c.getBoundingClientRect().top - el.getBoundingClientRect().top + el.scrollTop;
+          ownScroll.current = performance.now() + 300;
+          el.scrollTop = top + ((pinch.anchorMin - live.current.startMin) / 15) * rowPx() - (midY - el.getBoundingClientRect().top);
+        }
+        return;
+      }
+      if (!slide || e.touches.length !== 1) return;
+      if (ui.get().drag) { slide = null; return; } // a long-press drag is never a swipe
+      const p = e.touches[0]!;
+      const dx = p.clientX - slide.x0, dy = p.clientY - slide.y0;
+      if (!slide.lock) {
+        if (Math.abs(dx) > 10 && Math.abs(dx) > 1.5 * Math.abs(dy)) slide.lock = 'h';
+        else if (Math.abs(dy) > 10) slide.lock = 'v';
+      }
+      if (slide.lock === 'h' && live.current.onSwipe) {
+        e.preventDefault();
+        slide.dx = dx;
+        pad.style.transition = 'none';
+        pad.style.transform = `translateX(${dx * 0.9}px)`;
+      }
+    };
+    const finish = (e: TouchEvent) => {
+      if (pinch) {
+        if (e.touches.length < 2) {
+          const z = clampZoom(pinch.z);
+          pinch = null;
+          saveZoom(z);
+          ui.set({ zoom: z });
+        }
+        return;
+      }
+      const s = slide;
+      slide = null;
+      if (!s) return;
+      const p = e.changedTouches[0];
+      const dx = s.lock === 'h' ? s.dx : p ? p.clientX - s.x0 : 0;
+      const dy = p ? p.clientY - s.y0 : 0;
+      const velocity = Math.abs(dx) / Math.max(1, performance.now() - s.t0);
+      const go = !!live.current.onSwipe && ((Math.abs(dx) > 70 && Math.abs(dx) > 1.6 * Math.abs(dy)) || (s.lock === 'h' && velocity > 0.6 && Math.abs(dx) > 30));
+      if (!go) {
+        if (s.lock === 'h') { pad.style.transition = 'transform var(--t-med) var(--ease-spring)'; pad.style.transform = ''; }
+        return;
+      }
+      const dir: 1 | -1 = dx < 0 ? 1 : -1;
+      const w = el.clientWidth;
+      skipAnim.current = true;
+      pad.style.transition = 'transform 130ms cubic-bezier(.4,0,1,1), opacity 130ms';
+      pad.style.transform = `translateX(${-dir * w * 0.55}px)`;
+      pad.style.opacity = '.15';
+      window.setTimeout(() => {
+        live.current.onSwipe?.(dir);
+        pad.style.transition = 'none';
+        pad.style.transform = `translateX(${dir * w * 0.45}px)`;
+        void pad.offsetWidth; // apply that start position, then glide in
+        pad.style.transition = 'transform 340ms cubic-bezier(.32,.72,0,1), opacity 260ms ease-out';
+        pad.style.transform = '';
+        pad.style.opacity = '';
+        window.setTimeout(() => { pad.style.transition = ''; }, 360);
+      }, 130);
+    };
+    const cancel = () => { pinch = null; slide = null; };
+    const onScroll = () => { if (performance.now() > ownScroll.current) setEmptyShown(false); };
+    el.addEventListener('touchstart', start, { passive: true });
+    el.addEventListener('touchmove', move, { passive: false });
+    el.addEventListener('touchend', finish);
+    el.addEventListener('touchcancel', cancel);
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      el.removeEventListener('touchstart', start);
+      el.removeEventListener('touchmove', move);
+      el.removeEventListener('touchend', finish);
+      el.removeEventListener('touchcancel', cancel);
+      el.removeEventListener('scroll', onScroll);
+    };
+  }, []);
+
   const hours: number[] = [];
   for (let m = startMin; m <= endMin; m += 60) hours.push(m);
   const rowStyle = (m: number) => ({ '--at': (m - startMin) / 15 }) as CSSProperties;
 
   return (
-    <div class="timeline">
-      <div class="grid-scroll" ref={scroller} data-testid="timeline" {...swipe}>
+    <div class="timeline view-anim" data-density={densityFor(zoom)} style={{ '--zoom': zoom } as CSSProperties}>
+      <div class="grid-scroll" ref={scroller} data-testid="timeline">
         <div class="grid-pad">
           <div class={compact ? 'grid week' : 'grid'} style={{ '--rows': rows } as CSSProperties}>
             <div class="gutter" aria-hidden="true">
@@ -122,8 +246,8 @@ export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; com
           </div>
         </div>
       </div>
-      {loaded && entries.length === 0 && dates.length === 1 && (
-        <div class="empty-overlay" data-testid="empty-day-wrap" aria-live="polite">
+      {emptyDay && (
+        <div class={emptyShown ? 'empty-overlay' : 'empty-overlay gone'} data-testid="empty-day-wrap" aria-live="polite">
           <div class="empty-card">
             <span class="empty-icon"><CalendarIcon /></span>
             <p data-testid="empty-day">{t('empty.day')}</p>

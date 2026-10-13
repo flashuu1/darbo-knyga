@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { Entry } from '../db/repo';
 import { todayStr } from '../logic/time';
+import { loadZoom } from '../logic/zoom';
 import type { Tab } from './components/TabBar';
 
 export interface Store<T> { get(): T; set(p: Partial<T>): void; subscribe(l: () => void): () => void }
@@ -29,9 +30,9 @@ export interface ActionItem { label: string; role?: 'destructive' | 'cancel'; on
 export interface UiState {
   tab: Tab; view: 'day' | 'week' | 'month'; date: string;
   sheet: Sheet | null; client: string | null; toast: ToastState | null; highlight: string | null;
-  drag: DragState | null; action: { title?: string; items: ActionItem[] } | null;
+  zoom: number; drag: DragState | null; action: { title?: string; items: ActionItem[] } | null;
 }
 export const ui = createStore<UiState>({
-  tab: 'calendar', view: 'day', date: todayStr(), sheet: null, client: null, toast: null, highlight: null, drag: null, action: null,
+  tab: 'calendar', view: 'day', date: todayStr(), sheet: null, client: null, toast: null, highlight: null, zoom: loadZoom(), drag: null, action: null,
 });
 export const isBusy = () => { const s = ui.get(); return !!(s.sheet || s.action || s.client || s.drag); };

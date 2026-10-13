@@ -49,9 +49,9 @@ export function CalendarScreen() {
             <BackupIcon /><span>{t('backup.banner')}</span>
           </button>
         )}
-        {view === 'day' && <WeekStrip />}
+        {view === 'day' && <div key="strip" class="view-anim"><WeekStrip /></div>}
         {view === 'week' && (
-          <div class="weekhead">
+          <div class="weekhead view-anim" key="weekhead">
             {days.map((d) => (
               <button key={d} data-testid={`weekhead-${d}`} class={d === today ? 'wh today' : 'wh'} onClick={() => ui.set({ view: 'day', date: d })}>
                 <span>{weekdayShort(d)}</span><b>{+d.slice(8, 10)}</b>
@@ -60,8 +60,8 @@ export function CalendarScreen() {
           </div>
         )}
       </header>
-      {view === 'day' && <TimelineGrid dates={[date]} compact={false} onSwipe={step} />}
-      {view === 'week' && <TimelineGrid dates={days} compact onSwipe={step} />}
+      {view === 'day' && <TimelineGrid key="day" dates={[date]} compact={false} onSwipe={step} />}
+      {view === 'week' && <TimelineGrid key="week" dates={days} compact onSwipe={step} />}
       {view === 'month' && <MonthGrid onSwipe={step} />}
     </section>
   );

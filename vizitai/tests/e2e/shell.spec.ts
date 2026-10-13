@@ -43,8 +43,8 @@ test.describe('the document is locked like a native app', () => {
     // the window itself never scrolls (not even programmatically, e.g. by iOS revealing a field)
     await page.evaluate(() => window.scrollTo(0, 400));
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
-    // the timeline does scroll
-    const moved = await page.getByTestId('timeline').evaluate((el) => { const a = el.scrollTop; el.scrollTop = a + 200; return el.scrollTop !== a; });
+    // the timeline does scroll (up or down, depending on where the time of day left it)
+    const moved = await page.getByTestId('timeline').evaluate((el) => { const a = el.scrollTop; el.scrollTop = a > 300 ? a - 200 : a + 200; return el.scrollTop !== a; });
     expect(moved).toBe(true);
   });
 

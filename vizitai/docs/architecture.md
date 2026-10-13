@@ -299,3 +299,13 @@ While typing a name (from the first letters; "contains" matches from 2 letters) 
 ## Service lengths
 
 Every service defaults to 15 minutes; the length is edited per service in Nustatymai → Paslaugos and is remembered. A one-time migration (schema v2) turned the old built-in lengths (45/90/120/120/60/30) into 15; lengths she set herself are kept.
+
+## Swipes, zoom and deleting
+
+- **Delete by swiping.** In Klientai and in Nustatymai → Paslaugos, swiping a row to the left reveals a red trash button. A client is deleted after a confirmation, together with their visits (the toast offers "Anuliuoti"). A service that visits still use is only hidden (their labels must not vanish); the last active service cannot be deleted.
+- **Cancelled visits in Klientai.** Cancelled visits that have not yet been removed (7 days) are listed under "Atšaukti vizitai" at the bottom; tapping one offers "Atnaujinti vizitą", "Pakeisti nauju vizitu" or "Ištrinti visam laikui".
+- **Status.** A visit reads "Laukiama" while it is ahead, "Nepatvirtinta" once its time has passed without an amount, "Įvyko" once the amount is in; cancelled and no-show are "Atšaukta" / "Neatvyko".
+- **Main button of the booking flow** ("Toliau" / "Išsaugoti") is at the bottom of every screen and rides up above the keyboard while it is open.
+- **Sheets** (visit, move) close by swiping down from anywhere on them while their content is not scrolled, or from the handle.
+- **Zoom.** Two fingers on the timeline (Diena and Savaitė): fingers apart show more hours at once, fingers together make them bigger; the zoom is remembered and the time between the fingers stays put. Zoomed far out, a whole working day fits on one screen.
+- **Motion.** Swiping sideways on the timeline slides the day/week with the finger and glides to the next one; switching Diena/Savaitė/Mėnuo eases the new view in; the empty-day message fades out by itself and as soon as the calendar is scrolled.

@@ -38,6 +38,27 @@ describe('backup round trip', () => {
   });
 });
 
+describe('import keeps device-specific state', () => {
+  it("keeps this device's persistGranted instead of the file's", async () => {
+    const { db } = await seeded();
+    const file = await exportData(db);
+    file.settings = file.settings.map((x) => ({ ...x, persistGranted: false, dayStart: '09:00' }));
+    await db.settings.update('settings', { persistGranted: true });
+    await importData(db, file);
+    expect(await db.settings.get('settings')).toMatchObject({ persistGranted: true, dayStart: '09:00' });
+  });
+  it('a file without a settings record gets default settings, so the next launch does not re-seed services', async () => {
+    const { db } = await seeded();
+    const file = await exportData(db);
+    file.settings = [];
+    await importData(db, file);
+    expect(await db.settings.get('settings')).toMatchObject({ dayStart: '08:00', dayEnd: '20:00' });
+    const services = await db.services.count();
+    await ensureSeed(db);
+    expect(await db.services.count()).toBe(services);
+  });
+});
+
 describe('import validation (existing data untouched on failure)', () => {
   it('rejects non-JSON, foreign JSON and wrong shapes', () => {
     for (const bad of ['not json', '{}', '{"app":"other"}', JSON.stringify({ app: 'vizitai', schemaVersion: 1, clients: 'x' })]) {

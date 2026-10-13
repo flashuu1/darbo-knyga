@@ -54,3 +54,22 @@ test('swiping the month grid moves to the next and previous month', async ({ pag
   await swipe(120);
   await expect(page.getByTestId('title')).toHaveText('rugsėjis 2026');
 });
+
+test('in Week view, two overlapping entries stay inside their own day column', async ({ page }) => {
+  await openApp(page);
+  const ids = await seedAppts(page, [{ name: 'Ona', start: '2026-10-15T10:00' }, { name: 'Jonas', start: '2026-10-15T10:15' }]);
+  await page.getByTestId('seg-week').click();
+  await expect(page.getByTestId(`entry-${ids[1]}`)).toBeVisible();
+  // one frame, so a late scroll cannot skew the comparison
+  const geo = await page.getByTestId('col-2026-10-15').evaluate((col, list) => {
+    const c = col.getBoundingClientRect();
+    return list.map((id) => {
+      const r = col.querySelector(`[data-entry-id="${id}"]`)!.getBoundingClientRect();
+      return { insideLeft: r.left >= c.left - 0.5, insideRight: r.right <= c.right + 0.5, width: r.width, half: c.width / 2 };
+    });
+  }, ids);
+  for (const g of geo) {
+    expect(g).toMatchObject({ insideLeft: true, insideRight: true });
+    expect(g.width).toBeLessThanOrEqual(g.half + 0.5);
+  }
+});

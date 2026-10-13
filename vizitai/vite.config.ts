@@ -12,7 +12,9 @@ export default defineConfig({
     VitePWA({
       registerType: 'prompt',
       injectRegister: false,
-      includeAssets: ['apple-touch-icon.png', 'icon.svg'],
+      // globPatterns already precache every icon; the plugin would list the manifest icons (and the
+      // manifest) a second time. It adds manifest.webmanifest itself, so the glob leaves it out.
+      includeManifestIcons: false,
       manifest: {
         name: 'Vizitai', short_name: 'Vizitai', lang: 'lt',
         display: 'standalone', orientation: 'portrait',
@@ -24,7 +26,7 @@ export default defineConfig({
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
-      workbox: { globPatterns: ['**/*.{js,css,html,png,svg,webmanifest}'], navigateFallback: 'index.html' },
+      workbox: { globPatterns: ['**/*.{js,css,html,png,svg}'], navigateFallback: 'index.html' },
     }),
   ],
   build: { target: 'es2022' },

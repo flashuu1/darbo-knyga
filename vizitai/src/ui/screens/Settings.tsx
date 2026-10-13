@@ -4,7 +4,7 @@ import { repo } from '../../db/repo';
 import { SERVICE_COLORS } from '../../db/types';
 import { formatDayShort } from '../../i18n/format';
 import { t } from '../../i18n/lt';
-import { todayStr } from '../../logic/time';
+import { snapClock, todayStr } from '../../logic/time';
 import { chooseImport, runBackup, showToast } from '../actions';
 import { useServices, useSettings } from '../hooks';
 
@@ -22,8 +22,10 @@ export function SettingsScreen() {
     try { await repo.updateService(id, { name }); } catch (e) { console.error(e); }
     setTick((x) => x + 1); // remount the input so it shows the stored name (a blank edit is ignored)
   }
-  async function setHour(field: 'dayStart' | 'dayEnd', v: string) {
-    if (!v) return;
+  async function setHour(field: 'dayStart' | 'dayEnd', raw: string) {
+    if (!raw) return;
+    const v = snapClock(raw);
+    if (v !== raw) setTick((x) => x + 1); // remount so the field shows the snapped value even if it is unchanged
     const next = { ...settings, [field]: v };
     if (next.dayStart >= next.dayEnd) { showToast(t('hours.invalid')); setTick((x) => x + 1); return; }
     try { await repo.updateSettings({ [field]: v }); } catch (e) { console.error(e); }

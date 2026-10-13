@@ -45,7 +45,7 @@ input, select { font: inherit; font-size: max(16px, 1rem); color: inherit; }
 .col { position: relative; flex: 1; min-width: 0; border-left: .5px solid var(--sep); }
 .slot { display: block; width: 100%; height: var(--row); min-height: var(--row); border-bottom: .5px dotted var(--sep); }
 .slot.hour-line { border-top: .5px solid var(--sep); }
-.entry { position: absolute; box-sizing: border-box; padding: .2rem .4rem; text-align: left; overflow: hidden; border-radius: .5rem; border-left: 4px solid var(--svc);
+.entry { position: absolute; box-sizing: border-box; min-width: 0; /* the global 44px button min-width made overlapping entries spill into the next Week column */ padding: .2rem .4rem; text-align: left; overflow: hidden; border-radius: .5rem; border-left: 4px solid var(--svc);
   background: color-mix(in srgb, var(--svc) 18%, var(--card)); display: flex; flex-direction: column; min-height: 0;
   -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; touch-action: pan-y; }
 .entry-time { font-size: .72rem; color: var(--label2); }

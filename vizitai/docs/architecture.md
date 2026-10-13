@@ -123,7 +123,7 @@ Target: tap an empty slot, type the name, tap a service, tap Save. Every other v
 The sheet ("Naujas vizitas") has four rows, top to bottom:
 
 1. **Type.** Segmented control "Klientas | Asmeninis", defaulting to Klientas.
-2. **Name.** Autofocused text field, keyboard open. While it is empty, it lists the 5 most recent clients. While typing, it lists matching clients from a diacritic-insensitive `nameKey` search. Tapping a match fills the field and links that client. For Asmeninis entries this field becomes "Pavadinimas".
+2. **Name.** Autofocused text field, keyboard open. While it is empty, it lists the most recent clients. While typing, it lists matching clients from a diacritic-insensitive `nameKey` search. At most 3 suggestions are shown, so the service chips stay reachable above the keyboard. A tap outside the sheet while a name is typed only hides the keyboard; "Atšaukti" closes the sheet. Tapping a match fills the field and links that client. For Asmeninis entries this field becomes "Pavadinimas".
 3. **Service.** One row of chips, single select. The default is the linked client's last service, otherwise the first service in the list. Hidden for Asmeninis.
 4. **Time.** One row showing the prefilled date and time, for example "spalio 14 d., tr · 10:30". Tapping it opens the native iOS date and time wheels in 15-minute steps.
 
@@ -180,7 +180,7 @@ The app copies iOS system patterns rather than inventing its own: large-title na
 | Colour | iOS system palette, light and dark through `prefers-color-scheme`. Each service has one colour, used as the entry's left bar and tint. |
 | Shell | Manifest `display: standalone`. `viewport-fit=cover` and `env(safe-area-inset-*)` padding. 180×180 `apple-touch-icon`. `theme-color` and the status-bar style meta tag. |
 | Touch | Targets at least 44 × 44 pt. `-webkit-touch-callout: none` and `user-select: none` on entries so long-press never opens the text callout. `overscroll-behavior: none`. No double-tap zoom. |
-| Inputs | Font size at least 16 px so iOS does not zoom on focus. Native `<input type="date">` and `<input type="time">` to get the iOS wheels. Those wheels follow the phone's system language. |
+| Inputs | Font size at least 16 px so iOS does not zoom on focus. The build uses one native `<input type="datetime-local">` (laid transparently over its row) to get the iOS date and time wheels; values are snapped to 15 minutes in code, because iOS ignores `step`. Working hours use `<input type="time">`, snapped the same way. The wheels follow the phone's system language. |
 | Motion | Sheet and push transitions 250–350 ms. Disabled under `prefers-reduced-motion`. |
 | Feedback | No haptics are available, so every action shows a visual state change and a toast. |
 | Empty states | Plain Lithuanian sentences, for example "Šią dieną vizitų nėra", with one obvious next action. |

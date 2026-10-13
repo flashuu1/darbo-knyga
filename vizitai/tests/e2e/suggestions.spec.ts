@@ -56,6 +56,13 @@ test('Kartoti on the client card repeats the latest visit', async ({ page }) => 
   await page.getByTestId('action-item-2').click(); // 8 weeks
   await expect(page.getByTestId('time-value')).toHaveText('lapkričio 26 d., kt · 09:30'); // 2026-10-01 + 56 days (Thursday)
   await expect(page.getByTestId('svc-1')).toHaveClass(/on/);
+  // like Registruoti: the card closes and the calendar (Day view) is behind the sheet, so the new entry is seen
+  await expect(page.getByTestId('client-card')).toHaveCount(0);
+  await expect(page.getByTestId('calendar')).toBeVisible();
+  expect(await page.evaluate(() => (window as any).__vizitai.ui.get().view)).toBe('day');
+  await page.getByTestId('btn-save').click();
+  await expect(page.getByTestId('sheet')).toHaveCount(0);
+  await expect(page.getByTestId('col-2026-11-26')).toContainText('Ona');
 });
 
 test('smart defaults: the next free slot skips today’s booking, recent clients come first, last service is preselected', async ({ page }) => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { addDays, addMinutes, format, parse, snap, timePart, weekStart, nowLocal, minutesOfDay, hhmm } from '../../src/logic/time';
+import { addDays, addMinutes, format, parse, snap, snapClock, timePart, weekStart, nowLocal, minutesOfDay, hhmm } from '../../src/logic/time';
 
 describe('wall-clock time', () => {
   it('keeps 10:00 on the DST change day (2026-10-25)', () => {
@@ -40,4 +40,15 @@ describe('wall-clock time', () => {
   it('rejects malformed strings', () => {
     expect(() => parse('2026-10-14 10:00')).toThrow();
   });
+});
+
+describe('snapClock (working hours; iOS ignores step)', () => {
+  it('rounds to the 15-minute grid', () => {
+    expect(snapClock('08:07')).toBe('08:00');
+    expect(snapClock('08:08')).toBe('08:15');
+    expect(snapClock('08:00')).toBe('08:00');
+    expect(snapClock('19:52')).toBe('19:45');
+    expect(snapClock('19:53')).toBe('20:00');
+  });
+  it('never rolls past midnight', () => expect(snapClock('23:58')).toBe('23:45'));
 });

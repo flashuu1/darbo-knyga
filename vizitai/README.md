@@ -1,21 +1,49 @@
 # Vizitai
 
-An iPhone appointment book for a hairdresser, in Lithuanian. It runs as a Home Screen web app served from GitHub Pages, and all data stays on the phone.
+An iPhone appointment book for a hairdresser, in Lithuanian. It replaces her paper book: a Home Screen web app (PWA) served as static files from GitHub Pages. It works offline, all data stays in IndexedDB on the phone, and there is no backend. Stack: Vite, TypeScript, Preact, Dexie; Vitest and Playwright (WebKit, iPhone profile) for tests.
 
-Status: planning. There is no application code yet.
+Status: all milestones M0–M8 are built and tested locally. Nothing has been pushed yet, so the CI and deploy workflows have **not** run on GitHub.
+
+## Scripts
+
+Run in this folder:
+
+| Command | What it does |
+| --- | --- |
+| `npm ci` | Install exact dependencies |
+| `npm run dev` | Dev server. A normal browser tab shows only the install screen; to use the app on a computer, run `npm run build:e2e && npm run preview:e2e` (test build, treated as installed) and open http://localhost:4173 |
+| `npm test` | Unit tests (Vitest) |
+| `npm run e2e` | End-to-end tests (Playwright, WebKit iPhone). First time: `npx playwright install webkit` |
+| `npm run build` | Type-check and production build into `dist/` |
+| `npm run typecheck` | TypeScript only |
+| `npm run lint` | ESLint |
+| `npm run scan:bundle` | After a build: fails on English UI strings in the bundle or a broken service-worker precache list |
+
+## Deploy
+
+Prerequisite: the GitHub repo is named `<account>.github.io` (the origin can't change after go-live without moving her data), and Settings → Pages → Source is set to **GitHub Actions**. A push to `main` runs `.github/workflows/deploy.yml` (lint, type-check, tests, build, bundle scan, then Pages). `ci.yml` also runs the e2e tests.
+
+On the iPhone: open the URL in Safari, tap Share → Add to Home Screen, then always open the app from that icon.
+
+## On-device checklist
+
+Things the e2e tests cannot prove; check them on her iPhone before handing it over:
+
+1. It installs to the Home Screen, and the install-screen wording matches her Share menu exactly (the wording in `src/i18n/lt.ts` is provisional).
+2. Tapping an empty slot opens the sheet with the keyboard already up (also "+", "Registruoti" and "Kartoti").
+3. With the keyboard up, the service chips and the time row can be reached; tapping outside the sheet hides the keyboard and keeps the typed name.
+4. "Perkelti": the date and time wheels open, and the move is saved only when they close.
+5. The share sheet opens from the backup banner and from Settings, and the file can be saved and restored.
+6. Airplane mode: the app opens and works.
+7. Dark mode and the status bar look right.
+8. Largest text size (Settings → Accessibility → Larger Text) stays usable.
+9. Long-press drag: lift after a hold, edge flip to the next day, drop on a week-strip chip.
+10. A long press never shows the text callout or the magnifier.
 
 ## Contents
 
 | File | Purpose |
 | --- | --- |
 | `docs/architecture.md` | Full spec: constraints, architecture, data model, screens, flows, iOS rules, Lithuanian strings, suggestions, open decisions, acceptance tests |
-| `AGENTS.md` | Rules and build order for coding agents |
+| `AGENTS.md` | Rules, repo layout and build order for coding agents |
 | `CLAUDE.md` | Loads `AGENTS.md` and the spec for Claude Code |
-
-## Before the build starts
-
-Settle the items under "Open decisions" in `docs/architecture.md`, especially the service list and the final Pages origin. The origin can't change after go-live without moving her data.
-
-## Deploy
-
-The repo must be named `<account>.github.io` (Settings → Pages → Source: GitHub Actions). A push to `main` builds the app and deploys it to Pages. On the iPhone, open the URL in Safari, tap Share → Add to Home Screen, then always open the app from that icon.

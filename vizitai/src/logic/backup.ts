@@ -1,6 +1,7 @@
 import type { Appointment, Client, Service, Settings } from '../db/types';
 import type { VizitaiDB } from '../db/db';
 import { SCHEMA_VERSION } from '../db/schema';
+import { DEFAULT_SETTINGS } from '../db/seed';
 
 export interface BackupFile {
   app: 'vizitai'; schemaVersion: number; exportedAt: string;
@@ -31,11 +32,15 @@ export function parseBackup(text: string): BackupFile {
 
 export async function importData(db: VizitaiDB, f: BackupFile): Promise<void> {
   await db.transaction('rw', db.clients, db.appointments, db.services, db.settings, async () => {
+    // persistGranted describes this device's storage, not the file's: keep the local value.
+    const persistGranted = (await db.settings.get('settings'))?.persistGranted ?? null;
+    // A file without the settings record would make ensureSeed add the six default services again.
+    const settings = f.settings.some((s) => s.id === 'settings') ? f.settings : [...f.settings, { ...DEFAULT_SETTINGS }];
     await Promise.all([db.clients.clear(), db.appointments.clear(), db.services.clear(), db.settings.clear()]);
     await db.clients.bulkAdd(f.clients);
     await db.appointments.bulkAdd(f.appointments);
     await db.services.bulkAdd(f.services);
-    await db.settings.bulkAdd(f.settings);
+    await db.settings.bulkAdd(settings.map((s) => (s.id === 'settings' ? { ...s, persistGranted } : s)));
   });
 }
 

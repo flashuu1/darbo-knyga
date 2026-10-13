@@ -6,6 +6,7 @@ export interface SchemaVersion {
   upgrade?: (tx: Transaction) => void | PromiseLike<unknown>;
 }
 // Append new versions; never remove a store (Dexie keeps unspecified stores).
+// A future v2 must also migrate older-schema backup files in parseBackup/importData (logic/backup.ts).
 export const versions: SchemaVersion[] = [
   {
     version: 1,

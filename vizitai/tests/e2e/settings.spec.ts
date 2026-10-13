@@ -159,3 +159,21 @@ test('a failed export shows an error and does not mark the backup as done', asyn
   await expect(page.getByTestId('backup-last')).toHaveText('Kopijos dar nėra');
   expect(await page.evaluate(async () => (await (window as any).__vizitai.repo.getSettings()).lastBackupAt)).toBeNull(); // eslint-disable-line @typescript-eslint/no-explicit-any
 });
+
+test('working hours snap to the 15-minute grid (iOS ignores step)', async ({ page }) => {
+  await openApp(page);
+  await page.getByTestId('tab-settings').click();
+  const dayStart = () => page.evaluate(async () => (await (window as any).__vizitai.repo.getSettings()).dayStart); // eslint-disable-line @typescript-eslint/no-explicit-any
+  await page.getByTestId('hours-start').fill('09:07');
+  await page.getByTestId('hours-start').dispatchEvent('change');
+  await expect.poll(dayStart).toBe('09:00');
+  await expect(page.getByTestId('hours-start')).toHaveValue('09:00');
+  await page.getByTestId('hours-start').fill('08:08');
+  await page.getByTestId('hours-start').dispatchEvent('change');
+  await expect.poll(dayStart).toBe('08:15');
+  await expect(page.getByTestId('hours-start')).toHaveValue('08:15');
+  await page.getByTestId('hours-start').fill('08:22'); // snaps to the value already stored: the field must not keep 08:22
+  await page.getByTestId('hours-start').dispatchEvent('change');
+  await expect(page.getByTestId('hours-start')).toHaveValue('08:15');
+  await expect.poll(dayStart).toBe('08:15');
+});

@@ -25,6 +25,11 @@ export function snap(s: string, slot = 15, mode: 'round' | 'floor' | 'ceil' = 'r
   const v = mode === 'floor' ? base : mode === 'ceil' ? (r ? base + slot : base) : r * 2 >= slot ? base + slot : base;
   return format(v);
 }
+/** "HH:mm" rounded to the 15-minute grid, never past 23:45 (iOS time wheels ignore `step`). */
+export function snapClock(hm: string, slot = 15): string {
+  const s = snap(`2000-01-01T${hm}`, slot);
+  return s.startsWith('2000-01-01') ? timePart(s) : hhmm(24 * 60 - slot);
+}
 export function weekStart(date: string): string {
   const dow = (new Date(`${date}T00:00:00Z`).getUTCDay() + 6) % 7; // Monday = 0
   return addDays(date, -dow);

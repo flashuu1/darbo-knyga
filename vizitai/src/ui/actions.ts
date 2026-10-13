@@ -142,7 +142,12 @@ export function repeatFrom(e: { start: string; clientId: string | null; serviceI
       items: [
         ...weeks.map((n) => ({
           label: t('repeat.weeks', { n }),
-          onPress: () => openNew(`${addDays(datePart(e.start), 7 * n)}T${timePart(e.start)}`, { clientId, serviceId: e.serviceId ?? undefined }),
+          onPress: () => {
+            // Like Registruoti: leave the client card / other tab for the calendar so the new entry is seen.
+            const s = ui.get();
+            if (s.client !== null || s.tab !== 'calendar') ui.set({ client: null, tab: 'calendar', view: 'day' });
+            openNew(`${addDays(datePart(e.start), 7 * n)}T${timePart(e.start)}`, { clientId, serviceId: e.serviceId ?? undefined });
+          },
         })),
         { label: t('btn.dismiss'), role: 'cancel' as const, onPress: () => {} },
       ],

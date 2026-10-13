@@ -150,8 +150,9 @@ p.link-name { color: var(--label); }
 .svc-line { display: flex; align-items: center; gap: .5rem; }
 .svc-line.sub { font-size: .85rem; }
 .svc-line .inline { flex: 1; border: 0; background: transparent; text-align: left; }
-.svc-line.swatches { flex-wrap: wrap; padding: .3rem 0; }
-.swatch { width: 28px; height: 28px; min-width: 28px; min-height: 28px; border-radius: 50%; border: 0; }
+.svc-line.swatches { flex-wrap: wrap; gap: 0; padding: .3rem 0; }
+.swatch { width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+.swatch .dot { width: 28px; height: 28px; border-radius: 50%; display: block; }
 .hidden-svc { opacity: .5; }
 .toggle { margin-left: auto; color: var(--blue); }
 .muted-left { color: var(--label2); margin: .2rem 0 .6rem; }

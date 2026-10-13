@@ -184,6 +184,13 @@ describe('services', () => {
     expect(e[0].service?.name).toBe(s2.name);
     expect(s1.active).toBe(true);
   });
+  it('trims a renamed service and ignores an empty name while applying other fields', async () => {
+    const s = await firstService();
+    await repo.updateService(s.id, { name: '  Nauja   forma ' });
+    expect((await db.services.get(s.id))?.name).toBe('Nauja forma');
+    await repo.updateService(s.id, { name: '   ', minutes: 30 });
+    expect(await db.services.get(s.id)).toMatchObject({ name: 'Nauja forma', minutes: 30 });
+  });
   it('reorders services', async () => {
     const [s1, s2] = await repo.listServices();
     await repo.moveService(s2.id, -1);

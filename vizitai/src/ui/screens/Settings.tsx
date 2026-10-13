@@ -18,6 +18,10 @@ export function SettingsScreen() {
   async function toggle(id: string, active: boolean) {
     try { await repo.setServiceActive(id, active); } catch { showToast(t('service.lastActive')); }
   }
+  async function renameService(id: string, name: string) {
+    try { await repo.updateService(id, { name }); } catch (e) { console.error(e); }
+    setTick((x) => x + 1); // remount the input so it shows the stored name (a blank edit is ignored)
+  }
   async function setHour(field: 'dayStart' | 'dayEnd', v: string) {
     if (!v) return;
     const next = { ...settings, [field]: v };
@@ -35,9 +39,11 @@ export function SettingsScreen() {
           {services.map((s, i) => (
             <li key={s.id} data-testid={`svc-row-${i}`} class={s.active ? '' : 'hidden-svc'}>
               <div class="svc-line">
-                <button class="swatch" style={{ background: `var(--c-${s.color})` } as CSSProperties} data-testid={`svc-swatch-${i}`} onClick={() => setOpenColor(openColor === s.id ? null : s.id)} />
-                <input class="inline" data-testid={`svc-name-${i}`} defaultValue={s.name} key={`${s.id}${s.name}`}
-                  onChange={(e) => void repo.updateService(s.id, { name: (e.target as HTMLInputElement).value })} />
+                <button class="swatch" data-testid={`svc-swatch-${i}`} onClick={() => setOpenColor(openColor === s.id ? null : s.id)}>
+                  <span class="dot" style={{ background: `var(--c-${s.color})` } as CSSProperties} />
+                </button>
+                <input class="inline" data-testid={`svc-name-${i}`} defaultValue={s.name} key={`${s.id}${s.name}${tick}`}
+                  onChange={(e) => void renameService(s.id, (e.target as HTMLInputElement).value)} />
                 <button data-testid={`svc-up-${i}`} onClick={() => void repo.moveService(s.id, -1)}>↑</button>
                 <button data-testid={`svc-down-${i}`} onClick={() => void repo.moveService(s.id, 1)}>↓</button>
               </div>
@@ -51,8 +57,10 @@ export function SettingsScreen() {
               {openColor === s.id && (
                 <div class="svc-line swatches">
                   {SERVICE_COLORS.map((c) => (
-                    <button key={c} class="swatch" style={{ background: `var(--c-${c})` } as CSSProperties} data-testid={`svc-color-${i}-${c}`}
-                      onClick={() => { void repo.updateService(s.id, { color: c }); setOpenColor(null); }} />
+                    <button key={c} class="swatch" data-testid={`svc-color-${i}-${c}`}
+                      onClick={() => { void repo.updateService(s.id, { color: c }); setOpenColor(null); }}>
+                      <span class="dot" style={{ background: `var(--c-${c})` } as CSSProperties} />
+                    </button>
                   ))}
                 </div>
               )}

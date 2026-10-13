@@ -34,7 +34,7 @@ export const lt = {
   'backup.export': 'Eksportuoti duomenis', 'backup.import': 'Atkurti iš failo',
   'backup.confirm': 'Pakeisti visus esamus duomenis?', 'backup.replace': 'Pakeisti',
   'backup.imported': 'Duomenys atkurti', 'backup.exported': 'Kopija sukurta',
-  'backup.error.format': 'Netinkamas failas', 'backup.error.newer': 'Failas sukurtas naujesnės programos versijos',
+  'backup.error.format': 'Netinkamas failas', 'backup.error.export': 'Nepavyko sukurti kopijos', 'backup.error.newer': 'Failas sukurtas naujesnės programos versijos',
   'backup.last': 'Paskutinė kopija: {data}', 'backup.never': 'Kopijos dar nėra',
   'backup.banner': 'Sukurti atsarginę kopiją?',
   'repeat.action': 'Kartoti', 'repeat.title': 'Kartoti po', 'repeat.weeks': 'po {n} sav.',

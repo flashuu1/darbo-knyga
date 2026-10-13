@@ -125,3 +125,37 @@ test('shows the storage status and app version', async ({ page }) => {
   await expect(page.getByTestId('storage-status')).toHaveText(/Duomenys/);
   await expect(page.getByTestId('app-version')).toContainText('Versija: ');
 });
+
+test('a blank service name reverts to the stored name', async ({ page }) => {
+  await openApp(page);
+  await page.getByTestId('tab-settings').click();
+  const before = await page.getByTestId('svc-name-0').inputValue();
+  await page.getByTestId('svc-name-0').fill('   ');
+  await page.getByTestId('svc-name-0').blur();
+  await expect(page.getByTestId('svc-name-0')).toHaveValue(before);
+  await expect.poll(() => page.evaluate(async () => (await (window as any).__vizitai.repo.listServices())[0].name)).toBe(before); // eslint-disable-line @typescript-eslint/no-explicit-any
+});
+
+test('colour swatches have 44pt touch targets', async ({ page }) => {
+  await openApp(page);
+  await page.getByTestId('tab-settings').click();
+  await page.getByTestId('svc-swatch-0').click();
+  for (const id of ['svc-swatch-0', 'svc-color-0-teal', 'svc-color-0-red']) {
+    const box = await page.getByTestId(id).boundingBox();
+    expect(box?.width).toBeGreaterThanOrEqual(44);
+    expect(box?.height).toBeGreaterThanOrEqual(44);
+  }
+});
+
+test('a failed export shows an error and does not mark the backup as done', async ({ page }) => {
+  await openApp(page);
+  await page.getByTestId('tab-settings').click();
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, 'canShare', { value: () => true, configurable: true });
+    Object.defineProperty(navigator, 'share', { value: async () => { throw new Error('boom'); }, configurable: true });
+  });
+  await page.getByTestId('btn-export').click();
+  await expect(page.getByTestId('toast')).toHaveText(/Nepavyko sukurti kopijos/);
+  await expect(page.getByTestId('backup-last')).toHaveText('Kopijos dar nėra');
+  expect(await page.evaluate(async () => (await (window as any).__vizitai.repo.getSettings()).lastBackupAt)).toBeNull(); // eslint-disable-line @typescript-eslint/no-explicit-any
+});

@@ -50,7 +50,12 @@ export function createRepo(db: VizitaiDB) {
       await db.services.add(s);
       return s;
     },
-    async updateService(id: string, p: Partial<Pick<Service, 'name' | 'color' | 'minutes'>>) { await db.services.update(id, p); },
+    async updateService(id: string, p: Partial<Pick<Service, 'name' | 'color' | 'minutes'>>) {
+      const { name, ...rest } = p;
+      const clean = name === undefined ? '' : cleanName(name);
+      const patch = clean ? { ...rest, name: clean } : rest; // an empty name is ignored
+      if (Object.keys(patch).length) await db.services.update(id, patch);
+    },
     async moveService(id: string, dir: -1 | 1) {
       const all = await db.services.orderBy('order').toArray();
       const i = all.findIndex((s) => s.id === id), j = i + dir;

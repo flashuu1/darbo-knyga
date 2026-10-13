@@ -74,6 +74,7 @@ export async function runBackup() {
     showToast(t('backup.exported'));
   } catch (e) {
     console.error(e);
+    showToast(t('backup.error.export'));
   } finally {
     backingUp = false;
   }

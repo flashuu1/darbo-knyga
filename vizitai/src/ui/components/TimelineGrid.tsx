@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'preact/hooks';
-import { repo } from '../../db/repo';
+import { repo, type Entry } from '../../db/repo';
 import { layoutColumns, visibleRange } from '../../logic/layout';
 import { addDays, datePart, hhmm, minutesOfDay, nowLocal } from '../../logic/time';
 import { t } from '../../i18n/lt';
@@ -10,7 +10,10 @@ import { EntryBlock } from './EntryBlock';
 export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; compact: boolean; onSwipe?: (dir: -1 | 1) => void }) {
   const settings = useSettings();
   const first = dates[0], last = dates[dates.length - 1];
-  const entries = useLive(() => repo.entriesBetween(first, addDays(last, 1)), [first, last], []);
+  const rangeKey = first + '|' + last;
+  const data = useLive(async () => ({ key: rangeKey, list: await repo.entriesBetween(first, addDays(last, 1)) }), [first, last], { key: '', list: [] as Entry[] });
+  const loaded = data.key === rangeKey;
+  const entries = loaded ? data.list : [];
   const { startMin, endMin } = visibleRange(settings, entries);
   const rows = (endMin - startMin) / 15;
   const scroller = useRef<HTMLDivElement>(null);
@@ -18,11 +21,11 @@ export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; com
 
   useEffect(() => { // open near the first booking, else near now, else the top
     const el = scroller.current;
-    if (!el) return;
+    if (!el || !loaded) return;
     const dayEntries = entries.filter((e) => e.appt.status !== 'cancelled');
     const target = dayEntries.length ? Math.min(...dayEntries.map((e) => minutesOfDay(e.appt.start))) : minutesOfDay(nowLocal());
     el.scrollTop = Math.max(0, ((target - startMin) / 15) * el.scrollHeight / rows - 88);
-  }, [first, entries.length === 0]);
+  }, [first, last, loaded]); // eslint-disable-line
 
   const hours: number[] = [];
   for (let m = startMin; m < endMin; m += 60) hours.push(m);
@@ -57,7 +60,7 @@ export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; com
                 const l = lay.get(e.appt.id) ?? { col: 0, cols: 1 };
                 return <EntryBlock key={e.appt.id} e={e} startMin={startMin} col={l.col} cols={l.cols} compact={compact} />;
               })}
-              {entries.length === 0 && dates.length === 1 && <p class="empty" data-testid="empty-day">{t('empty.day')}</p>}
+              {loaded && entries.length === 0 && dates.length === 1 && <p class="empty" data-testid="empty-day">{t('empty.day')}</p>}
             </div>
           );
         })}

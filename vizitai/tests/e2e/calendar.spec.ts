@@ -47,3 +47,23 @@ test('a booking outside working hours stays visible', async ({ page }) => {
   await expect(page.getByTestId(`entry-${id}`)).toBeVisible();
   await expect(page.getByTestId('slot-2026-10-14T06:30')).toBeVisible();
 });
+
+test('switching days scrolls to the new day\'s first booking and keeps the empty message accurate', async ({ page }) => {
+  await openApp(page);
+  const [, late] = await seedAppts(page, [
+    { name: 'Ona', start: '2026-10-14T09:00' },
+    { name: 'Jonas', start: '2026-10-15T16:00' },
+  ]);
+  await expect(page.getByTestId('empty-day')).toHaveCount(0);
+  await page.getByTestId('chip-2026-10-15').click();
+  const entry = page.getByTestId(`entry-${late}`);
+  await expect(entry).toBeVisible();
+  await expect(page.getByTestId('empty-day')).toHaveCount(0);
+  await expect.poll(async () => {
+    const e = await entry.boundingBox();
+    const s = await page.getByTestId('timeline').boundingBox();
+    return !!e && !!s && e.y >= s.y && e.y + e.height <= s.y + s.height;
+  }).toBe(true);
+  await page.getByTestId('chip-2026-10-16').click();
+  await expect(page.getByTestId('empty-day')).toHaveText('Šią dieną vizitų nėra');
+});

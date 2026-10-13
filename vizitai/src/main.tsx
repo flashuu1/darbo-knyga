@@ -3,7 +3,7 @@ import './styles.css';
 import { isStandalone } from './pwa/standalone';
 import { InstallScreen } from './ui/screens/Install';
 import { initUpdates } from './pwa/updates';
-import { isBusy } from './ui/store';
+import { isBusy, ui } from './ui/store';
 
 async function boot() {
   const root = document.getElementById('app')!;
@@ -16,7 +16,7 @@ async function boot() {
   ]);
   await ensureSeed(db);
   if (import.meta.env.MODE === 'e2e') {
-    const [{ repo }, { ui }] = await Promise.all([import('./db/repo'), import('./ui/store')]);
+    const { repo } = await import('./db/repo');
     (window as unknown as Record<string, unknown>).__vizitai = { db, repo, ui };
   }
   const settings = await db.settings.get('settings');

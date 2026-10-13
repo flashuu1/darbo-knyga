@@ -10,6 +10,9 @@ import { useLive } from '../hooks';
 import { useKeyboardHeight } from '../keyboard';
 import { Sheet } from './Sheet';
 
+// iOS puts a Paste / autofill strip above the number pad that the viewport height does not include: stay clear of it
+const PASTE_BAR = 52;
+
 /** Suma: what she took for a visit, in euros. Empty + confirm clears an entered amount. */
 export function AmountSheet({ id }: { id: string }) {
   const appt = useLive(() => repo.getAppointment(id), [id], undefined);
@@ -39,7 +42,7 @@ export function AmountSheet({ id }: { id: string }) {
     <Sheet variant="dialog" title={t(appt.kind === 'expense' ? 'expense.amount' : 'amount.title')} onClose={closeSheet} testId="amount-sheet"
       left={<button data-testid="btn-dismiss" onClick={closeSheet}>{t('btn.dismiss')}</button>}
       bar={(
-        <div class="flow-bar sheet-bar" style={{ '--kb': `${kb}px` } as CSSProperties}>
+        <div class="flow-bar sheet-bar" style={{ '--kb': `${kb > 0 ? kb + PASTE_BAR : 0}px` } as CSSProperties}>
           <button class="primary" data-testid="amount-confirm" disabled={!valid} onClick={confirm}>{t('amount.confirm')}</button>
         </div>
       )}>

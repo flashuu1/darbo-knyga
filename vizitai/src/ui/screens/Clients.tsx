@@ -1,6 +1,8 @@
 import { useState } from 'preact/hooks';
 import { repo } from '../../db/repo';
 import { formatDayShort, formatEuro, formatWhen } from '../../i18n/format';
+import { confirmDeleteClient, openCancelled } from '../actions';
+import { SwipeRow } from '../components/SwipeRow';
 import { t } from '../../i18n/lt';
 import { foldName } from '../../logic/names';
 import { useLive } from '../hooks';
@@ -13,8 +15,10 @@ export const initials = (name: string) => name.split(' ').filter(Boolean).slice(
 export function ClientsScreen() {
   const [q, setQ] = useState('');
   const list = useLive(() => repo.listClients(), [], []);
+  const cancelled = useLive(() => repo.cancelledEntries(), [], []);
   const key = foldName(q);
   const rows = key ? list.filter((r) => r.client.nameKey.includes(key)) : list;
+  const cancelledRows = key ? cancelled.filter((e) => foldName(e.label).includes(key)) : cancelled;
   return (
     <section class="list-screen" data-testid="clients">
       <header class="chrome">
@@ -31,6 +35,7 @@ export function ClientsScreen() {
           <ul class="group client-list">
             {rows.map((r, i) => (
               <li key={r.client.id}>
+                <SwipeRow testId={`client-swipe-${i}`} onDelete={() => void confirmDeleteClient(r.client.id, r.client.name)}>
                 <button class="client-row" data-testid={`client-row-${i}`} onClick={() => ui.set({ client: r.client.id })}>
                   <span class="avatar" aria-hidden="true">{initials(r.client.name)}</span>
                   <span class="client-text">
@@ -44,9 +49,30 @@ export function ClientsScreen() {
                   </span>
                   <span class="chev"><NextIcon /></span>
                 </button>
+                </SwipeRow>
               </li>
             ))}
           </ul>
+        )}
+        {cancelledRows.length > 0 && (
+          <>
+            <h2 class="section-head" data-testid="cancelled-head">{t('clients.cancelledHead')}</h2>
+            <ul class="group client-list">
+              {cancelledRows.map((e, i) => (
+                <li key={e.appt.id}>
+                  <button class="client-row cancelled-row" data-testid={`cancelled-row-${i}`} onClick={() => openCancelled(e)}>
+                    <span class="avatar muted" aria-hidden="true">{initials(e.label)}</span>
+                    <span class="client-text">
+                      <b>{e.label}</b>
+                      <span class="client-status"><span class="pill gone">{t('status.cancelled')}</span><span class="next">{formatWhen(e.appt.start)}</span></span>
+                    </span>
+                    <span class="chev"><NextIcon /></span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <p class="section-foot">{t('clients.cancelledFoot')}</p>
+          </>
         )}
       </div>
     </section>

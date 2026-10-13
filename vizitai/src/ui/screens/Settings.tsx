@@ -5,7 +5,8 @@ import { SERVICE_COLORS } from '../../db/types';
 import { formatBuildTime, formatDayShort } from '../../i18n/format';
 import { t } from '../../i18n/lt';
 import { snapClock, todayStr } from '../../logic/time';
-import { chooseImport, runBackup, showToast } from '../actions';
+import { chooseImport, confirmDeleteService, runBackup, showToast } from '../actions';
+import { SwipeRow } from '../components/SwipeRow';
 import { useServices, useSettings } from '../hooks';
 
 export function SettingsScreen() {
@@ -42,6 +43,7 @@ export function SettingsScreen() {
         <ul class="group svc-list">
           {services.map((s, i) => (
             <li key={s.id} data-testid={`svc-row-${i}`} class={s.active ? '' : 'hidden-svc'}>
+              <SwipeRow testId={`svc-swipe-${i}`} onDelete={() => confirmDeleteService(s)}>
               <div class="svc-line">
                 <button class="swatch" data-testid={`svc-swatch-${i}`} aria-expanded={openColor === s.id} onClick={() => setOpenColor(openColor === s.id ? null : s.id)}>
                   <span class="dot" style={{ background: `var(--c-${s.color})` } as CSSProperties} />
@@ -70,6 +72,7 @@ export function SettingsScreen() {
                   ))}
                 </div>
               )}
+              </SwipeRow>
             </li>
           ))}
         </ul>

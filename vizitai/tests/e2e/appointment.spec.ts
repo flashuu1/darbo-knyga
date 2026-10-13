@@ -20,7 +20,7 @@ test('tapping an entry opens the sheet with name, service, time and status', asy
   const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T10:00' }]);
   await page.getByTestId(`entry-${id}`).click();
   await expect(page.getByTestId('appt-name')).toHaveText('Ona');
-  await expect(page.getByTestId('appt-status')).toHaveText('Užregistruota');
+  await expect(page.getByTestId('appt-status')).toHaveText('Laukiama');
   await expect(page.getByTestId('sheet')).toContainText('spalio 14 d., tr · 10:00');
   await expect(page.getByTestId('act-noshow')).toHaveCount(0); // start time has not passed
 });

@@ -8,7 +8,7 @@ import { nowLocal } from '../../logic/time';
 import { closeSheet, confirmCancel, noShowWithToast, rebook, restoreWithToast } from '../actions';
 import { openAmount } from '../amount';
 import { useLive, useServices } from '../hooks';
-import { statusLabel } from '../status';
+import { statusKind, statusLabel } from '../status';
 import { ui } from '../store';
 import { Sheet } from './Sheet';
 
@@ -49,7 +49,7 @@ export function AppointmentSheet({ id }: { id: string }) {
         </div>
       )}
       <div class="row"><span class="value">{formatWhen(appt.start)}</span></div>
-      <div class="row"><span class="label">{t('appt.status')}</span><span class="value" data-testid="appt-status">{status}</span></div>
+      <div class="row"><span class="label">{t('appt.status')}</span><span class={`value status-${statusKind(appt, now)}`} data-testid="appt-status">{status}</span></div>
       {canHaveAmount(appt, now) && (
         <button class={amount === null ? 'row amount-row due' : 'row amount-row'} data-testid="appt-amount" onClick={() => openAmount(id)}>
           <span class="label">{t('amount.title')}</span>

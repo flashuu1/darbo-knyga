@@ -176,6 +176,43 @@ export function createRepo(db: VizitaiDB) {
     },
     async putSnapshot(a: Appointment) { await db.appointments.put(a); },
     deleteAppointment: (id: string) => db.appointments.delete(id),
+    /** Cancelled visits that have not been purged yet, newest cancellation first. */
+    async cancelledEntries(): Promise<Entry[]> {
+      const list = (await db.appointments.where('status').equals('cancelled').toArray()).sort((a, b) => (b.cancelledAt ?? '').localeCompare(a.cancelledAt ?? ''));
+      return toEntries(list);
+    },
+    /** Deletes a client and all their visits. Returns what is needed to put them back (undo). */
+    async deleteClient(id: string): Promise<{ client: Client; appts: Appointment[] } | null> {
+      const client = await db.clients.get(id);
+      if (!client) return null;
+      const appts = await db.appointments.where('clientId').equals(id).toArray();
+      await db.transaction('rw', db.clients, db.appointments, async () => {
+        await db.appointments.bulkDelete(appts.map((a) => a.id));
+        await db.clients.delete(id);
+      });
+      return { client, appts };
+    },
+    async restoreClient(snap: { client: Client; appts: Appointment[] }) {
+      await db.transaction('rw', db.clients, db.appointments, async () => {
+        await db.clients.put(snap.client);
+        await db.appointments.bulkPut(snap.appts);
+      });
+    },
+    async countVisits(clientId: string): Promise<number> { return db.appointments.where('clientId').equals(clientId).count(); },
+    /**
+     * Deletes a service. One that visits still use is only hidden (their labels and colours must not vanish);
+     * the last active service cannot go (throws 'last-active').
+     */
+    async deleteService(id: string): Promise<{ result: 'deleted' | 'hidden'; service: Service }> {
+      const service = await db.services.get(id);
+      if (!service) throw new Error('not-found');
+      if (service.active && !(await db.services.toArray()).some((s) => s.active && s.id !== id)) throw new Error('last-active');
+      const used = (await db.appointments.toArray()).some((a) => a.serviceId === id);
+      if (used) { await db.services.update(id, { active: false }); return { result: 'hidden', service }; }
+      await db.services.delete(id);
+      return { result: 'deleted', service };
+    },
+    async restoreService(s: Service) { await db.services.put(s); },
     /** Cancelled visits are kept for a week (so a mistake can be undone), then removed for good. Returns how many. */
     async purgeCancelled(now: Date = new Date(), days = CANCELLED_KEEP_DAYS): Promise<number> {
       const cutoff = new Date(now.getTime() - days * 86_400_000).toISOString();

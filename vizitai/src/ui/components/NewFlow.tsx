@@ -8,6 +8,7 @@ import { cleanName } from '../../logic/names';
 import { datePart } from '../../logic/time';
 import { closeSheet, highlight } from '../actions';
 import { useLive, useServices } from '../hooks';
+import { useKeyboardHeight } from '../keyboard';
 import { ui, type Origin } from '../store';
 import { DateTimePicker } from './DateTimePicker';
 import { Sheet } from './Sheet';
@@ -23,6 +24,7 @@ type Screen = 0 | 1 | 2; // 0 = client, 1 = service, 2 = time
  */
 export function NewFlow({ prefill }: { prefill: { start: string; clientId?: string; serviceId?: string; screen?: 'time'; from?: Origin; replaceId?: string } }) {
   const services = useServices(true);
+  const kb = useKeyboardHeight();
   const [screen, setScreen] = useState<Screen>(prefill.screen === 'time' ? 2 : 0);
   const [kind, setKind] = useState<'client' | 'personal'>('client');
   const [name, setName] = useState('');
@@ -102,12 +104,8 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
       left={screen === 0
         ? <button data-testid="btn-dismiss" onClick={closeSheet}>{t('btn.dismiss')}</button>
         : <button class="back" data-testid="btn-back" onClick={back}>‹ {t('nav.back')}</button>}
-      right={screen === 0
-        ? <button class="strong" data-testid="btn-next" disabled={!hasName} onClick={next}>{t('btn.next')}</button>
-        : screen === 2
-          ? <button class="strong" data-testid="btn-save-time" disabled={!canSave || saving} onClick={() => void save()}>{t('btn.save')}</button>
-          : undefined}>
-      <div class="flow" style={{ '--screen': screen } as CSSProperties}>
+      >
+      <div class="flow" style={{ '--screen': screen, '--kb': `${kb}px` } as CSSProperties}>
         {/* 0 Klientas */}
         <section class="flow-pane" {...pane(0)}>
           <div class="segmented wide">
@@ -148,7 +146,6 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
             <span class="chev" aria-hidden="true">›</span>
           </button>
           {screen !== 2 && warn}
-          <button class="primary" data-testid="btn-save" disabled={!canSave || saving} onClick={() => void save()}>{t('btn.save')}</button>
         </section>
 
         {/* 2 Laikas */}
@@ -156,6 +153,13 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
           <DateTimePicker value={start} onChange={touch(setStart)} />
           {screen === 2 && warn}
         </section>
+
+        {/* The main button: always at the bottom of the flow, riding up above the keyboard while it is open. */}
+        <div class={kb > 0 ? 'flow-bar kb-open' : 'flow-bar'}>
+          {screen === 0 && <button class="primary" data-testid="btn-next" disabled={!hasName} onClick={next}>{t('btn.next')}</button>}
+          {screen === 1 && <button class="primary" data-testid="btn-save" disabled={!canSave || saving} onClick={() => void save()}>{t('btn.save')}</button>}
+          {screen === 2 && <button class="primary" data-testid="btn-save-time" disabled={!canSave || saving} onClick={() => void save()}>{t('btn.save')}</button>}
+        </div>
       </div>
     </Sheet>
   );

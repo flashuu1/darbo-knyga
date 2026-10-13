@@ -1,6 +1,6 @@
 import { db } from '../db/db';
 import { repo, type Entry } from '../db/repo';
-import type { CancelReason } from '../db/types';
+import type { Appointment, CancelReason } from '../db/types';
 import { formatDayShort, weekdayShort } from '../i18n/format';
 import { t } from '../i18n/lt';
 import { backupFileName, BackupError, exportData, importData, parseBackup, shareBackup, type BackupFile } from '../logic/backup';
@@ -64,6 +64,44 @@ export function showOverflow(list: Entry[]) {
   });
 }
 export const closeSheet = () => ui.set({ sheet: null });
+async function deleteCancelled(a: Appointment) {
+  await repo.deleteAppointment(a.id);
+  showToast(t('cancelled.deleted'), () => repo.putSnapshot(a));
+}
+/** Swipe-to-delete on a contact: confirm, then remove the client and their visits (undo restores both). */
+export async function confirmDeleteClient(id: string, name: string) {
+  const n = await repo.countVisits(id);
+  ui.set({
+    action: {
+      title: n > 0 ? t('client.deleteQVisits', { vardas: name, n }) : t('client.deleteQ', { vardas: name }),
+      items: [
+        { label: t('btn.delete'), role: 'destructive' as const, onPress: () => void (async () => {
+          const snap = await repo.deleteClient(id);
+          if (snap) showToast(t('client.deleted'), () => repo.restoreClient(snap));
+        })().catch((e) => console.error(e)) },
+        { label: t('btn.keep'), role: 'cancel' as const, onPress: () => {} },
+      ],
+    },
+  });
+}
+/** Swipe-to-delete on a service in Nustatymai. */
+export function confirmDeleteService(s: { id: string; name: string }) {
+  ui.set({
+    action: {
+      title: t('service.deleteQ', { vardas: s.name }),
+      items: [
+        { label: t('btn.delete'), role: 'destructive' as const, onPress: () => void (async () => {
+          try {
+            const r = await repo.deleteService(s.id);
+            if (r.result === 'hidden') showToast(t('service.hiddenInstead'), () => repo.restoreService(r.service));
+            else showToast(t('service.deleted'), () => repo.restoreService(r.service));
+          } catch { showToast(t('service.lastActive')); }
+        })() },
+        { label: t('btn.keep'), role: 'cancel' as const, onPress: () => {} },
+      ],
+    },
+  });
+}
 /**
  * A tap on a cancelled entry (the thin struck-through line): bring it back as it was, or book something new in
  * its place (the cancelled entry is then removed). Both are one tap away; the rest of the row still books normally.
@@ -75,6 +113,7 @@ export function openCancelled(e: Entry) {
       items: [
         { label: t('cancelled.renew'), onPress: () => void restoreWithToast(e.appt.id) },
         { label: t('cancelled.replace'), onPress: () => openNew(e.appt.start, { replaceId: e.appt.id }) },
+        { label: t('cancelled.delete'), role: 'destructive' as const, onPress: () => void deleteCancelled(e.appt) },
         { label: t('btn.close'), role: 'cancel' as const, onPress: () => {} },
       ],
     },

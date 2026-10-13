@@ -123,3 +123,7 @@ p.link-name { color: var(--label); }
 .toast { position: fixed; left: .8rem; right: .8rem; bottom: calc(4.4rem + env(safe-area-inset-bottom)); z-index: 40; display: flex; justify-content: space-between; align-items: center; gap: .6rem;
   background: rgba(40,40,44,.96); color: #fff; padding: .2rem .9rem; border-radius: .9rem; font-size: .9rem; animation: rise .25s ease-out; }
 .toast button { color: #64b5ff; font-weight: 600; }
+.entry.anchor { visibility: hidden; pointer-events: none; }
+.drag-ghost { position: fixed; z-index: 50; pointer-events: none; box-sizing: border-box; padding: .3rem .5rem; border-radius: .5rem; border-left: 4px solid var(--svc);
+  background: color-mix(in srgb, var(--svc) 28%, var(--card)); box-shadow: 0 8px 24px rgba(0,0,0,.35); transform: scale(1.03); display: flex; flex-direction: column; }
+.drag-ghost span { font-size: .8rem; color: var(--label2); }

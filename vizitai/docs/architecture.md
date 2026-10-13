@@ -159,6 +159,7 @@ Tap opens an entry. Long-press moves it. Cancel takes two taps, and choosing a r
 3. To change the date in Week view, drag across columns. In Day view, drop on a chip in the week strip (it keeps the time), or hold at the left or right screen edge for 600 ms to flip the day.
 4. Release to save immediately, append to `moves`, and show the toast "Perkelta: spalio 15 d., kt · 14:00" with "Anuliuoti" for 5 s.
 5. Dropping onto an overlap is allowed; the toast adds the overlap warning.
+6. While dragging, holding within 40 px of the top or bottom edge of the timeline scrolls it.
 
 **Cancel:**
 

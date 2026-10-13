@@ -62,7 +62,7 @@ export function AppointmentSheet({ id }: { id: string }) {
           <button class="action-row" data-testid="act-move" onClick={() => ui.set({ sheet: { type: 'move', id } })}>{t('act.move')}</button>
         )}
         {appt.status === 'booked' && past && <button class="action-row" data-testid="act-noshow" onClick={after(() => noShowWithToast(id))}>{t('act.noshow')}</button>}
-        {appt.kind === 'client' && <button class="action-row" data-testid="act-repeat" onClick={() => rebook(appt)}>{t('repeat.action')}</button>}
+        {appt.kind === 'client' && <button class="action-row" data-testid="act-repeat" onClick={() => rebook(appt, { type: 'appt', id })}>{t('repeat.action')}</button>}
         {appt.status === 'booked' && <button class="action-row destructive" data-testid="act-cancel" onClick={() => { closeSheet(); confirmCancel(id); }}>{t('act.cancelAppt')}</button>}
         {appt.status !== 'booked' && <button class="action-row" data-testid="act-restore" onClick={after(() => restoreWithToast(id))}>{t('act.restore')}</button>}
       </div>

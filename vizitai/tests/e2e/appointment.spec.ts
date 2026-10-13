@@ -154,3 +154,56 @@ test('Perkelti: closing the picker without confirming moves nothing', async ({ p
   expect((await apptState(page, id)).start).toBe('2026-10-14T10:00');
   await expect(page.getByTestId('toast')).toHaveCount(0);
 });
+
+test('a cancelled entry can be renewed with one tap on its line', async ({ page }) => {
+  await openApp(page);
+  const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T15:00' }]);
+  await page.evaluate(async (x) => (window as any).__vizitai.repo.cancelAppointment(x, null), id); // eslint-disable-line @typescript-eslint/no-explicit-any
+  await expect(page.getByTestId(`entry-${id}`)).toHaveClass(/thin/);
+  await page.getByTestId(`entry-${id}`).click();
+  await expect(page.getByTestId('action-title')).toContainText('Atšauktas vizitas: Ona');
+  await expect(page.getByTestId('action-item-0')).toHaveText('Atnaujinti vizitą');
+  await expect(page.getByTestId('action-item-1')).toHaveText('Pakeisti nauju vizitu');
+  await page.getByTestId('action-item-0').click();
+  await expect.poll(async () => (await apptState(page, id)).status).toBe('booked');
+  await expect(page.getByTestId(`entry-${id}`)).not.toHaveClass(/thin/);
+});
+
+test('a cancelled entry can be replaced by a new booking, which removes the cancelled one', async ({ page }) => {
+  await openApp(page);
+  const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T15:00' }]);
+  await page.evaluate(async (x) => (window as any).__vizitai.repo.cancelAppointment(x, null), id); // eslint-disable-line @typescript-eslint/no-explicit-any
+  await page.getByTestId(`entry-${id}`).click();
+  await page.getByTestId('action-item-1').click(); // Pakeisti nauju vizitu
+  await expect(page.getByTestId('field-name')).toBeFocused();
+  await page.getByTestId('field-name').fill('Rasa');
+  await page.getByTestId('field-name').press('Enter');
+  await page.getByTestId('btn-save').click();
+  await expect(page.getByTestId('sheet')).toHaveCount(0);
+  await expect.poll(() => page.evaluate(async () => (await (window as any).__vizitai.db.appointments.toArray()).map((a: { start: string; status: string }) => `${a.start} ${a.status}`))).toEqual(['2026-10-14T15:00 booked']); // eslint-disable-line @typescript-eslint/no-explicit-any
+  await expect(page.getByTestId(`entry-${id}`)).toHaveCount(0);
+});
+
+test('the rest of the row under a cancelled line still books a new visit and keeps the cancelled one', async ({ page }) => {
+  await openApp(page);
+  const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T15:00' }]);
+  await page.evaluate(async (x) => (window as any).__vizitai.repo.cancelAppointment(x, null), id); // eslint-disable-line @typescript-eslint/no-explicit-any
+  await page.getByTestId('slot-2026-10-14T15:00').click();
+  await expect(page.getByTestId('field-name')).toBeVisible();
+  await page.getByTestId('btn-dismiss').click();
+  await expect.poll(async () => (await apptState(page, id)).status).toBe('cancelled');
+});
+
+test('cancelled entries older than a week are gone after the app starts', async ({ page }) => {
+  await openApp(page);
+  const [old, recent] = await seedAppts(page, [{ name: 'Sena', start: '2026-10-01T10:00' }, { name: 'Šviežia', start: '2026-10-02T10:00' }]);
+  await page.evaluate(async ([a, b]) => {
+    const { repo, db } = (window as any).__vizitai; // eslint-disable-line @typescript-eslint/no-explicit-any
+    await repo.cancelAppointment(a, null); await repo.cancelAppointment(b, null);
+    await db.appointments.update(a, { cancelledAt: new Date(Date.now() - 8 * 86_400_000).toISOString() });
+    await db.appointments.update(b, { cancelledAt: new Date(Date.now() - 2 * 86_400_000).toISOString() });
+  }, [old, recent]);
+  await page.reload();
+  await page.waitForFunction(() => !!(window as any).__vizitai); // eslint-disable-line @typescript-eslint/no-explicit-any
+  await expect.poll(() => page.evaluate(async () => (await (window as any).__vizitai.db.appointments.toArray()).map((a: { id: string }) => a.id))).toEqual([recent]); // eslint-disable-line @typescript-eslint/no-explicit-any
+});

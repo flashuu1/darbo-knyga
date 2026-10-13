@@ -19,7 +19,9 @@ export function useStore<T>(s: Store<T>): T {
   return v;
 }
 
-export type Sheet = { type: 'new'; start: string; clientId?: string; serviceId?: string; screen?: 'time' } | { type: 'appt'; id: string }
+/** Where "Užregistruoti į priekį" was started, so backing out returns there. */
+export interface Origin { type: 'appt' | 'client'; id: string }
+export type Sheet = { type: 'new'; start: string; clientId?: string; serviceId?: string; screen?: 'time'; from?: Origin; replaceId?: string } | { type: 'appt'; id: string }
   | { type: 'amount'; id: string } | { type: 'move'; id: string };
 export interface ToastState { id: number; text: string; undo?: () => Promise<void> }
 export interface DragState { entry: Entry; label: string; x: number; y: number; grabDY: number; grabDX: number; left: number; width: number; over: { date: string; start: string } | null }

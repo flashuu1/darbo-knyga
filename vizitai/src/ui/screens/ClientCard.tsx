@@ -90,7 +90,7 @@ export function ClientCard({ id }: { id: string }) {
           <p class="group-row text" data-testid="card-cancelled">{t('client.cancelledCount', { n: d.cancelled })}</p>
           <p class="group-row text" data-testid="card-noshow">{t('client.noshowCount', { n: d.noshow })}</p>
         </div>
-        {latest && <div class="group"><button class="group-row accent" data-testid="card-repeat" onClick={() => rebook(latest.appt)}>{t('repeat.action')}</button></div>}
+        {latest && <div class="group"><button class="group-row accent" data-testid="card-repeat" onClick={() => rebook(latest.appt, { type: 'client', id })}>{t('repeat.action')}</button></div>}
         <h2 class="section-head">{t('client.upcoming')}</h2>
         <ul class="group visits">{d.upcoming.length ? d.upcoming.map((e, n) => visit(e, n, 'upcoming')) : <li class="group-row text muted">{t('client.none')}</li>}</ul>
         <h2 class="section-head">{t('client.past')}</h2>

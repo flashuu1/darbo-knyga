@@ -21,6 +21,8 @@ export interface ClientRow {
   /** Start of the next booked visit. */
   nextVisit: string | null;
 }
+/** How long a cancelled visit stays visible before it is removed. */
+export const CANCELLED_KEEP_DAYS = 7;
 export interface Entry { appt: Appointment; label: string; service: Service | null; minutes: number; color: ServiceColor; amountCents: number | null }
 const toMin = (hhmm: string) => +hhmm.slice(0, 2) * 60 + +hhmm.slice(3, 5);
 
@@ -173,6 +175,12 @@ export function createRepo(db: VizitaiDB) {
       return mutate(id, (a) => ({ ...a, amountCents: cents }));
     },
     async putSnapshot(a: Appointment) { await db.appointments.put(a); },
+    deleteAppointment: (id: string) => db.appointments.delete(id),
+    /** Cancelled visits are kept for a week (so a mistake can be undone), then removed for good. Returns how many. */
+    async purgeCancelled(now: Date = new Date(), days = CANCELLED_KEEP_DAYS): Promise<number> {
+      const cutoff = new Date(now.getTime() - days * 86_400_000).toISOString();
+      return db.appointments.where('status').equals('cancelled').filter((a) => !!a.cancelledAt && a.cancelledAt < cutoff).delete();
+    },
 
     async findOverlapFor(i: { start: string; kind: 'client' | 'personal'; serviceId: string | null; excludeId?: string }) {
       const services = await serviceMap();

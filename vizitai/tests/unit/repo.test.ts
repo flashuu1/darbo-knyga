@@ -299,3 +299,34 @@ describe('contacts list: pending payment first, paid this month, then the next v
     expect(rows.every((r) => r.pending === null && r.paidCents === 0 && r.nextVisit === null)).toBe(true);
   });
 });
+
+describe('cancelled visits only stay for a week', () => {
+  const day = 86_400_000;
+  it('removes cancelled visits older than 7 days and keeps newer ones, bookings and no-shows', async () => {
+    const s = (await repo.listServices(true))[0];
+    const mk = (n: string, start: string) => repo.createAppointment({ kind: 'client', name: n, serviceId: s.id, start });
+    const old = await mk('Sena', '2026-10-01T10:00');
+    const recent = await mk('Šviežia', '2026-10-02T10:00');
+    const booked = await mk('Užregistruota', '2026-10-03T10:00');
+    const noshow = await mk('Neatvyko', '2026-10-04T10:00');
+    await repo.cancelAppointment(old.id, null);
+    await repo.cancelAppointment(recent.id, null);
+    await repo.markNoShow(noshow.id);
+    const now = new Date();
+    await db.appointments.update(old.id, { cancelledAt: new Date(now.getTime() - 8 * day).toISOString() });
+    await db.appointments.update(recent.id, { cancelledAt: new Date(now.getTime() - 6 * day).toISOString() });
+    expect(await repo.purgeCancelled(now)).toBe(1);
+    expect(await db.appointments.get(old.id)).toBeUndefined();
+    expect(await db.appointments.get(recent.id)).toBeDefined();
+    expect(await db.appointments.get(booked.id)).toBeDefined();
+    expect(await db.appointments.get(noshow.id)).toBeDefined();
+    expect(await repo.purgeCancelled(now)).toBe(0);
+  });
+  it('a week later the recent one goes too, and the client stays', async () => {
+    const s = (await repo.listServices(true))[0];
+    const a = await repo.createAppointment({ kind: 'client', name: 'Ona', serviceId: s.id, start: '2026-10-02T10:00' });
+    await repo.cancelAppointment(a.id, null);
+    expect(await repo.purgeCancelled(new Date(Date.now() + 7.1 * day))).toBe(1);
+    expect(await db.clients.count()).toBe(1);
+  });
+});

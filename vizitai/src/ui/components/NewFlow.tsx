@@ -8,7 +8,7 @@ import { cleanName } from '../../logic/names';
 import { datePart } from '../../logic/time';
 import { closeSheet, highlight } from '../actions';
 import { useLive, useServices } from '../hooks';
-import { ui } from '../store';
+import { ui, type Origin } from '../store';
 import { DateTimePicker } from './DateTimePicker';
 import { Sheet } from './Sheet';
 
@@ -21,7 +21,7 @@ type Screen = 0 | 1 | 2; // 0 = client, 1 = service, 2 = time
  *   0 Klientas (name + recents, keyboard)  ->  1 Paslauga (service cards)  ->  2 Laikas (calendar + times)
  * Nothing resizes when the keyboard opens: the name field is at the top and only screen 0 has a keyboard.
  */
-export function NewFlow({ prefill }: { prefill: { start: string; clientId?: string; serviceId?: string; screen?: 'time' } }) {
+export function NewFlow({ prefill }: { prefill: { start: string; clientId?: string; serviceId?: string; screen?: 'time'; from?: Origin; replaceId?: string } }) {
   const services = useServices(true);
   const [screen, setScreen] = useState<Screen>(prefill.screen === 'time' ? 2 : 0);
   const [kind, setKind] = useState<'client' | 'personal'>('client');
@@ -54,7 +54,11 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
   const touch = <T,>(set: (v: T) => void) => (v: T) => { set(v); setClash(null); };
   const go = (s: Screen) => { if (s !== 0) input.current?.blur(); setScreen(s); };
   const next = () => { if (hasName) go(kind === 'client' ? 1 : 2); };
-  const back = () => go(screen === 2 ? (kind === 'client' ? 1 : 0) : 0);
+  // Started from "Užregistruoti į priekį": backing out (Atgal or a swipe down) returns to the appointment sheet or
+  // client card it came from, not through the service and name screens.
+  const origin = prefill.screen === 'time' ? prefill.from : undefined;
+  const leave = () => { if (origin?.type === 'appt') ui.set({ sheet: { type: 'appt', id: origin.id } }); else closeSheet(); };
+  const back = () => { if (screen === 2 && origin) leave(); else go(screen === 2 ? (kind === 'client' ? 1 : 0) : 0); };
 
   async function pick(c: Client) {
     typed.current = true;
@@ -79,7 +83,8 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
       if (hit && clash === null) { setClash(t('warn.overlap', { vardas: hit.label, paslauga: hit.serviceName })); return; }
       const a = await repo.createAppointment(kind === 'client'
         ? { kind, name, serviceId: sid, start } : { kind, title: name, start });
-      ui.set({ sheet: null, date: datePart(a.start) });
+      if (prefill.replaceId) await repo.deleteAppointment(prefill.replaceId); // booked in place of a cancelled visit
+      ui.set({ sheet: null, date: datePart(a.start), ...(prefill.from?.type === 'client' ? { client: null, tab: 'calendar' as const, view: 'day' as const } : {}) });
       highlight(a.id);
     } catch (e) {
       console.error(e);
@@ -93,7 +98,7 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
   const pane = (i: Screen) => ({ 'data-active': screen === i ? '' : undefined, 'aria-hidden': screen !== i, style: { '--i': i } as CSSProperties });
 
   return (
-    <Sheet variant="full" title={title} onClose={closeSheet} onBackdrop={onBackdrop}
+    <Sheet variant="full" title={title} onClose={origin ? leave : closeSheet} onBackdrop={onBackdrop}
       left={screen === 0
         ? <button data-testid="btn-dismiss" onClick={closeSheet}>{t('btn.dismiss')}</button>
         : <button class="back" data-testid="btn-back" onClick={back}>‹ {t('nav.back')}</button>}

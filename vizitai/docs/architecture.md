@@ -158,7 +158,7 @@ Tap opens an entry. Long-press moves it. Cancel takes two taps and one confirmat
 1. Tap "Atšaukti vizitą".
 2. An iOS action sheet titled "Atšaukti vizitą?" offers "Atšaukti vizitą" (red) and "Palikti" (keep). No reason is asked.
 3. Set `status = cancelled` with `cancelReason` and `cancelledAt`. Show the toast "Vizitas atšauktas" with "Anuliuoti".
-4. The slot is free right away. In the timeline the cancelled entry shrinks to a thin, faded, struck-through line that does not block taps, so the slot can be booked again.
+4. The slot is free right away. In the timeline the cancelled entry shrinks to a thin, faded, struck-through line; the rest of its row still books a new visit. Tapping the line offers "Atnaujinti vizitą" (bring it back as it was) or "Pakeisti nauju vizitu" (book something new in its place; the cancelled entry is then removed). Cancelled entries are removed for good after 7 days (checked at launch and whenever the app returns to the front).
 
 Wording: "Atšaukti" means both "cancel" and "undo" in Lithuanian. Undo is always "Anuliuoti" (the iOS term), and cancelling an appointment is always "Atšaukti vizitą", never plain "Atšaukti".
 

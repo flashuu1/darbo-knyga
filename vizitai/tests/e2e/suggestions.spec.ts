@@ -41,12 +41,15 @@ test('Užregistruoti į priekį on an appointment opens the calendar for the sam
   await expectPickedTime(page, '10:00');
   await page.getByTestId('pick-next').click();
   await page.getByTestId('pick-day-2026-11-25').click();
-  await page.getByTestId('btn-back').click();
-  await expect(page.getByTestId('flow-who')).toHaveText('Ona');
-  await expect(page.getByTestId('svc-2')).toHaveClass(/on/);
-  await expect(page.getByTestId('time-value')).toHaveText('lapkričio 25 d., tr · 10:00');
-  await page.getByTestId('btn-save').click();
-  await expect.poll(() => page.evaluate(async () => (await (window as any).__vizitai.db.appointments.toArray()).filter((a: { start: string }) => a.start === '2026-11-25T10:00').length)).toBe(1);
+  await page.getByTestId('btn-save-time').click();
+  // same client and the same service as the visit it was started from
+  await expect.poll(() => page.evaluate(async () => {
+    const { db } = (window as any).__vizitai;
+    const all = await db.appointments.toArray();
+    const src = all.find((a: { start: string }) => a.start === '2026-10-14T10:00');
+    const now = all.filter((a: { start: string }) => a.start === '2026-11-25T10:00');
+    return now.length === 1 && now[0].clientId === src.clientId && now[0].serviceId === src.serviceId;
+  })).toBe(true);
 });
 
 test('Užregistruoti į priekį on the client card repeats the latest visit', async ({ page }) => {
@@ -58,12 +61,13 @@ test('Užregistruoti į priekį on the client card repeats the latest visit', as
   expect(box!.height).toBeGreaterThanOrEqual(44);
   await page.getByTestId('card-repeat').click();
   await expectPickedTime(page, '09:30'); // the visit's time of day
-  // like Registruoti: the card closes and the calendar (Day view) is behind the sheet, so the new entry is seen
+  await expect(page.getByTestId('client-card')).toBeVisible(); // still there behind the modal: Atgal returns to it
+  await page.getByTestId('btn-save-time').click();
+  await expect(page.getByTestId('sheet')).toHaveCount(0);
+  // saved: the card is left for the calendar (Day view), so the new entry is seen
   await expect(page.getByTestId('client-card')).toHaveCount(0);
   await expect(page.getByTestId('calendar')).toBeVisible();
   expect(await page.evaluate(() => (window as any).__vizitai.ui.get().view)).toBe('day');
-  await page.getByTestId('btn-save-time').click();
-  await expect(page.getByTestId('sheet')).toHaveCount(0);
   await expect(page.getByTestId('col-2026-10-15')).toContainText('Ona');
 });
 
@@ -75,4 +79,46 @@ test('smart defaults: the next free slot skips today’s booking, recent clients
   await expect(page.getByTestId('suggest-0')).toContainText('Jonas');
   await page.getByTestId('suggest-0').click();
   await expect(page.getByTestId('svc-3')).toHaveClass(/on/);
+});
+
+test('Atgal from Užregistruoti į priekį returns to the appointment sheet it was started from, saving nothing', async ({ page }) => {
+  await openApp(page);
+  const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T10:00', service: 2 }]);
+  await page.getByTestId(`entry-${id}`).click();
+  await page.getByTestId('act-repeat').click();
+  await expect(page.getByTestId('timewheel')).toBeVisible();
+  await page.getByTestId('btn-back').click();
+  await expect(page.getByTestId('timewheel')).toHaveCount(0);       // no walk through the service and name screens
+  await expect(page.getByTestId('act-repeat')).toBeVisible();        // back on the appointment sheet
+  await expect(page.getByTestId('appt-name')).toHaveText('Ona');
+  expect(await page.evaluate(async () => (await (window as any).__vizitai.db.appointments.count()))).toBe(1);
+});
+
+test('Atgal from Užregistruoti į priekį on the client card returns to the card', async ({ page }) => {
+  await openApp(page);
+  await seedAppts(page, [{ name: 'Ona', start: '2026-10-01T09:30', service: 1 }]);
+  await page.getByTestId('tab-clients').click();
+  await page.getByTestId('client-row-0').click();
+  await page.getByTestId('card-repeat').click();
+  await expect(page.getByTestId('timewheel')).toBeVisible();
+  await page.getByTestId('btn-back').click();
+  await expect(page.getByTestId('sheet')).toHaveCount(0);
+  await expect(page.getByTestId('client-card')).toBeVisible();
+  await expect(page.getByTestId('card-repeat')).toBeVisible();
+  expect(await page.evaluate(async () => (await (window as any).__vizitai.db.appointments.count()))).toBe(1);
+});
+
+test('swiping the Užregistruoti į priekį modal down also returns to where it started', async ({ page }) => {
+  await openApp(page);
+  const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T10:00' }]);
+  await page.getByTestId(`entry-${id}`).click();
+  await page.getByTestId('act-repeat').click();
+  await page.waitForTimeout(500);
+  const g = (await page.getByTestId('sheet').locator('.grabber').boundingBox())!;
+  await page.mouse.move(g.x + g.width / 2, g.y + 3);
+  await page.mouse.down();
+  await page.mouse.move(g.x + g.width / 2, g.y + 400, { steps: 8 });
+  await page.mouse.up();
+  await expect(page.getByTestId('act-repeat')).toBeVisible();
+  await expect(page.getByTestId('timewheel')).toHaveCount(0);
 });

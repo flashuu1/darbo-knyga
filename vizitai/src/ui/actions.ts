@@ -5,7 +5,7 @@ import { formatDayShort, weekdayShort } from '../i18n/format';
 import { t } from '../i18n/lt';
 import { backupFileName, BackupError, exportData, importData, parseBackup, shareBackup, type BackupFile } from '../logic/backup';
 import { addDays, datePart, timePart, todayStr } from '../logic/time';
-import { ui } from './store';
+import { ui, type Origin } from './store';
 
 let toastId = 0;
 let toastTimer = 0;
@@ -34,7 +34,7 @@ export const KB_PRIMER_ID = 'kb-primer';
 export function primeKeyboard() {
   document.getElementById(KB_PRIMER_ID)?.focus({ preventScroll: true });
 }
-export function openNew(start: string, extra: { clientId?: string; serviceId?: string } = {}) {
+export function openNew(start: string, extra: { clientId?: string; serviceId?: string; replaceId?: string } = {}) {
   primeKeyboard(); // slot and Kartoti taps call this synchronously from their tap handler
   ui.set({ sheet: { type: 'new', start, ...extra } });
 }
@@ -64,6 +64,22 @@ export function showOverflow(list: Entry[]) {
   });
 }
 export const closeSheet = () => ui.set({ sheet: null });
+/**
+ * A tap on a cancelled entry (the thin struck-through line): bring it back as it was, or book something new in
+ * its place (the cancelled entry is then removed). Both are one tap away; the rest of the row still books normally.
+ */
+export function openCancelled(e: Entry) {
+  ui.set({
+    action: {
+      title: t('cancelled.title', { vardas: e.label, laikas: timePart(e.appt.start) }),
+      items: [
+        { label: t('cancelled.renew'), onPress: () => void restoreWithToast(e.appt.id) },
+        { label: t('cancelled.replace'), onPress: () => openNew(e.appt.start, { replaceId: e.appt.id }) },
+        { label: t('btn.close'), role: 'cancel' as const, onPress: () => {} },
+      ],
+    },
+  });
+}
 export function highlight(id: string) {
   ui.set({ highlight: id });
   window.setTimeout(() => ui.set({ highlight: null }), 1800);
@@ -149,14 +165,11 @@ export async function chooseImport(file: File) {
  * Užregistruoti į priekį: the same client and service, booked through the calendar picker. The flow opens
  * straight on its Laikas screen (no keyboard) with tomorrow at the visit's time of day preselected.
  */
-export function rebook(e: { start: string; clientId: string | null; serviceId: string | null }) {
+export function rebook(e: { start: string; clientId: string | null; serviceId: string | null }, from: Origin) {
   const clientId = e.clientId;
   if (!clientId) return;
-  const s = ui.get();
-  // Like Registruoti: leave the client card / other tab for the calendar so the new entry is seen.
-  const leave = s.client !== null || s.tab !== 'calendar' ? { client: null, tab: 'calendar' as const, view: 'day' as const } : {};
+  // The appointment sheet / client card stays where it is: "Atgal" returns to it. Saving leaves the card for the calendar (NewFlow).
   ui.set({
-    ...leave,
-    sheet: { type: 'new', start: `${addDays(todayStr(), 1)}T${timePart(e.start)}`, clientId, serviceId: e.serviceId ?? undefined, screen: 'time' },
+    sheet: { type: 'new', start: `${addDays(todayStr(), 1)}T${timePart(e.start)}`, clientId, serviceId: e.serviceId ?? undefined, screen: 'time', from },
   });
 }

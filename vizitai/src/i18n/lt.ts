@@ -48,6 +48,7 @@ export const lt = {
   'overflow.more': '+{n}', 'overflow.aria': 'Kiti vizitai: {n}', 'overflow.title': 'Kiti vizitai šiuo metu',
   'overflow.item': '{laikas} · {vardas} – {paslauga}',
   // --- overhaul: flow ---
+  'cancelled.title': 'Atšauktas vizitas: {vardas}, {laikas}', 'cancelled.renew': 'Atnaujinti vizitą', 'cancelled.replace': 'Pakeisti nauju vizitu',
   'client.paid': 'Sumokėta {suma}', 'client.pending': 'Pridėti sumą', 'client.next': 'Kitas vizitas: {kada}', 'wheel.hours': 'Valandos', 'wheel.minutes': 'Minutės',
   'btn.next': 'Toliau', 'picker.prev': 'Ankstesnis mėnuo', 'picker.next': 'Kitas mėnuo',
   // --- overhaul: amount ---

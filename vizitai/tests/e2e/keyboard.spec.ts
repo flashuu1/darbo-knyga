@@ -146,10 +146,7 @@ test.describe('a hidden service is never preselected', () => {
     await page.getByTestId('client-row-0').click();
     await page.getByTestId('card-repeat').click();
     await expect(page.getByTestId('timewheel')).toBeVisible();
-    await page.getByTestId('btn-back').click();
-    await expect(page.getByTestId('flow-who')).toHaveText('Ona');
-    await expect(page.getByTestId('svc-0')).toHaveClass(/on/);
-    await page.getByTestId('btn-save').click();
+    await page.getByTestId('btn-save-time').click(); // saves with the client's usual service, never the hidden one
     await expect(page.getByTestId('sheet')).toHaveCount(0);
     await expect.poll(async () => (await appts(page)).filter((a: any) => a.start !== '2026-10-01T10:00').map((a: any) => a.serviceId)).toEqual([ids.firstActive]);
   });

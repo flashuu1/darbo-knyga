@@ -249,7 +249,7 @@ svg { flex: none; }
 .entry.noshow { opacity: .55; }
 .entry.noshow .entry-name { text-decoration: line-through; }
 .entry.thin { z-index: 1; left: 0; right: 0; width: auto; height: 1.05rem; padding: 0 8px; flex-direction: row; align-items: center; gap: 6px;
-  border-radius: 0; background: transparent; box-shadow: none; opacity: .5; text-decoration: line-through; pointer-events: none; animation: none; }
+  border-radius: 0; background: transparent; box-shadow: none; opacity: .55; text-decoration: line-through; animation: none; }
 .entry.thin::before { width: 2px; }
 .entry.thin .entry-name { font-size: .72rem; font-weight: 500; }
 .entry.thin .entry-svc { display: none; }

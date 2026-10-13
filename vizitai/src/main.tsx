@@ -27,6 +27,10 @@ async function boot() {
   if (settings?.persistGranted !== true) {
     await db.settings.update('settings', { persistGranted: await requestPersistence() });
   }
+  // Cancelled visits only stay for a week: tidy up at launch and every time the app comes back to the front.
+  const tidy = () => { import('./db/repo').then(({ repo }) => repo.purgeCancelled()).catch((e) => console.error(e)); };
+  tidy();
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') tidy(); });
   render(<App />, root);
   initUpdates(isBusy);
 }

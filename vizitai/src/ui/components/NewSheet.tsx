@@ -22,7 +22,9 @@ export function NewSheet({ prefill }: { prefill: { start: string; clientId?: str
   const input = useRef<HTMLInputElement>(null);
   const matches = useLive(() => repo.searchClients(name), [name], [] as Client[]);
   const sid = serviceId ?? services[0]?.id ?? null;
-  const canSave = cleanName(name).length > 0;
+  const [saving, setSaving] = useState(false);
+  const busy = useRef(false);
+  const canSave = cleanName(name).length > 0 && (kind === 'personal' || sid !== null);
 
   useEffect(() => { input.current?.focus(); }, []);
   useEffect(() => {
@@ -36,19 +38,26 @@ export function NewSheet({ prefill }: { prefill: { start: string; clientId?: str
   const touch = <T,>(set: (v: T) => void) => (v: T) => { set(v); setClash(null); };
 
   async function save() {
-    if (!canSave) return;
-    const hit = await repo.findOverlapFor({ start, kind, serviceId: kind === 'client' ? sid : null });
-    if (hit && clash === null) { setClash(t('warn.overlap', { vardas: hit.label, paslauga: hit.serviceName })); return; }
-    const a = await repo.createAppointment(kind === 'client'
-      ? { kind, name, serviceId: sid, start } : { kind, title: name, start });
-    ui.set({ sheet: null, date: datePart(a.start) });
-    highlight(a.id);
+    if (!canSave || busy.current) return;
+    busy.current = true; setSaving(true);
+    try {
+      const hit = await repo.findOverlapFor({ start, kind, serviceId: kind === 'client' ? sid : null });
+      if (hit && clash === null) { setClash(t('warn.overlap', { vardas: hit.label, paslauga: hit.serviceName })); return; }
+      const a = await repo.createAppointment(kind === 'client'
+        ? { kind, name, serviceId: sid, start } : { kind, title: name, start });
+      ui.set({ sheet: null, date: datePart(a.start) });
+      highlight(a.id);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      busy.current = false; setSaving(false);
+    }
   }
 
   return (
     <Sheet title={t('sheet.new.title')} onClose={closeSheet}
       left={<button data-testid="btn-dismiss" onClick={closeSheet}>{t('btn.dismiss')}</button>}
-      right={<button class="strong" data-testid="btn-save" disabled={!canSave} onClick={() => void save()}>{t('btn.save')}</button>}>
+      right={<button class="strong" data-testid="btn-save" disabled={!canSave || saving} onClick={() => void save()}>{t('btn.save')}</button>}>
       <div class="segmented wide">
         {(['client', 'personal'] as const).map((k) => (
           <button key={k} data-testid={`type-${k}`} class={kind === k ? 'seg on' : 'seg'} onClick={() => { setKind(k); setLinked(null); setClash(null); }}>{t(`type.${k}`)}</button>

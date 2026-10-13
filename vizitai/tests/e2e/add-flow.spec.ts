@@ -1,5 +1,17 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { openApp, seedAppts } from './helpers';
+
+async function expectLinkedToSeeded(page: Page) {
+  await expect.poll(() => page.evaluate(() => (window as any).__vizitai.db.appointments.count())).toBe(2); // eslint-disable-line @typescript-eslint/no-explicit-any
+  const r = await page.evaluate(async () => {
+    const { db } = (window as any).__vizitai; // eslint-disable-line @typescript-eslint/no-explicit-any
+    const clients = await db.clients.toArray();
+    const appts = await db.appointments.toArray();
+    return { clients: clients.length, ids: appts.map((a: { clientId: string }) => a.clientId), id: clients[0]?.id };
+  });
+  expect(r.clients).toBe(1);
+  expect(r.ids).toEqual([r.id, r.id]);
+}
 
 test('booking from an empty slot takes 3 taps plus typing the name', async ({ page }) => {
   await openApp(page);
@@ -34,8 +46,27 @@ test('searching "zydrune" finds Žydrūnė, and a typed existing name links that
   await page.getByTestId('suggest-0').click();
   await expect(page.getByTestId('svc-2')).toHaveClass(/on/); // last service preselected
   await page.getByTestId('btn-save').click();
-  const count = await page.evaluate(() => (window as any).__vizitai.db.clients.count()); // eslint-disable-line @typescript-eslint/no-explicit-any
-  expect(count).toBe(1);
+  await expect(page.getByTestId('sheet')).toHaveCount(0);
+  await expectLinkedToSeeded(page);
+});
+
+test('typing an existing name exactly, without tapping a suggestion, links that client', async ({ page }) => {
+  await openApp(page);
+  await seedAppts(page, [{ name: 'Žydrūnė', start: '2026-10-13T10:00', service: 2 }]);
+  await page.getByTestId('slot-2026-10-14T11:00').click();
+  await page.getByTestId('field-name').fill('Žydrūnė');
+  await page.getByTestId('btn-save').click();
+  await expect(page.getByTestId('sheet')).toHaveCount(0);
+  await expectLinkedToSeeded(page);
+});
+
+test('a double tap on Išsaugoti creates exactly one appointment', async ({ page }) => {
+  await openApp(page);
+  await page.getByTestId('slot-2026-10-14T10:30').click();
+  await page.getByTestId('field-name').fill('Ona');
+  await page.getByTestId('btn-save').dblclick();
+  await expect(page.getByTestId('sheet')).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => (window as any).__vizitai.db.appointments.count())).toBe(1); // eslint-disable-line @typescript-eslint/no-explicit-any
 });
 
 test('empty name field lists the recent clients', async ({ page }) => {

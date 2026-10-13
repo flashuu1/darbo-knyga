@@ -85,6 +85,7 @@ The app stores four record types. Clients are created automatically from the typ
 | `status` | `booked` \| `cancelled` \| `noshow` | "Done" is derived: `booked` with a start in the past |
 | `cancelReason` | string, nullable | One of the preset reasons or null |
 | `cancelledAt` | ISO timestamp, nullable | |
+| `amountCents` | integer, optional | What she took for the visit, in euro cents. Absent or null = not entered yet. Unindexed, so no schema version bump |
 | `moves` | array of `{at, from, to}` | Reschedule history, appended on every move |
 | `createdAt`, `updatedAt` | ISO timestamp | |
 
@@ -118,28 +119,19 @@ The app opens on today's day view. A bottom tab bar has three tabs: Kalendorius,
 
 ## Add appointment flow
 
-Target: tap an empty slot, type the name, tap a service, tap Save. Every other value comes prefilled.
+A full-height modal with three screens that slide (no layout shift when the keyboard opens: the name field is at the top and only the first screen has a keyboard). Swipe down on its header, or "Atšaukti", closes it.
 
-The sheet ("Naujas vizitas") has four rows, top to bottom:
+1. **Klientas.** Segmented control "Klientas | Asmeninis". Autofocused name field (the keyboard opens inside the tap that opened the modal) with the 3 most recent clients while it is empty and diacritic-insensitive matches while typing (max 3). Return ("Toliau") or tapping a client moves on; Enter never saves. Asmeninis: a title field, then straight to Laikas.
+2. **Paslauga.** Large service cards (service colour, check mark when selected; default = the client's last active service, otherwise the first), a "Laikas" summary row and "Išsaugoti". No keyboard.
+3. **Laikas.** An in-app month calendar (Monday first, dots on days with bookings, swipe or arrows between months) above a scrollable grid of 15-minute times (00:00–23:45; booked times are marked). Values are always snapped to 15 minutes. It replaces the native iOS date/time wheels everywhere (also used by "Perkelti").
 
-1. **Type.** Segmented control "Klientas | Asmeninis", defaulting to Klientas.
-2. **Name.** Autofocused text field, keyboard open. While it is empty, it lists the most recent clients. While typing, it lists matching clients from a diacritic-insensitive `nameKey` search. At most 3 suggestions are shown, so the service chips stay reachable above the keyboard. A tap outside the sheet while a name is typed only hides the keyboard; "Atšaukti" closes the sheet. Tapping a match fills the field and links that client. For Asmeninis entries this field becomes "Pavadinimas".
-3. **Service.** One row of chips, single select. The default is the linked client's last service, otherwise the first service in the list. Hidden for Asmeninis.
-4. **Time.** One row showing the prefilled date and time, for example "spalio 14 d., tr · 10:30". Tapping it opens the native iOS date and time wheels in 15-minute steps.
+A new booking from an empty slot takes 3 taps plus typing the name: tap the slot, (type the name, return), tap a service card, tap "Išsaugoti". The first "Išsaugoti" tap on an overlapping time shows "Šiuo laiku jau užregistruota: {vardas} – {paslauga}", the second saves. Every service and personal entry is 15 minutes long by default.
 
-The nav bar has "Atšaukti" on the left and "Išsaugoti" on the right. "Išsaugoti" is disabled until the name is not empty.
+"Užregistruoti į priekį" (appointment sheet and client card) opens the same modal directly on Laikas for the same client and service, with tomorrow at the visit's time of day preselected; there are no 4/6/8-week shortcuts.
 
-Prefill rules:
+## Amounts
 
-- Opened by tapping an empty row: that row's date and time.
-- Opened by "+": the selected day and the next free 15-minute slot after now (on today), or `dayStart` (on other days).
-- Opened from a client card: that client and their last service.
-
-On save:
-
-1. Match or create the client (data model rule 1).
-2. If the new entry overlaps an existing booking, show an inline warning "Šiuo laiku jau užregistruota: {vardas} – {paslauga}". The first tap on "Išsaugoti" shows the warning and the second tap saves.
-3. Close the sheet and show the new entry briefly highlighted in the timeline.
+When a client visit's start time has passed and no amount is entered, its calendar entry turns orange with "Pridėti sumą". Tapping it opens the "Suma" dialog (number keyboard, euros, comma or dot); "Patvirtinti" stores `amountCents` and the entry then shows e.g. "45,00 €". The amount can be changed or cleared from the appointment sheet (clearing makes the entry orange again). Cancelled, no-show and personal entries never ask for an amount. Reports and totals come later.
 
 ## Open, reschedule and cancel
 
@@ -247,7 +239,7 @@ Seven additions ranked by value. Numbers 1–3 belong in the first testable vers
 | # | Suggestion | What it does | Why |
 | --- | --- | --- | --- |
 | 1 | Backup reminder | If `lastBackupAt` is older than 7 days, Settings shows a badge and the day view shows a one-line banner "Sukurti atsarginę kopiją?" that opens the share sheet. | Phone storage is the only copy. This is the cheapest protection against eviction, a lost phone or a wiped app. |
-| 2 | One-tap rebooking | A "Kartoti" action on an appointment and on the client card, with chips "po 4 sav.", "po 6 sav.", "po 8 sav.". It opens the new sheet with the same client and service at that interval. | Hair clients come back on a cycle, so the next booking is usually made in the chair. |
+| 2 | One-tap rebooking | A "Kartoti" action on an appointment and on the client card, with chips "po 4 sav.", "po 6 sav.", "po 8 sav.". It opens the new sheet with the same client and service at that interval. | Hair clients come back on a cycle, so the next booking is usually made in the chair. (Now "Užregistruoti į priekį": opens the calendar picker, no fixed 4/6/8-week chips.) |
 | 3 | Smart defaults | The client's last service is preselected, the next free slot is suggested, and recent clients appear before typing. | Shrinks most bookings to a tap on a name and "Išsaugoti". |
 | 4 | Free-slot highlight | Gaps between bookings are tinted in the day view. A slot freed by a cancellation pulses briefly. | She can answer "when do you have time?" on the phone at a glance. |
 | 5 | Phone, call and SMS | An optional phone number on the client card, with `tel:` and `sms:` buttons. Never asked during booking. | One tap to confirm a booking or offer a freed slot. |

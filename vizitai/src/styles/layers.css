@@ -23,7 +23,7 @@
 .sheet-nav h2 { font-size: 1.02rem; font-weight: 600; margin: 0; text-align: center; max-width: 52vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sheet-nav .side { display: flex; min-width: 0; }
 .sheet-nav .side.r { justify-content: flex-end; }
-.sheet-nav button { color: var(--accent); padding: 0 var(--s2); font-size: 1.02rem; white-space: nowrap; }
+.sheet-nav button { color: var(--accent); padding: 0 var(--s2); min-height: 44px; font-size: 1.02rem; white-space: nowrap; }
 .sheet-nav button.strong { font-weight: 600; }
 .sheet-nav button:disabled { color: var(--label-3); }
 .sheet-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--s2) var(--s4) var(--s5); }
@@ -84,7 +84,7 @@ p.link-name { color: var(--label); }
 .action-row:first-child { border-top: 0; }
 .action-row:active { background: var(--fill); }
 .action-row.destructive, .destructive { color: var(--red); }
-.link-btn { display: block; margin: var(--s2) auto 0; color: var(--accent); }
+.link-btn { display: block; margin: var(--s2) auto 0; padding: 0 var(--s4); min-height: 48px; color: var(--accent); }
 .move-from { margin: 0 0 var(--s1); text-align: center; color: var(--label-2); font-size: .9rem; }
 
 /* booking flow: three panes that slide */

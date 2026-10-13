@@ -5,6 +5,7 @@ import { addDays, datePart, hhmm, minutesOfDay, nowLocal } from '../../logic/tim
 import { t } from '../../i18n/lt';
 import { openNew } from '../actions';
 import { useLive, useSettings } from '../hooks';
+import { useSwipe } from '../swipe';
 import { EntryBlock } from './EntryBlock';
 
 export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; compact: boolean; onSwipe?: (dir: -1 | 1) => void }) {
@@ -17,7 +18,7 @@ export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; com
   const { startMin, endMin } = visibleRange(settings, entries);
   const rows = (endMin - startMin) / 15;
   const scroller = useRef<HTMLDivElement>(null);
-  const touch = useRef<{ x: number; y: number } | null>(null);
+  const swipe = useSwipe(onSwipe);
 
   useEffect(() => { // open near the first booking, else near now, else the top
     const el = scroller.current;
@@ -32,13 +33,7 @@ export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; com
 
   return (
     <div class="grid-scroll" ref={scroller} data-testid="timeline"
-      onTouchStart={(ev) => { const p = ev.touches[0]; touch.current = { x: p.clientX, y: p.clientY }; }}
-      onTouchEnd={(ev) => {
-        const s = touch.current; touch.current = null;
-        if (!s || !onSwipe || !ev.changedTouches[0]) return;
-        const dx = ev.changedTouches[0].clientX - s.x, dy = ev.changedTouches[0].clientY - s.y;
-        if (Math.abs(dx) > 60 && Math.abs(dx) > 2 * Math.abs(dy)) onSwipe(dx < 0 ? 1 : -1);
-      }}>
+      {...swipe}>
       <div class="grid" style={{ height: `calc(var(--row) * ${rows})` }}>
         <div class="gutter">
           {hours.map((m) => (<div key={m} class="hour" style={{ height: 'calc(var(--row) * 4)' }}>{hhmm(m)}</div>))}

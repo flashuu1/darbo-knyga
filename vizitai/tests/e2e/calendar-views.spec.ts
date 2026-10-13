@@ -7,6 +7,7 @@ test('Savaitė shows seven columns with compact entries', async ({ page }) => {
   await page.getByTestId('seg-week').click();
   for (const d of ['2026-10-12', '2026-10-14', '2026-10-18']) await expect(page.getByTestId(`col-${d}`)).toBeVisible();
   await expect(page.getByTestId('col-2026-10-15').getByTestId(`entry-${id}`)).toContainText('Ona');
+  await expect(page.getByTestId(`entry-${id}`)).toContainText('10:00');
   await expect(page.getByTestId('title')).toContainText('spalio 12 d.');
 });
 
@@ -21,7 +22,8 @@ test('Mėnuo shows booking counts and a tap opens that day', async ({ page }) =>
   await openApp(page);
   await seedAppts(page, [{ name: 'A', start: '2026-10-20T10:00' }, { name: 'B', start: '2026-10-20T12:00' }]);
   await page.getByTestId('month-name').click();
-  await expect(page.getByTestId('month-cell-2026-10-20')).toContainText('2');
+  await expect(page.getByTestId('month-cell-2026-10-20').locator('.count')).toHaveText('2');
+  await expect(page.getByTestId('month-cell-2026-10-21').locator('.count')).toHaveCount(0);
   await page.getByTestId('month-cell-2026-10-20').click();
   await expect(page.getByTestId('title')).toHaveText('spalio 20 d., antradienis');
 });
@@ -31,4 +33,24 @@ test('Savaitė header chips open the day', async ({ page }) => {
   await page.getByTestId('seg-week').click();
   await page.getByTestId('weekhead-2026-10-16').click();
   await expect(page.getByTestId('title')).toHaveText('spalio 16 d., penktadienis');
+});
+
+test('swiping the month grid moves to the next and previous month', async ({ page }) => {
+  await openApp(page);
+  await page.getByTestId('month-name').click();
+  await expect(page.getByTestId('title')).toHaveText('spalis 2026');
+  const swipe = (dx: number) => page.getByTestId('month').evaluate((el, d) => {
+    const fire = (type: string, x: number) => {
+      const ev = new Event(type, { bubbles: true });
+      const pt = { clientX: x, clientY: 200 };
+      Object.assign(ev, { touches: type === 'touchend' ? [] : [pt], changedTouches: [pt] });
+      el.dispatchEvent(ev);
+    };
+    fire('touchstart', 200); fire('touchend', 200 + d);
+  }, dx);
+  await swipe(-120);
+  await expect(page.getByTestId('title')).toHaveText('lapkritis 2026');
+  await swipe(120);
+  await swipe(120);
+  await expect(page.getByTestId('title')).toHaveText('rugsėjis 2026');
 });

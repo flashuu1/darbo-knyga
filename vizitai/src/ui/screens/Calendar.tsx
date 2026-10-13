@@ -50,7 +50,7 @@ export function CalendarScreen() {
       )}
       {view === 'day' && <TimelineGrid dates={[date]} compact={false} onSwipe={step} />}
       {view === 'week' && <TimelineGrid dates={days} compact onSwipe={step} />}
-      {view === 'month' && <MonthGrid />}
+      {view === 'month' && <MonthGrid onSwipe={step} />}
     </section>
   );
 }

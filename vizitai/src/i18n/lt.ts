@@ -46,6 +46,9 @@ export const lt = {
   'install.step.share': 'Paspauskite mygtuką „Bendrinti“ (kvadratas su rodykle aukštyn).',
   'install.step.add': 'Pasirinkite „Pridėti prie pagrindinio ekrano“.',
   'install.step.open': 'Atidarykite programėlę iš jos piktogramos pagrindiniame ekrane.',
+  // --- overhaul: core ---
+  'overflow.more': '+{n}', 'overflow.aria': 'Kiti vizitai: {n}', 'overflow.title': 'Kiti vizitai šiuo metu',
+  'overflow.item': '{laikas} · {vardas} – {paslauga}',
 } as const;
 
 export type Key = keyof typeof lt;

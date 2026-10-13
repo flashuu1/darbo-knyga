@@ -1,5 +1,5 @@
 import { db } from '../db/db';
-import { repo } from '../db/repo';
+import { repo, type Entry } from '../db/repo';
 import type { CancelReason } from '../db/types';
 import { formatDayShort, weekdayShort } from '../i18n/format';
 import { t } from '../i18n/lt';
@@ -48,6 +48,21 @@ export async function openNewToday() {
   }
 }
 export const openAppt = (id: string) => ui.set({ sheet: { type: 'appt', id } });
+/** The "+N" chip of a crowded time: an action sheet listing the entries it hides. */
+export function showOverflow(list: Entry[]) {
+  ui.set({
+    action: {
+      title: t('overflow.title'),
+      items: [
+        ...list.map((e) => ({
+          label: t('overflow.item', { laikas: timePart(e.appt.start), vardas: e.label, paslauga: e.service?.name ?? t('type.personal') }),
+          onPress: () => openAppt(e.appt.id),
+        })),
+        { label: t('btn.close'), role: 'cancel' as const, onPress: () => {} },
+      ],
+    },
+  });
+}
 export const closeSheet = () => ui.set({ sheet: null });
 export function highlight(id: string) {
   ui.set({ highlight: id });

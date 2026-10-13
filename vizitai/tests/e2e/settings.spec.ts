@@ -45,8 +45,7 @@ test('reorders, recolours, changes length and adds a service', async ({ page }) 
   await page.getByTestId('svc-up-1').click();
   await expect(page.getByTestId('svc-name-0')).toHaveValue(second);
   await expect(page.getByTestId('svc-minutes-0')).toHaveText('15'); // the default length
-  await page.getByTestId('svc-minus-0').click();
-  await expect(page.getByTestId('svc-minutes-0')).toHaveText('15'); // never below 15
+  await expect(page.getByTestId('svc-minus-0')).toBeDisabled(); // never below 15
   await page.getByTestId('svc-plus-0').click();
   await page.getByTestId('svc-plus-0').click();
   await page.getByTestId('svc-minus-0').click();
@@ -69,8 +68,13 @@ test('working hours change the timeline range and reject an end before the start
   await expect(page.getByTestId('toast')).toHaveText(/Pabaiga turi būti vėlesnė už pradžią/);
   await expect(page.getByTestId('hours-end')).toHaveValue('20:00'); // input reverted
   await page.getByTestId('tab-calendar').click();
-  await expect(page.getByTestId('slot-2026-10-14T08:00')).toHaveCount(0);
-  await expect(page.getByTestId('slot-2026-10-14T09:00')).toHaveCount(1);
+  // one hour of shaded padding before the working day: 08:00 is shown outside hours, 07:45 is gone
+  await expect(page.getByTestId('slot-2026-10-14T07:45')).toHaveCount(0);
+  await expect(page.getByTestId('slot-2026-10-14T08:00')).toHaveClass(/(^| )off( |$)/);
+  await expect(page.getByTestId('slot-2026-10-14T08:45')).toHaveClass(/(^| )off( |$)/);
+  await expect(page.getByTestId('slot-2026-10-14T09:00')).not.toHaveClass(/(^| )off( |$)/);
+  await expect(page.getByTestId('slot-2026-10-14T19:45')).not.toHaveClass(/(^| )off( |$)/);
+  await expect(page.getByTestId('slot-2026-10-14T20:00')).toHaveClass(/(^| )off( |$)/);
 });
 
 test('export, clear, import gives identical records', async ({ page }) => {

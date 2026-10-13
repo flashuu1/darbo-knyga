@@ -28,7 +28,8 @@ export function createRepo(db: VizitaiDB) {
       return { appt, label, service, minutes: minutesFor(appt, services), color: service?.color ?? 'gray' };
     });
   }
-  const byStart = (a: Appointment, b: Appointment) => a.start.localeCompare(b.start);
+  // Same start: the earlier booking first, so side-by-side lanes keep a stable order.
+  const byStart = (a: Appointment, b: Appointment) => a.start.localeCompare(b.start) || a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id);
   async function mutate(id: string, patch: (a: Appointment) => Appointment) {
     const before = await db.appointments.get(id);
     if (!before) throw new Error('not-found');

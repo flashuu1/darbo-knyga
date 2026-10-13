@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'preact';
 import { useRef } from 'preact/hooks';
 import { repo } from '../../db/repo';
 import { formatWhen } from '../../i18n/format';
@@ -5,7 +6,9 @@ import { t } from '../../i18n/lt';
 import { openAppt, openNew, primeKeyboard, repeatFrom } from '../actions';
 import { useLive } from '../hooks';
 import { statusLabel } from '../status';
+import { BackIcon, NextIcon } from '../icons';
 import { ui } from '../store';
+import { initials } from './Clients';
 
 export function ClientCard({ id }: { id: string }) {
   const d = useLive(() => repo.clientDetail(id), [id], null);
@@ -24,7 +27,8 @@ export function ClientCard({ id }: { id: string }) {
       const phone = phoneEl.current?.value ?? cur.phone ?? '';
       if (name !== cur.name || phone.trim() !== (cur.phone ?? '')) await repo.updateClient(id, { name, phone });
       const now = await repo.getClient(id);
-      if (nameEl.current && now) nameEl.current.value = now.name;
+      // Only revert what this save read: a name typed meanwhile (e.g. right after the phone) is kept.
+      if (nameEl.current && now && nameEl.current.value === name) nameEl.current.value = now.name;
     } catch (e) {
       console.error(e);
     }
@@ -53,31 +57,44 @@ export function ClientCard({ id }: { id: string }) {
   const latest = [...d.upcoming, ...d.past].filter((e) => e.appt.status !== 'cancelled').sort((a, b) => b.appt.start.localeCompare(a.appt.start))[0];
   const visit = (e: (typeof d.upcoming)[number], n: number, prefix: string) => (
     <li key={e.appt.id}>
-      <button data-testid={`${prefix}-${n}`} onClick={() => openAppt(e.appt.id)}>
-        <span>{formatWhen(e.appt.start)}</span>
-        <span>{e.service?.name ?? ''} {statusLabel(e.appt)}</span>
+      <button class="visit-row" data-testid={`${prefix}-${n}`} style={{ '--svc': `var(--c-${e.color})` } as CSSProperties} onClick={() => openAppt(e.appt.id)}>
+        <span class="visit-bar" aria-hidden="true" />
+        <span class="visit-text">
+          <b>{formatWhen(e.appt.start)}</b>
+          <span>{e.service?.name ?? ''} · {statusLabel(e.appt)}</span>
+        </span>
+        <span class="chev"><NextIcon /></span>
       </button>
     </li>
   );
   return (
-    <div class="card-root" data-testid="client-card">
-      <header class="navbar">
-        <button class="nav-btn" data-testid="card-back" onClick={() => void back()}>{t('nav.back')}</button>
-        <button class="nav-btn strong" data-testid="card-book" onClick={() => void book()}>{t('client.book')}</button>
+    <div class="card-root push-in" data-testid="client-card">
+      <header class="chrome">
+        <div class="navbar">
+          <button class="nav-btn back" data-testid="card-back" onClick={() => void back()}><BackIcon /><span>{t('nav.back')}</span></button>
+          <button class="nav-btn strong" data-testid="card-book" onClick={() => void book()}>{t('client.book')}</button>
+        </div>
       </header>
-      <div class="card-body">
-        <input ref={nameEl} class="field name" key={`n${d.client.id}`} data-testid="card-name" defaultValue={d.client.name} onChange={() => void save()} />
-        <label class="row"><span class="label">{t('client.phone')}</span>
-          <input ref={phoneEl} class="inline" type="tel" data-testid="card-phone" defaultValue={d.client.phone ?? ''} onChange={() => void save()} />
-        </label>
-        <p class="stat" data-testid="card-visits">{t('client.visitCount', { n: d.visitCount })}</p>
-        <p class="stat" data-testid="card-cancelled">{t('client.cancelledCount', { n: d.cancelled })}</p>
-        <p class="stat" data-testid="card-noshow">{t('client.noshowCount', { n: d.noshow })}</p>
-        {latest && <button class="action-row" data-testid="card-repeat" onClick={() => repeatFrom(latest.appt)}>{t('repeat.action')}</button>}
-        <p class="label">{t('client.upcoming')}</p>
-        <ul class="visits">{d.upcoming.length ? d.upcoming.map((e, n) => visit(e, n, 'upcoming')) : <li class="muted">{t('client.none')}</li>}</ul>
-        <p class="label">{t('client.past')}</p>
-        <ul class="visits">{d.past.length ? d.past.map((e, n) => visit(e, n, 'visit')) : <li class="muted">{t('client.none')}</li>}</ul>
+      <div class="scroll card-body">
+        <div class="card-hero">
+          <span class="avatar big" aria-hidden="true">{initials(d.client.name)}</span>
+          <input ref={nameEl} class="hero-name" key={`n${d.client.id}`} data-testid="card-name" defaultValue={d.client.name} autocomplete="off" onChange={() => void save()} />
+        </div>
+        <div class="group">
+          <label class="group-row"><span>{t('client.phone')}</span>
+            <input ref={phoneEl} class="inline" type="tel" data-testid="card-phone" defaultValue={d.client.phone ?? ''} onChange={() => void save()} />
+          </label>
+        </div>
+        <div class="group stats">
+          <p class="group-row text" data-testid="card-visits">{t('client.visitCount', { n: d.visitCount })}</p>
+          <p class="group-row text" data-testid="card-cancelled">{t('client.cancelledCount', { n: d.cancelled })}</p>
+          <p class="group-row text" data-testid="card-noshow">{t('client.noshowCount', { n: d.noshow })}</p>
+        </div>
+        {latest && <div class="group"><button class="group-row accent" data-testid="card-repeat" onClick={() => repeatFrom(latest.appt)}>{t('repeat.action')}</button></div>}
+        <h2 class="section-head">{t('client.upcoming')}</h2>
+        <ul class="group visits">{d.upcoming.length ? d.upcoming.map((e, n) => visit(e, n, 'upcoming')) : <li class="group-row text muted">{t('client.none')}</li>}</ul>
+        <h2 class="section-head">{t('client.past')}</h2>
+        <ul class="group visits">{d.past.length ? d.past.map((e, n) => visit(e, n, 'visit')) : <li class="group-row text muted">{t('client.none')}</li>}</ul>
       </div>
     </div>
   );

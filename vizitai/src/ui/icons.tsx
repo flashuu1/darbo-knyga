@@ -4,3 +4,12 @@ export const PeopleIcon = () => (<svg {...base}><circle cx="9" cy="8.5" r="3.2" 
 export const GearIcon = () => (<svg {...base}><circle cx="12" cy="12" r="3" /><path d="M12 3v2.500M12 18.500V21M3 12h2.500M18.500 12H21M5.600 5.600l1.800 1.800M16.600 16.600l1.800 1.800M5.600 18.400l1.800-1.800M16.600 7.400l1.800-1.800" /></svg>);
 export const PlusIcon = () => (<svg {...base}><path d="M12 5v14M5 12h14" /></svg>);
 export const ChevronIcon = () => (<svg {...base} width={14} height={14}><path d="M6 9l6 6 6-6" /></svg>);
+export const BackIcon = () => (<svg {...base} width={20} height={20} stroke-width={2.4}><path d="M15 5l-7 7 7 7" /></svg>);
+export const NextIcon = () => (<svg {...base} width={16} height={16} stroke-width={2.2}><path d="M9 5l7 7-7 7" /></svg>);
+export const CloseIcon = () => (<svg {...base} width={18} height={18} stroke-width={2.4}><path d="M6 6l12 12M18 6L6 18" /></svg>);
+export const CheckIcon = () => (<svg {...base} width={16} height={16} stroke-width={3}><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>);
+export const SearchIcon = () => (<svg {...base} width={18} height={18} stroke-width={2.2}><circle cx="10.5" cy="10.5" r="6" /><path d="M15 15l5 5" /></svg>);
+export const ClockIcon = () => (<svg {...base} width={20} height={20}><circle cx="12" cy="12" r="8.5" /><path d="M12 7.500V12l3 2" /></svg>);
+export const PersonIcon = () => (<svg {...base} width={20} height={20}><circle cx="12" cy="8.500" r="3.800" /><path d="M4.500 20c.8-4 3.700-6 7.500-6s6.700 2 7.500 6" /></svg>);
+export const BackupIcon = () => (<svg {...base} width={20} height={20}><path d="M12 15V4M7.500 8.500L12 4l4.500 4.500" /><path d="M5 13v5.500A1.500 1.500 0 006.500 20h11a1.500 1.500 0 001.500-1.500V13" /></svg>);
+export const DeleteIcon = () => (<svg {...base} width={24} height={24}><path d="M9 6h10.500A1.500 1.500 0 0121 7.500v9a1.500 1.500 0 01-1.500 1.500H9l-6-6z" /><path d="M12.500 9.500l5 5M17.500 9.500l-5 5" /></svg>);

@@ -55,21 +55,62 @@ test('swiping the month grid moves to the next and previous month', async ({ pag
   await expect(page.getByTestId('title')).toHaveText('rugsėjis 2026');
 });
 
-test('in Week view, two overlapping entries stay inside their own day column', async ({ page }) => {
-  await openApp(page);
-  const ids = await seedAppts(page, [{ name: 'Ona', start: '2026-10-15T10:00' }, { name: 'Jonas', start: '2026-10-15T10:15' }]);
-  await page.getByTestId('seg-week').click();
-  await expect(page.getByTestId(`entry-${ids[1]}`)).toBeVisible();
-  // one frame, so a late scroll cannot skew the comparison
-  const geo = await page.getByTestId('col-2026-10-15').evaluate((col, list) => {
-    const c = col.getBoundingClientRect();
-    return list.map((id) => {
-      const r = col.querySelector(`[data-entry-id="${id}"]`)!.getBoundingClientRect();
-      return { insideLeft: r.left >= c.left - 0.5, insideRight: r.right <= c.right + 0.5, width: r.width, half: c.width / 2 };
-    });
-  }, ids);
-  for (const g of geo) {
-    expect(g).toMatchObject({ insideLeft: true, insideRight: true });
-    expect(g.width).toBeLessThanOrEqual(g.half + 0.5);
+/** Bounding boxes of every entry card and "+N" chip in a column, measured in one frame. */
+const boxes = (page: import('@playwright/test').Page, date: string) => page.getByTestId(`col-${date}`).evaluate((col) => {
+  const c = col.getBoundingClientRect();
+  return { col: { left: c.left, right: c.right }, items: [...col.querySelectorAll<HTMLElement>('[data-entry-box]')].map((el) => {
+    const r = el.getBoundingClientRect();
+    return { id: el.dataset.testid!, left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width };
+  }) };
+});
+function expectNoIntersections(g: Awaited<ReturnType<typeof boxes>>, expected: number) {
+  expect(g.items).toHaveLength(expected);
+  for (const a of g.items) {
+    expect(a.left).toBeGreaterThanOrEqual(g.col.left - 0.5);
+    expect(a.right).toBeLessThanOrEqual(g.col.right + 0.5);
+    for (const b of g.items) {
+      if (a === b) continue;
+      const overlap = a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5;
+      expect(overlap, `${a.id} intersects ${b.id}`).toBe(false);
+    }
   }
+}
+const crowd = [
+  { name: 'Ona', start: '2026-10-15T10:00' }, { name: 'Jonas', start: '2026-10-15T10:00', service: 1 },
+  { name: 'Rasa', start: '2026-10-15T10:00', service: 2 },
+  { name: 'Asta', start: '2026-10-15T11:00' }, { name: 'Inga', start: '2026-10-15T11:00', service: 1 },
+  { name: 'Eglė', start: '2026-10-15T11:00', service: 2 }, { name: 'Lina', start: '2026-10-15T11:00', service: 3 },
+  { name: 'Rūta', start: '2026-10-15T11:00', service: 4 },
+];
+
+test('Day view: same-start entries sit side by side as equal cards and never intersect; 4+ collapse into "+N"', async ({ page }) => {
+  await openApp(page);
+  const ids = await seedAppts(page, crowd);
+  await page.getByTestId('chip-2026-10-15').click();
+  await expect(page.getByTestId(`entry-${ids[2]}`)).toBeVisible();
+  await expect(page.getByTestId('more-2026-10-15T11:00')).toHaveText('+3'); // 5 at 11:00: two cards and "+3"
+  const g = await boxes(page, '2026-10-15');
+  expectNoIntersections(g, 3 + 2 + 1);
+  const at10 = g.items.filter((b) => ids.slice(0, 3).some((id) => b.id === `entry-${id}`));
+  expect(at10).toHaveLength(3);
+  for (const b of at10) expect(Math.abs(b.width - at10[0]!.width)).toBeLessThan(1); // equal widths
+  expect(at10[0]!.width).toBeGreaterThan((g.col.right - g.col.left) / 3 - 12);
+  // the "+N" chip lists the hidden entries in an action sheet and opens one
+  await page.getByTestId('more-2026-10-15T11:00').click();
+  await expect(page.getByTestId('action-title')).toHaveText('Kiti vizitai šiuo metu');
+  await expect(page.getByTestId('action-item-0')).toHaveText('11:00 · Eglė – Kirpimas ir dažymas');
+  await page.getByTestId('action-item-2').click();
+  await expect(page.getByTestId('appt-name')).toHaveText('Rūta');
+});
+
+test('Week view: overlapping entries stay inside their day column and never intersect', async ({ page }) => {
+  await openApp(page);
+  const ids = await seedAppts(page, crowd);
+  await page.getByTestId('seg-week').click();
+  await expect(page.getByTestId(`entry-${ids[0]}`)).toBeVisible();
+  const g = await boxes(page, '2026-10-15');
+  expectNoIntersections(g, 1 + 1 + 1 + 1); // two lanes: one card and "+N" at each time
+  for (const b of g.items) expect(b.width).toBeLessThanOrEqual((g.col.right - g.col.left) / 2 + 0.5);
+  await expect(page.getByTestId('more-2026-10-15T10:00')).toHaveText('+2');
+  await expect(page.getByTestId('more-2026-10-15T11:00')).toHaveText('+4');
 });

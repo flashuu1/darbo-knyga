@@ -33,33 +33,37 @@ export function SettingsScreen() {
   const last = settings.lastBackupAt ? t('backup.last', { data: formatDayShort(todayStr(new Date(settings.lastBackupAt))) }) : t('backup.never');
 
   return (
-    <section class="settings" data-testid="settings">
-      <h1 class="large-title">{t('tab.settings')}</h1>
-      <div class="settings-body">
-        <p class="label">{t('settings.services')}</p>
-        <ul class="svc-list">
+    <section class="list-screen" data-testid="settings">
+      <header class="chrome">
+        <h1 class="large-title top">{t('tab.settings')}</h1>
+      </header>
+      <div class="scroll list-body settings-body">
+        <h2 class="section-head">{t('settings.services')}</h2>
+        <ul class="group svc-list">
           {services.map((s, i) => (
             <li key={s.id} data-testid={`svc-row-${i}`} class={s.active ? '' : 'hidden-svc'}>
               <div class="svc-line">
-                <button class="swatch" data-testid={`svc-swatch-${i}`} onClick={() => setOpenColor(openColor === s.id ? null : s.id)}>
+                <button class="swatch" data-testid={`svc-swatch-${i}`} aria-expanded={openColor === s.id} onClick={() => setOpenColor(openColor === s.id ? null : s.id)}>
                   <span class="dot" style={{ background: `var(--c-${s.color})` } as CSSProperties} />
                 </button>
-                <input class="inline" data-testid={`svc-name-${i}`} defaultValue={s.name} key={`${s.id}${s.name}${tick}`}
+                <input class="inline" data-testid={`svc-name-${i}`} defaultValue={s.name} key={`${s.id}${s.name}${tick}`} autocomplete="off"
                   onChange={(e) => void renameService(s.id, (e.target as HTMLInputElement).value)} />
-                <button data-testid={`svc-up-${i}`} onClick={() => void repo.moveService(s.id, -1)}>↑</button>
-                <button data-testid={`svc-down-${i}`} onClick={() => void repo.moveService(s.id, 1)}>↓</button>
+                <button class="icon-btn" data-testid={`svc-up-${i}`} disabled={i === 0} onClick={() => void repo.moveService(s.id, -1)}>↑</button>
+                <button class="icon-btn" data-testid={`svc-down-${i}`} disabled={i === services.length - 1} onClick={() => void repo.moveService(s.id, 1)}>↓</button>
               </div>
               <div class="svc-line sub">
-                <span class="label">{t('service.minutes')}</span>
-                <button data-testid={`svc-minus-${i}`} onClick={() => void repo.updateService(s.id, { minutes: Math.max(15, s.minutes - 15) })}>−</button>
-                <span data-testid={`svc-minutes-${i}`}>{s.minutes}</span>
-                <button data-testid={`svc-plus-${i}`} onClick={() => void repo.updateService(s.id, { minutes: Math.min(240, s.minutes + 15) })}>+</button>
+                <span class="sub-label">{t('service.minutes')}</span>
+                <span class="stepper">
+                  <button data-testid={`svc-minus-${i}`} disabled={s.minutes <= 15} onClick={() => void repo.updateService(s.id, { minutes: Math.max(15, s.minutes - 15) })}>−</button>
+                  <span class="stepper-val" data-testid={`svc-minutes-${i}`}>{s.minutes}</span>
+                  <button data-testid={`svc-plus-${i}`} disabled={s.minutes >= 240} onClick={() => void repo.updateService(s.id, { minutes: Math.min(240, s.minutes + 15) })}>+</button>
+                </span>
                 <button class="toggle" data-testid={`svc-toggle-${i}`} onClick={() => void toggle(s.id, !s.active)}>{s.active ? t('service.hide') : t('service.show')}</button>
               </div>
               {openColor === s.id && (
                 <div class="svc-line swatches">
                   {SERVICE_COLORS.map((c) => (
-                    <button key={c} class="swatch" data-testid={`svc-color-${i}-${c}`}
+                    <button key={c} class={c === s.color ? 'swatch on' : 'swatch'} data-testid={`svc-color-${i}-${c}`}
                       onClick={() => { void repo.updateService(s.id, { color: c }); setOpenColor(null); }}>
                       <span class="dot" style={{ background: `var(--c-${c})` } as CSSProperties} />
                     </button>
@@ -69,27 +73,33 @@ export function SettingsScreen() {
             </li>
           ))}
         </ul>
-        <button class="action-row" data-testid="svc-add" onClick={() => void repo.addService(t('service.new'))}>{t('service.add')}</button>
-
-        <p class="label">{t('settings.hours')}</p>
-        <div class="row"><span class="label">{t('hours.start')}</span>
-          <input class="inline" type="time" step={900} key={`s${settings.dayStart}${tick}`} defaultValue={settings.dayStart} data-testid="hours-start" onChange={(e) => void setHour('dayStart', (e.target as HTMLInputElement).value)} /></div>
-        <div class="row"><span class="label">{t('hours.end')}</span>
-          <input class="inline" type="time" step={900} key={`e${settings.dayEnd}${tick}`} defaultValue={settings.dayEnd} data-testid="hours-end" onChange={(e) => void setHour('dayEnd', (e.target as HTMLInputElement).value)} /></div>
-
-        <p class="label">{t('settings.backup')}</p>
-        <p class="muted-left" data-testid="backup-last">{last}</p>
-        <div class="actions-list">
-          <button class="action-row" data-testid="btn-export" onClick={() => void runBackup()}>{t('backup.export')}</button>
-          <button class="action-row" data-testid="btn-import" onClick={() => file.current?.click()}>{t('backup.import')}</button>
+        <div class="group">
+          <button class="group-row accent" data-testid="svc-add" onClick={() => void repo.addService(t('service.new'))}>{t('service.add')}</button>
         </div>
+
+        <h2 class="section-head">{t('settings.hours')}</h2>
+        <div class="group">
+          <label class="group-row"><span>{t('hours.start')}</span>
+            <input class="inline time" type="time" step={900} key={`s${settings.dayStart}${tick}`} defaultValue={settings.dayStart} data-testid="hours-start" onChange={(e) => void setHour('dayStart', (e.target as HTMLInputElement).value)} /></label>
+          <label class="group-row"><span>{t('hours.end')}</span>
+            <input class="inline time" type="time" step={900} key={`e${settings.dayEnd}${tick}`} defaultValue={settings.dayEnd} data-testid="hours-end" onChange={(e) => void setHour('dayEnd', (e.target as HTMLInputElement).value)} /></label>
+        </div>
+
+        <h2 class="section-head">{t('settings.backup')}</h2>
+        <div class="group">
+          <button class="group-row accent" data-testid="btn-export" onClick={() => void runBackup()}>{t('backup.export')}</button>
+          <button class="group-row accent" data-testid="btn-import" onClick={() => file.current?.click()}>{t('backup.import')}</button>
+        </div>
+        <p class="section-foot" data-testid="backup-last">{last}</p>
         <input ref={file} type="file" accept="application/json,.json" hidden data-testid="import-input"
           onChange={(e) => { const f = (e.target as HTMLInputElement).files?.[0]; (e.target as HTMLInputElement).value = ''; if (f) void chooseImport(f); }} />
 
-        <p class="label">{t('settings.storage')}</p>
-        <p class="muted-left" data-testid="storage-status">{settings.persistGranted ? t('storage.persistent') : t('storage.notPersistent')}</p>
-        <p class="muted-left" data-testid="app-version">{t('settings.version')}: {__APP_VERSION__}</p>
-        <p class="muted-left" data-testid="app-build">{t('settings.build', { data: formatBuildTime(__BUILD_TIME__), id: __BUILD_ID__ })}</p>
+        <h2 class="section-head">{t('settings.storage')}</h2>
+        <div class="group">
+          <p class="group-row text" data-testid="storage-status">{settings.persistGranted ? t('storage.persistent') : t('storage.notPersistent')}</p>
+        </div>
+        <p class="section-foot center" data-testid="app-version">{t('settings.version')}: {__APP_VERSION__}</p>
+        <p class="section-foot center" data-testid="app-build">{t('settings.build', { data: formatBuildTime(__BUILD_TIME__), id: __BUILD_ID__ })}</p>
       </div>
     </section>
   );

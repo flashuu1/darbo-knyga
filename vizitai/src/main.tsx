@@ -4,8 +4,10 @@ import { isStandalone } from './pwa/standalone';
 import { BootErrorScreen, InstallScreen } from './ui/screens/Install';
 import { initUpdates } from './pwa/updates';
 import { isBusy, ui } from './ui/store';
+import { lockDocument } from './pwa/lock';
 
 const root = document.getElementById('app')!;
+lockDocument();
 
 async function boot() {
   if (!isStandalone()) {

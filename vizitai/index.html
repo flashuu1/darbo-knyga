@@ -2,11 +2,16 @@
 <html lang="lt">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f2f2f7" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000" />
+    <!-- No pinch or double-tap zoom (also enforced in CSS touch-action and src/pwa/lock.ts); text still follows the iOS text size. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <!-- Same colour as the nav bar and tab bar (--chrome in styles.css), so the status-bar strip and the header read as one surface. -->
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f9f9f9" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#121214" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
+    <!-- 'default', not 'black-translucent': iOS then draws dark status-bar text in light mode and light text in dark mode.
+         'black-translucent' would force white text, unreadable over the light header. The header still pads
+         env(safe-area-inset-top) with a solid background, so it stays correct if iOS lets content under the status bar. -->
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Vizitai" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />

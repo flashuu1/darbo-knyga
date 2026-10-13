@@ -41,7 +41,7 @@ export default defineConfig(({ mode }) => {
         name: 'Vizitai', short_name: 'Vizitai', lang: 'lt',
         display: 'standalone', orientation: 'portrait',
         start_url: base, scope: base,
-        theme_color: '#f2f2f7', background_color: '#f2f2f7',
+        theme_color: '#f9f9f9', background_color: '#f9f9f9', // = --chrome (light)
         icons: [
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },

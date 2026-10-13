@@ -13,15 +13,17 @@ Run in this folder:
 | `npm ci` | Install exact dependencies |
 | `npm run dev` | Dev server. A normal browser tab shows only the install screen; to use the app on a computer, run `npm run build:e2e && npm run preview:e2e` (test build, treated as installed) and open http://localhost:4173 |
 | `npm test` | Unit tests (Vitest) |
-| `npm run e2e` | End-to-end tests (Playwright, WebKit iPhone). First time: `npx playwright install webkit` |
-| `npm run build` | Type-check and production build into `dist/` |
+| `npm run e2e` | End-to-end tests (Playwright, WebKit iPhone). First time: `npx playwright install webkit`. Builds into `dist-e2e/` (test build at `/`) and `dist-prod-base/` (production build served at `/darbo-knyga/` for `tests/e2e/prod-base.spec.ts`), never into `dist/` |
+| `npm run build` | Type-check and production build into `dist/` (base `/darbo-knyga/`) |
 | `npm run typecheck` | TypeScript only |
 | `npm run lint` | ESLint |
 | `npm run scan:bundle` | After a build: fails on English UI strings in the bundle or a broken service-worker precache list |
 
 ## Deploy
 
-Prerequisite: the GitHub repo is named `<account>.github.io` (the origin can't change after go-live without moving her data), and Settings → Pages → Source is set to **GitHub Actions**. A push to `main` runs `.github/workflows/deploy.yml` (lint, type-check, tests, build, bundle scan, then Pages). `ci.yml` also runs the e2e tests.
+The app is a GitHub Pages project site: repo `flashuu1/darbo-knyga`, URL **https://flashuu1.github.io/darbo-knyga/**. Prerequisite: Settings → Pages → Source is set to **GitHub Actions**. The origin `https://flashuu1.github.io` and the path `/darbo-knyga/` are permanent: her data lives in IndexedDB for that origin, so changing the account, repo name or path strands it. Other sites on the `flashuu1` account share the origin, so keep their IndexedDB names distinct from `vizitai`.
+
+The production build uses the base path from `site.config.json` (`VIZITAI_BASE` overrides it for experiments); `vite dev` and the e2e build use `/`. `npm run scan:bundle` fails if `dist/` does not match the base. A push to `main` runs `.github/workflows/deploy.yml` (lint, type-check, tests, build, bundle scan, then Pages). `ci.yml` also runs the e2e tests.
 
 On the iPhone: open the URL in Safari, tap Share → Add to Home Screen, then always open the app from that icon.
 

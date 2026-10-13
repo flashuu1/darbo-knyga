@@ -49,7 +49,7 @@ GitHub delivers only code. The backup file is the only copy of the data that eve
 
 Rules:
 
-- **Fixed origin.** Pick the URL once: a dedicated Pages origin or a custom domain. Storage is tied to the origin, so moving the app strands the data.
+- **Fixed origin and path.** The app lives at `https://flashuu1.github.io/darbo-knyga/` (GitHub Pages project site, repo `flashuu1/darbo-knyga`). The origin `https://flashuu1.github.io` and the path `/darbo-knyga/` are permanent: storage is tied to the origin, so moving the app, renaming the repo or changing the path strands her data. Storage is per origin, not per path, so any other site on the `flashuu1` account shares this origin: the IndexedDB database name must stay unique (the app uses `vizitai`) and no other site may touch it. The production build uses `base: '/darbo-knyga/'` (`site.config.json`, the single source of truth; `scripts/scan-bundle.mjs` fails if `dist/` disagrees); the manifest `start_url`/`scope`, service-worker scope and precache URLs all derive from it. Dev and the e2e build use `/`.
 - **Standalone only.** If the app is opened in a Safari tab, it shows only the install screen and never writes data. The Home Screen app's storage is treated as separate from Safari's.
 - **Persistence.** Call `navigator.storage.persist()` on the first standalone launch and show the result in Settings.
 - **Local wall-clock times.** Store `start` as `YYYY-MM-DDTHH:mm` local time and never convert it to UTC. The DST change on 2026-10-25 must not shift any appointment.
@@ -263,7 +263,7 @@ These need an answer before the build starts. The spec uses the default shown un
 | App name on the Home Screen | "Vizitai" |
 | Final service list and the hidden length of each | The 6 defaults above, 30–120 min |
 | Working hours shown in the day view | 08:00–20:00, 15-minute grid |
-| Origin: dedicated GitHub account or org Pages root, or a custom domain | Dedicated origin; never a sub-path of an existing `*.github.io` site |
+| Origin | Decided by the owner: `https://flashuu1.github.io`, fixed path `/darbo-knyga/` (project site). Never change either; other sites on this account share the origin, so keep IndexedDB names unique (`vizitai`) |
 | Her iPhone's iOS version and system language | iOS 26, Lithuanian, so the native date wheels are also in Lithuanian |
 | Cancelled entries in the timeline | A thin, faded, struck-through line |
 | Overlapping bookings | Warn and allow |

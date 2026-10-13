@@ -43,13 +43,14 @@ test.describe('keyboard opens inside the tap that opens the new sheet', () => {
     await expect(page.getByTestId('field-name')).toBeFocused();
   });
 
-  test('a Kartoti item', async ({ page }) => {
+  test('Užregistruoti į priekį opens on the calendar and does NOT raise the keyboard', async ({ page }) => {
     await openApp(page);
     const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T10:00' }]);
     await page.getByTestId(`entry-${id}`).click();
     await page.getByTestId('act-repeat').click();
-    expect(await focusAtEndOfTap(page, page.getByTestId('action-item-0'))).toBe('kb-primer');
-    await expect(page.getByTestId('field-name')).toBeFocused();
+    await expect(page.getByTestId('pick-slots')).toBeVisible();
+    await expect(page.getByTestId('kb-primer')).not.toBeFocused();
+    await expect(page.getByTestId('field-name')).not.toBeFocused();
   });
 
   test('the primer is a real, hidden 16px input that screen readers skip', async ({ page }) => {
@@ -88,13 +89,14 @@ test.describe('the name field and the backdrop', () => {
     await expect(page.getByTestId('sheet')).toHaveCount(0);
   });
 
-  test('Enter hides the keyboard and does not save', async ({ page }) => {
+  test('Enter hides the keyboard, moves on to Paslauga and does not save', async ({ page }) => {
     await openApp(page);
     await page.getByTestId('slot-2026-10-14T10:30').click();
-    await expect(page.getByTestId('field-name')).toHaveAttribute('enterkeyhint', 'done');
+    await expect(page.getByTestId('field-name')).toHaveAttribute('enterkeyhint', 'next');
     await page.getByTestId('field-name').fill('Ona');
     await page.getByTestId('field-name').press('Enter');
     await expect(page.getByTestId('field-name')).not.toBeFocused();
+    await expect(page.getByTestId('svc-0')).toBeVisible();
     await expect(page.getByTestId('sheet')).toBeVisible();
     await page.waitForTimeout(200);
     expect(await appts(page)).toHaveLength(0);
@@ -109,25 +111,6 @@ test.describe('the name field and the backdrop', () => {
     await page.getByTestId('field-name').fill('a'); // Jonas, Rasa, Asta, Inga match
     await expect(page.getByTestId('suggest-2')).toBeVisible();
     await expect(page.getByTestId('suggest-3')).toHaveCount(0);
-  });
-
-  test('the sheet fits inside the visual viewport when it shrinks (keyboard up)', async ({ page }) => {
-    await openApp(page);
-    await page.getByTestId('slot-2026-10-14T10:30').click();
-    await expect(page.getByTestId('sheet')).toBeVisible();
-    await page.evaluate(() => {
-      const vv = window.visualViewport!;
-      Object.defineProperty(vv, 'height', { configurable: true, get: () => 300 });
-      Object.defineProperty(vv, 'offsetTop', { configurable: true, get: () => 0 });
-      vv.dispatchEvent(new Event('resize'));
-    });
-    await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--vvh'))).toBe('300px');
-    await expect.poll(async () => {
-      const b = (await page.getByTestId('sheet').boundingBox())!;
-      return b.y >= 0 && b.y + b.height <= 300.5 && b.height <= 270.5;
-    }).toBe(true);
-    await page.getByTestId('btn-dismiss').click();
-    await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--vvh'))).toBe(''); // listeners and the var are cleaned up
   });
 });
 
@@ -149,20 +132,22 @@ test.describe('a hidden service is never preselected', () => {
     await page.getByTestId('client-row-0').click();
     await page.getByTestId('card-book').click();
     await expect(page.getByTestId('field-name')).toHaveValue('Ona');
+    await page.getByTestId('btn-next').click();
     await expect(page.getByTestId('svc-0')).toHaveClass(/on/);
     await page.getByTestId('btn-save').click();
     await expect(page.getByTestId('sheet')).toHaveCount(0);
     await expect.poll(async () => (await appts(page)).filter((a: any) => a.start !== '2026-10-01T10:00').map((a: any) => a.serviceId)).toEqual([ids.firstActive]);
   });
 
-  test('Kartoti', async ({ page }) => {
+  test('Užregistruoti į priekį', async ({ page }) => {
     await openApp(page);
     const ids = await hideFirstUsed(page);
     await page.getByTestId('tab-clients').click();
     await page.getByTestId('client-row-0').click();
     await page.getByTestId('card-repeat').click();
-    await page.getByTestId('action-item-0').click();
-    await expect(page.getByTestId('field-name')).toHaveValue('Ona');
+    await expect(page.getByTestId('pick-slots')).toBeVisible();
+    await page.getByTestId('btn-back').click();
+    await expect(page.getByTestId('flow-who')).toHaveText('Ona');
     await expect(page.getByTestId('svc-0')).toHaveClass(/on/);
     await page.getByTestId('btn-save').click();
     await expect(page.getByTestId('sheet')).toHaveCount(0);

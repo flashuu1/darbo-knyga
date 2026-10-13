@@ -38,7 +38,7 @@ export const lt = {
   'backup.error.format': 'Netinkamas failas', 'backup.error.export': 'Nepavyko sukurti kopijos', 'backup.error.newer': 'Failas sukurtas naujesnės programos versijos',
   'backup.last': 'Paskutinė kopija: {data}', 'backup.never': 'Kopijos dar nėra',
   'backup.banner': 'Sukurti atsarginę kopiją?',
-  'repeat.action': 'Kartoti', 'repeat.title': 'Kartoti po', 'repeat.weeks': 'po {n} sav.',
+  'repeat.action': 'Užregistruoti į priekį',
   'storage.persistent': 'Duomenys apsaugoti nuo išvalymo',
   'storage.notPersistent': 'Duomenys gali būti išvalyti – sukurkite atsarginę kopiją',
   'install.title': 'Įdiekite programėlę pagrindiniame ekrane',
@@ -49,6 +49,14 @@ export const lt = {
   // --- overhaul: core ---
   'overflow.more': '+{n}', 'overflow.aria': 'Kiti vizitai: {n}', 'overflow.title': 'Kiti vizitai šiuo metu',
   'overflow.item': '{laikas} · {vardas} – {paslauga}',
+  // --- overhaul: flow ---
+  'btn.next': 'Toliau', 'picker.prev': 'Ankstesnis mėnuo', 'picker.next': 'Kitas mėnuo',
+  // --- overhaul: amount ---
+  'amount.title': 'Suma', 'amount.add': 'Pridėti sumą', 'amount.edit': 'Keisti sumą',
+  'amount.confirm': 'Patvirtinti', 'amount.openAppt': 'Atidaryti vizitą',
+  'amount.field': 'Suma eurais', 'amount.invalid': 'Įveskite sumą, pvz., 45 arba 45,50',
+  'amount.clearHint': 'Palikite tuščią ir patvirtinkite, kad suma būtų ištrinta',
+  'amount.saved': 'Suma išsaugota', 'amount.cleared': 'Suma ištrinta',
 } as const;
 
 export type Key = keyof typeof lt;

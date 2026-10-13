@@ -6,6 +6,8 @@ export interface Appointment {
   id: string; kind: 'client' | 'personal'; clientId: string | null; title: string | null; serviceId: string | null;
   start: string; status: 'booked' | 'cancelled' | 'noshow'; cancelReason: CancelReason | null; cancelledAt: string | null;
   moves: Move[]; createdAt: string; updatedAt: string;
+  /** What she took for the visit, in integer euro cents. Absent or null = not entered yet. Unindexed: no schema bump. */
+  amountCents?: number | null;
 }
 export interface Service { id: string; name: string; color: ServiceColor; minutes: number; order: number; active: boolean }
 export interface Settings { id: 'settings'; dayStart: string; dayEnd: string; slotMinutes: number; lastBackupAt: string | null; persistGranted: boolean | null }

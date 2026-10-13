@@ -13,7 +13,9 @@ test('renames a service and the new name appears in the booking sheet', async ({
   await page.getByTestId('svc-name-0').blur();
   await page.getByTestId('tab-calendar').click();
   await page.getByTestId('slot-2026-10-14T10:00').click();
-  await expect(page.getByTestId('svc-0')).toHaveText('Moteriškas kirpimas');
+  await page.getByTestId('field-name').fill('Ona');
+  await page.getByTestId('field-name').press('Enter');
+  await expect(page.getByTestId('svc-0')).toContainText('Moteriškas kirpimas');
 });
 
 test('hiding a service removes its chip but keeps old appointment labels', async ({ page }) => {
@@ -24,6 +26,8 @@ test('hiding a service removes its chip but keeps old appointment labels', async
   await page.getByTestId('tab-calendar').click();
   await expect(page.getByTestId(`entry-${id}`)).toContainText('Dažymas');
   await page.getByTestId('slot-2026-10-14T12:00').click();
+  await page.getByTestId('field-name').fill('Ona');
+  await page.getByTestId('field-name').press('Enter');
   await expect(page.getByTestId('svc-1')).not.toHaveText('Dažymas');
 });
 
@@ -35,6 +39,8 @@ test('the last active service cannot be hidden', async ({ page }) => {
   await expect(page.getByTestId('toast')).toHaveText(/Turi likti bent viena paslauga/);
   await page.getByTestId('tab-calendar').click();
   await page.getByTestId('slot-2026-10-14T10:00').click();
+  await page.getByTestId('field-name').fill('Ona');
+  await page.getByTestId('field-name').press('Enter');
   await expect(page.getByTestId('svc-0')).toBeVisible();
 });
 

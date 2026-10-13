@@ -1,10 +1,12 @@
 import type { CSSProperties } from 'preact';
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useRef } from 'preact/hooks';
 import { repo } from '../../db/repo';
-import { formatWhen } from '../../i18n/format';
+import { formatEuro, formatWhen } from '../../i18n/format';
 import { t } from '../../i18n/lt';
-import { nowLocal, snap } from '../../logic/time';
-import { closeSheet, confirmCancel, moveWithToast, noShowWithToast, repeatFrom, restoreWithToast } from '../actions';
+import { canHaveAmount } from '../../logic/amount';
+import { nowLocal } from '../../logic/time';
+import { closeSheet, confirmCancel, noShowWithToast, rebook, restoreWithToast } from '../actions';
+import { openAmount } from '../amount';
 import { useLive, useServices } from '../hooks';
 import { statusLabel } from '../status';
 import { ui } from '../store';
@@ -15,24 +17,15 @@ export function AppointmentSheet({ id }: { id: string }) {
   const client = useLive(async () => (appt?.clientId ? repo.getClient(appt.clientId) : undefined), [appt?.clientId], undefined);
   const all = useServices(false);
   const busy = useRef(false);
-  // Perkelti: the iOS picker fires `change` as soon as a day is tapped, so a picked value only waits here;
-  // it is saved when the picker closes (blur) or when the sheet closes by any other way (unmount).
-  const pending = useRef<string | null>(null);
-  const [picked, setPicked] = useState<string | null>(null); // raw picker value, so a re-render never resets the wheels
-  useEffect(() => () => {
-    const v = pending.current;
-    pending.current = null;
-    if (!v || busy.current) return; // another action already ran
-    busy.current = true;
-    moveWithToast(id, v).catch((e) => console.error(e));
-  }, []);
   if (!appt) return null;
 
-  const past = appt.start < nowLocal();
+  const now = nowLocal();
+  const past = appt.start < now;
   const status = statusLabel(appt);
   const chips = all.filter((s) => s.active || s.id === appt.serviceId);
   const label = appt.kind === 'personal' ? appt.title ?? '' : client?.name ?? '';
-  // Close the sheet first, then run the write once; a second tap or change event cannot repeat it.
+  const amount = typeof appt.amountCents === 'number' ? appt.amountCents : null;
+  // Close the sheet first, then run the write once; a second tap cannot repeat it.
   const after = (fn: () => Promise<void>) => () => {
     if (busy.current) return;
     busy.current = true;
@@ -57,23 +50,19 @@ export function AppointmentSheet({ id }: { id: string }) {
       )}
       <div class="row"><span class="value">{formatWhen(appt.start)}</span></div>
       <div class="row"><span class="label">{t('appt.status')}</span><span class="value" data-testid="appt-status">{status}</span></div>
+      {canHaveAmount(appt, now) && (
+        <button class={amount === null ? 'row amount-row due' : 'row amount-row'} data-testid="appt-amount" onClick={() => openAmount(id)}>
+          <span class="label">{t('amount.title')}</span>
+          <span class="value">{amount === null ? t('amount.add') : formatEuro(amount)}</span>
+          {amount !== null && <span class="amount-edit">{t('amount.edit')}</span>}
+        </button>
+      )}
       <div class="actions-list">
         {appt.status === 'booked' && (
-          <label class="action-row move-row" data-testid="act-move">
-            <span>{t('act.move')}</span>
-            {/* Transparent native picker laid over the row (same pattern as the New sheet's time row). */}
-            <input type="datetime-local" step={900} value={picked ?? appt.start} data-testid="move-input"
-              onChange={(e) => {
-                const v = (e.target as HTMLInputElement).value;
-                setPicked(v || null);
-                const s = v ? snap(v) : null;
-                pending.current = s && s !== appt.start ? s : null;
-              }}
-              onBlur={() => { if (pending.current) closeSheet(); }} />
-          </label>
+          <button class="action-row" data-testid="act-move" onClick={() => ui.set({ sheet: { type: 'move', id } })}>{t('act.move')}</button>
         )}
         {appt.status === 'booked' && past && <button class="action-row" data-testid="act-noshow" onClick={after(() => noShowWithToast(id))}>{t('act.noshow')}</button>}
-        {appt.kind === 'client' && <button class="action-row" data-testid="act-repeat" onClick={() => { closeSheet(); repeatFrom(appt); }}>{t('repeat.action')}</button>}
+        {appt.kind === 'client' && <button class="action-row" data-testid="act-repeat" onClick={() => rebook(appt)}>{t('repeat.action')}</button>}
         {appt.status === 'booked' && <button class="action-row destructive" data-testid="act-cancel" onClick={() => { closeSheet(); confirmCancel(id); }}>{t('act.cancelAppt')}</button>}
         {appt.status !== 'booked' && <button class="action-row" data-testid="act-restore" onClick={after(() => restoreWithToast(id))}>{t('act.restore')}</button>}
       </div>

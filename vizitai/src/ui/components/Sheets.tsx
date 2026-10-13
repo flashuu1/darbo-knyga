@@ -1,18 +1,31 @@
 import { ActionSheet } from './ActionSheet';
+import { AmountSheet } from './AmountSheet';
 import { AppointmentSheet } from './AppointmentSheet';
 import { DragGhost } from './DragGhost';
-import { NewSheet } from './NewSheet';
+import { MoveSheet } from './MoveSheet';
+import { NewFlow } from './NewFlow';
 import { ToastHost } from './Toast';
 import { ClientCard } from '../screens/ClientCard';
-import { ui, useStore } from '../store';
+import { usePresence } from '../presence';
+import { ui, useStore, type Sheet } from '../store';
+
+const keyOf = (s: Sheet) => (s.type === 'new' ? `new${s.start}${s.clientId ?? ''}${s.screen ?? ''}` : `${s.type}${s.id}`);
 
 export function Sheets() {
   const { sheet, client } = useStore(ui);
+  // A closing sheet stays mounted for its exit animation (pointer-events off) and is then removed.
+  const [shown, leaving] = usePresence<Sheet>(sheet);
   return (
     <>
       {client && <ClientCard id={client} />}
-      {sheet?.type === 'new' && <NewSheet key={`${sheet.start}${sheet.clientId ?? ''}`} prefill={sheet} />}
-      {sheet?.type === 'appt' && <AppointmentSheet key={sheet.id} id={sheet.id} />}
+      {shown && (
+        <div class="layer-host" data-leaving={leaving ? '' : undefined} key={keyOf(shown)}>
+          {shown.type === 'new' && <NewFlow prefill={shown} />}
+          {shown.type === 'appt' && <AppointmentSheet id={shown.id} />}
+          {shown.type === 'move' && <MoveSheet id={shown.id} />}
+          {shown.type === 'amount' && <AmountSheet id={shown.id} />}
+        </div>
+      )}
       <ActionSheet />
       <DragGhost />
       <ToastHost />

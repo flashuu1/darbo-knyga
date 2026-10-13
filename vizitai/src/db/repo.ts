@@ -7,8 +7,9 @@ import { cleanName, foldName, ltCollator } from '../logic/names';
 import { addDays, addMinutes, datePart, minutesOfDay, nowLocal, snap } from '../logic/time';
 import { findOverlap, minutesFor, nextFreeSlot, PERSONAL_MINUTES, type Block } from '../logic/overlap';
 import { t } from '../i18n/lt';
+import { isValidCents } from '../logic/amount';
 
-export interface Entry { appt: Appointment; label: string; service: Service | null; minutes: number; color: ServiceColor }
+export interface Entry { appt: Appointment; label: string; service: Service | null; minutes: number; color: ServiceColor; amountCents: number | null }
 const SLOT = 15;
 const toMin = (hhmm: string) => +hhmm.slice(0, 2) * 60 + +hhmm.slice(3, 5);
 
@@ -25,7 +26,7 @@ export function createRepo(db: VizitaiDB) {
     return list.map((appt) => {
       const service = appt.serviceId ? services.get(appt.serviceId) ?? null : null;
       const label = appt.kind === 'personal' ? appt.title ?? '' : clients.get(appt.clientId ?? '')?.name ?? '';
-      return { appt, label, service, minutes: minutesFor(appt, services), color: service?.color ?? 'gray' };
+      return { appt, label, service, minutes: minutesFor(appt, services), color: service?.color ?? 'gray', amountCents: isValidCents(appt.amountCents) ? appt.amountCents : null };
     });
   }
   // Same start: the earlier booking first, so side-by-side lanes keep a stable order.
@@ -140,6 +141,11 @@ export function createRepo(db: VizitaiDB) {
     },
     markNoShow(id: string) { return mutate(id, (a) => ({ ...a, status: 'noshow' })); },
     restoreAppointment(id: string) { return mutate(id, (a) => ({ ...a, status: 'booked', cancelReason: null, cancelledAt: null })); },
+    /** Stores what she took for the visit (integer cents), or clears it with null. Undo: putSnapshot(before). */
+    setAmount(id: string, cents: number | null) {
+      if (cents !== null && !isValidCents(cents)) return Promise.reject(new Error('bad-amount'));
+      return mutate(id, (a) => ({ ...a, amountCents: cents }));
+    },
     async putSnapshot(a: Appointment) { await db.appointments.put(a); },
 
     async findOverlapFor(i: { start: string; kind: 'client' | 'personal'; serviceId: string | null; excludeId?: string }) {

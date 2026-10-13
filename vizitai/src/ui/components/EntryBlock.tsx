@@ -3,7 +3,10 @@ import { useEffect, useRef } from 'preact/hooks';
 import type { Entry } from '../../db/repo';
 import { t } from '../../i18n/lt';
 import { minutesOfDay, timePart } from '../../logic/time';
-import { openAppt } from '../actions';
+import { isAmountDue } from '../../logic/amount';
+import { formatEuro } from '../../i18n/format';
+import { openEntry } from '../amount';
+import { useNow } from '../clock';
 import { bindEntryDrag } from '../drag';
 import { ui, useStore } from '../store';
 
@@ -11,6 +14,8 @@ export function EntryBlock({ e, startMin, col, cols, compact, anchor }: {
   e: Entry; startMin: number; col: number; cols: number; compact: boolean; anchor?: boolean;
 }) {
   const { highlight } = useStore(ui);
+  const now = useNow();
+  const due = isAmountDue(e.appt, now); // a visit whose time has come and still waits for its amount
   const ref = useRef<HTMLButtonElement>(null);
   const latest = useRef(e);
   latest.current = e;
@@ -21,12 +26,12 @@ export function EntryBlock({ e, startMin, col, cols, compact, anchor }: {
   const style = {
     '--top': (minutesOfDay(e.appt.start) - startMin) / 15, '--len': rows, '--c': col, '--n': cols, '--svc': `var(--c-${e.color})`,
   } as CSSProperties;
-  const cls = ['entry', thin ? 'thin' : one ? 'one' : 'stack', compact ? 'compact' : '', e.appt.status === 'noshow' ? 'noshow' : '',
+  const cls = ['entry', thin ? 'thin' : one ? 'one' : 'stack', compact ? 'compact' : '', due ? 'entry--due' : '', e.appt.status === 'noshow' ? 'noshow' : '',
     highlight === e.appt.id ? 'highlight' : '', anchor ? 'anchor' : ''].filter(Boolean).join(' ');
   const svc = e.service?.name ?? (e.appt.kind === 'personal' ? t('type.personal') : '');
   return (
     <button ref={ref} class={cls} style={style} data-testid={`entry-${e.appt.id}`} data-entry-id={e.appt.id} data-entry-box={thin ? undefined : ''}
-      onClick={() => openAppt(e.appt.id)}>
+      onClick={() => openEntry(e.appt)}>
       {one ? (
         // One line: time · name stay together (the name truncates); the service only shows when there is
         // room for a readable piece of it, otherwise it wraps onto a hidden second line (never a sliver).
@@ -42,6 +47,8 @@ export function EntryBlock({ e, startMin, col, cols, compact, anchor }: {
         </>
       )}
       {e.appt.status === 'noshow' && <span class="entry-flag">{t('status.noshow')}</span>}
+      {due && <span class="entry-amount" data-testid={`due-${e.appt.id}`}>{t('amount.add')}</span>}
+      {!due && e.amountCents !== null && e.appt.status === 'booked' && <span class="entry-amount paid" data-testid={`amount-${e.appt.id}`}>{formatEuro(e.amountCents)}</span>}
     </button>
   );
 }

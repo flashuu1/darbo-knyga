@@ -28,24 +28,28 @@ test('the banner and badge show again once the last backup is older than 7 days'
   await expect(page.getByTestId('tab-settings-badge')).toBeVisible();
 });
 
-test('Kartoti on an appointment books the same client and service 6 weeks later', async ({ page }) => {
+test('Užregistruoti į priekį on an appointment opens the calendar for the same client and service', async ({ page }) => {
   await openApp(page);
   const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T10:00', service: 2 }]);
   await page.getByTestId(`entry-${id}`).click();
+  await expect(page.getByTestId('act-repeat')).toHaveText('Užregistruoti į priekį');
   await page.getByTestId('act-repeat').click();
-  await expect(page.getByTestId('action-title')).toHaveText('Kartoti po');
-  await expect(page.getByTestId('action-item-0')).toHaveText('po 4 sav.');
-  await expect(page.getByTestId('action-item-1')).toHaveText('po 6 sav.');
-  await expect(page.getByTestId('action-item-2')).toHaveText('po 8 sav.');
-  await page.getByTestId('action-item-1').click(); // 6 weeks
-  await expect(page.getByTestId('field-name')).toHaveValue('Ona');
+  // no 4/6/8-week shortcuts: straight to the calendar, tomorrow at the visit's time preselected
+  await expect(page.getByTestId('action-title')).toHaveCount(0);
+  await expect(page.getByTestId('pick-slots')).toBeVisible();
+  await expect(page.getByTestId('pick-day-2026-10-15')).toHaveClass(/sel/);
+  await expect(page.getByTestId('pick-time-10:00')).toHaveClass(/sel/);
+  await page.getByTestId('pick-next').click();
+  await page.getByTestId('pick-day-2026-11-25').click();
+  await page.getByTestId('btn-back').click();
+  await expect(page.getByTestId('flow-who')).toHaveText('Ona');
   await expect(page.getByTestId('svc-2')).toHaveClass(/on/);
   await expect(page.getByTestId('time-value')).toHaveText('lapkričio 25 d., tr · 10:00');
   await page.getByTestId('btn-save').click();
   await expect.poll(() => page.evaluate(async () => (await (window as any).__vizitai.db.appointments.toArray()).filter((a: { start: string }) => a.start === '2026-11-25T10:00').length)).toBe(1);
 });
 
-test('Kartoti on the client card repeats the latest visit', async ({ page }) => {
+test('Užregistruoti į priekį on the client card repeats the latest visit', async ({ page }) => {
   await openApp(page);
   await seedAppts(page, [{ name: 'Ona', start: '2026-10-01T09:30', service: 1 }]);
   await page.getByTestId('tab-clients').click();
@@ -53,16 +57,14 @@ test('Kartoti on the client card repeats the latest visit', async ({ page }) => 
   const box = await page.getByTestId('card-repeat').boundingBox();
   expect(box!.height).toBeGreaterThanOrEqual(44);
   await page.getByTestId('card-repeat').click();
-  await page.getByTestId('action-item-2').click(); // 8 weeks
-  await expect(page.getByTestId('time-value')).toHaveText('lapkričio 26 d., kt · 09:30'); // 2026-10-01 + 56 days (Thursday)
-  await expect(page.getByTestId('svc-1')).toHaveClass(/on/);
+  await expect(page.getByTestId('pick-time-09:30')).toHaveClass(/sel/); // the visit's time of day
   // like Registruoti: the card closes and the calendar (Day view) is behind the sheet, so the new entry is seen
   await expect(page.getByTestId('client-card')).toHaveCount(0);
   await expect(page.getByTestId('calendar')).toBeVisible();
   expect(await page.evaluate(() => (window as any).__vizitai.ui.get().view)).toBe('day');
-  await page.getByTestId('btn-save').click();
+  await page.getByTestId('btn-save-time').click();
   await expect(page.getByTestId('sheet')).toHaveCount(0);
-  await expect(page.getByTestId('col-2026-11-26')).toContainText('Ona');
+  await expect(page.getByTestId('col-2026-10-15')).toContainText('Ona');
 });
 
 test('smart defaults: the next free slot skips today’s booking, recent clients come first, last service is preselected', async ({ page }) => {
@@ -70,7 +72,7 @@ test('smart defaults: the next free slot skips today’s booking, recent clients
   await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T09:00' }, { name: 'Jonas', start: '2026-10-13T10:00', service: 3 }]);
   await page.getByTestId('btn-add').click();
   await expect.poll(() => page.evaluate(() => (window as any).__vizitai.ui.get().sheet?.start)).toBe('2026-10-14T09:15');
-  await expect(page.getByTestId('suggest-0')).toHaveText('Jonas');
+  await expect(page.getByTestId('suggest-0')).toContainText('Jonas');
   await page.getByTestId('suggest-0').click();
   await expect(page.getByTestId('svc-3')).toHaveClass(/on/);
 });

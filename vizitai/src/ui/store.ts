@@ -19,7 +19,8 @@ export function useStore<T>(s: Store<T>): T {
   return v;
 }
 
-export type Sheet = { type: 'new'; start: string; clientId?: string; serviceId?: string } | { type: 'appt'; id: string };
+export type Sheet = { type: 'new'; start: string; clientId?: string; serviceId?: string; screen?: 'time' } | { type: 'appt'; id: string }
+  | { type: 'amount'; id: string } | { type: 'move'; id: string };
 export interface ToastState { id: number; text: string; undo?: () => Promise<void> }
 export interface DragState { entry: Entry; label: string; x: number; y: number; grabDY: number; left: number; width: number; over: { date: string; start: string } | null }
 export interface ActionItem { label: string; role?: 'destructive' | 'cancel'; onPress: () => void }

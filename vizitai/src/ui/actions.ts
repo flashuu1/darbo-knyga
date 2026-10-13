@@ -4,7 +4,7 @@ import type { CancelReason } from '../db/types';
 import { formatDayShort, weekdayShort } from '../i18n/format';
 import { t } from '../i18n/lt';
 import { backupFileName, BackupError, exportData, importData, parseBackup, shareBackup, type BackupFile } from '../logic/backup';
-import { addDays, datePart, timePart } from '../logic/time';
+import { addDays, datePart, timePart, todayStr } from '../logic/time';
 import { ui } from './store';
 
 let toastId = 0;
@@ -147,25 +147,18 @@ export async function chooseImport(file: File) {
   ] } });
 }
 
-export function repeatFrom(e: { start: string; clientId: string | null; serviceId: string | null }) {
+/**
+ * Užregistruoti į priekį: the same client and service, booked through the calendar picker. The flow opens
+ * straight on its Laikas screen (no keyboard) with tomorrow at the visit's time of day preselected.
+ */
+export function rebook(e: { start: string; clientId: string | null; serviceId: string | null }) {
   const clientId = e.clientId;
   if (!clientId) return;
-  const weeks = [4, 6, 8];
+  const s = ui.get();
+  // Like Registruoti: leave the client card / other tab for the calendar so the new entry is seen.
+  const leave = s.client !== null || s.tab !== 'calendar' ? { client: null, tab: 'calendar' as const, view: 'day' as const } : {};
   ui.set({
-    action: {
-      title: t('repeat.title'),
-      items: [
-        ...weeks.map((n) => ({
-          label: t('repeat.weeks', { n }),
-          onPress: () => {
-            // Like Registruoti: leave the client card / other tab for the calendar so the new entry is seen.
-            const s = ui.get();
-            if (s.client !== null || s.tab !== 'calendar') ui.set({ client: null, tab: 'calendar', view: 'day' });
-            openNew(`${addDays(datePart(e.start), 7 * n)}T${timePart(e.start)}`, { clientId, serviceId: e.serviceId ?? undefined });
-          },
-        })),
-        { label: t('btn.dismiss'), role: 'cancel' as const, onPress: () => {} },
-      ],
-    },
+    ...leave,
+    sheet: { type: 'new', start: `${addDays(todayStr(), 1)}T${timePart(e.start)}`, clientId, serviceId: e.serviceId ?? undefined, screen: 'time' },
   });
 }

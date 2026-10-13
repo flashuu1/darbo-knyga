@@ -1,18 +1,20 @@
-import { ui, useStore } from '../store';
+import { usePresence } from '../presence';
+import { ui, useStore, type UiState } from '../store';
 
 export function ActionSheet() {
   const { action } = useStore(ui);
-  if (!action) return null;
+  const [shown, leaving] = usePresence<NonNullable<UiState['action']>>(action);
+  if (!shown) return null;
   const close = () => ui.set({ action: null });
-  const main = action.items.filter((i) => i.role !== 'cancel');
-  const cancel = action.items.find((i) => i.role === 'cancel');
+  const main = shown.items.filter((i) => i.role !== 'cancel');
+  const cancel = shown.items.find((i) => i.role === 'cancel');
   const press = (fn: () => void) => () => { close(); fn(); };
   return (
-    <div class="sheet-root action-root">
+    <div class="layer action-layer" data-leaving={leaving ? '' : undefined}>
       <div class="backdrop" onClick={close} />
       <div class="actions">
         <div class="action-group">
-          {action.title && <p class="action-title" data-testid="action-title">{action.title}</p>}
+          {shown.title && <p class="action-title" data-testid="action-title">{shown.title}</p>}
           {main.map((i, n) => (
             <button key={n} data-testid={`action-item-${n}`} class={i.role === 'destructive' ? 'action destructive' : 'action'} onClick={press(i.onPress)}>{i.label}</button>
           ))}

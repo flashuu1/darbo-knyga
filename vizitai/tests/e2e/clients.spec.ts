@@ -70,6 +70,7 @@ test('Registruoti opens the new sheet with the client and their last service', a
   await page.getByTestId('client-row-0').click();
   await page.getByTestId('card-book').click();
   await expect(page.getByTestId('field-name')).toHaveValue('Ona');
+  await page.getByTestId('btn-next').click();
   await expect(page.getByTestId('svc-2')).toHaveClass(/on/);
 });
 

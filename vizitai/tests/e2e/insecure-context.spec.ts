@@ -14,6 +14,7 @@ test('app boots, seeds and books without crypto.randomUUID', async ({ page }) =>
   expect(n).toBe(6);
   await page.getByTestId('slot-2026-10-14T10:30').click();
   await page.getByTestId('field-name').fill('Žydrūnė');
+  await page.getByTestId('field-name').press('Enter');
   await page.getByTestId('btn-save').click();
   await expect(page.getByTestId('sheet')).toHaveCount(0);
   await expect(page.getByTestId('col-2026-10-14')).toContainText('Žydrūnė');

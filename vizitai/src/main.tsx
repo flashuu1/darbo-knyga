@@ -1,5 +1,6 @@
 import { render } from 'preact';
 import './styles.css';
+import './styles/layers.css';
 import { isStandalone } from './pwa/standalone';
 import { BootErrorScreen, InstallScreen } from './ui/screens/Install';
 import { initUpdates } from './pwa/updates';

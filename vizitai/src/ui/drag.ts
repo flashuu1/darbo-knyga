@@ -9,7 +9,7 @@ import { ui } from './store';
 export function bindEntryDrag(el: HTMLElement, getEntry: () => Entry): () => void {
   let timer = 0, edgeTimer = 0, raf = 0;
   let pid = -1, sx = 0, sy = 0, lx = 0, ly = 0, grabDY = 0, side = 0;
-  let lifted = false, justDragged = false;
+  let lifted = false, justDragged = false, dirty = false, idle = 0;
 
   const clearTimers = () => { clearTimeout(timer); clearTimeout(edgeTimer); cancelAnimationFrame(raf); side = 0; };
   const reset = () => { clearTimers(); pid = -1; lifted = false; ui.set({ drag: null }); };
@@ -28,9 +28,11 @@ export function bindEntryDrag(el: HTMLElement, getEntry: () => Entry): () => voi
     return { date, start };
   }
   function update() {
+    dirty = false; idle = 0;
     const d = ui.get().drag;
     if (!d) return;
     const over = target();
+    if (d.x === lx && d.y === ly && d.over?.start === over?.start) return; // nothing changed: no re-render
     ui.set({ drag: { ...d, x: lx, y: ly, over, label: over ? over.start : d.entry.appt.start } });
   }
   function armEdge() {
@@ -41,6 +43,7 @@ export function bindEntryDrag(el: HTMLElement, getEntry: () => Entry): () => voi
     if (!s) return;
     const flip = () => {
       ui.set({ date: addDays(ui.get().date, s) });
+      dirty = true;
       edgeTimer = window.setTimeout(flip, EDGE_HOLD_MS);
     };
     edgeTimer = window.setTimeout(flip, EDGE_HOLD_MS);
@@ -49,13 +52,17 @@ export function bindEntryDrag(el: HTMLElement, getEntry: () => Entry): () => voi
     const sc = el.closest<HTMLElement>('.grid-scroll');
     if (sc) {
       const r = sc.getBoundingClientRect();
+      const before = sc.scrollTop;
       if (ly < r.top + AUTOSCROLL_ZONE_PX) sc.scrollTop -= 8;
       else if (ly > r.bottom - AUTOSCROLL_ZONE_PX) sc.scrollTop += 8;
+      if (sc.scrollTop !== before) dirty = true;
     }
-    update();
+    // Finger still: only re-hit-test every ~10 frames (catches the grid re-laying out after a day flip loads).
+    if (dirty || ++idle >= 10) update();
     raf = requestAnimationFrame(loop);
   }
   function lift() {
+    if (ui.get().drag) { pid = -1; return; } // another entry lifted while this hold was running
     const entry = getEntry();
     const r = el.getBoundingClientRect();
     lifted = true;
@@ -68,14 +75,14 @@ export function bindEntryDrag(el: HTMLElement, getEntry: () => Entry): () => voi
 
   const down = (e: PointerEvent) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
-    if (lifted || getEntry().appt.status === 'cancelled') return; // a second finger never hijacks a drag
+    if (lifted || ui.get().drag || getEntry().appt.status === 'cancelled') return; // a second finger never hijacks a drag (on any entry)
     clearTimeout(timer);
     pid = e.pointerId; sx = lx = e.clientX; sy = ly = e.clientY; lifted = false; justDragged = false;
     timer = window.setTimeout(lift, HOLD_MS);
   };
   const move = (e: PointerEvent) => {
     if (e.pointerId !== pid) return;
-    lx = e.clientX; ly = e.clientY;
+    lx = e.clientX; ly = e.clientY; dirty = true;
     if (!lifted) {
       if (exceedsThreshold(lx - sx, ly - sy)) { clearTimeout(timer); pid = -1; } // a scroll, not a drag
       return;

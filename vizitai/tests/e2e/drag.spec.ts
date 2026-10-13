@@ -1,7 +1,12 @@
 import { test, expect, type Page } from '@playwright/test';
 import { apptState, openApp, seedAppts } from './helpers';
 
+/** Gesture listeners bind in a useEffect after paint; wait until they are attached (the contextmenu guard is one of them). */
+const bound = (page: Page, id: string) =>
+  expect.poll(() => page.getByTestId(`entry-${id}`).evaluate((el) => !el.dispatchEvent(new MouseEvent('contextmenu', { cancelable: true })))).toBe(true);
+
 async function lift(page: Page, id: string) {
+  await bound(page, id);
   const box = (await page.getByTestId(`entry-${id}`).boundingBox())!;
   const x = box.x + box.width / 2, y = box.y + 10;
   await page.mouse.move(x, y);
@@ -60,11 +65,12 @@ test('in Week view, dragging across columns changes the date', async ({ page }) 
 
 test('holding at the screen edge for 600 ms flips the day', async ({ page }) => {
   await openApp(page);
-  const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T10:00' }]);
+  // the destination day has its own entry, so the flip loads data and re-renders the column under the drag
+  const [id, other] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T10:00' }, { name: 'Jonas', start: '2026-10-13T12:00' }]);
   const { y } = await lift(page, id);
   await page.mouse.move(3, y, { steps: 6 });
-  await page.waitForTimeout(700);
-  expect(await page.evaluate(() => (window as any).__vizitai.ui.get().date)).toBe('2026-10-13'); // eslint-disable-line @typescript-eslint/no-explicit-any
+  await expect.poll(() => page.evaluate(() => (window as any).__vizitai.ui.get().date)).toBe('2026-10-13'); // eslint-disable-line @typescript-eslint/no-explicit-any
+  await expect(page.getByTestId(`entry-${other}`)).toBeVisible();
   await expect(page.getByTestId('drag-ghost')).toBeVisible();
   await page.mouse.move(200, y, { steps: 6 });
   await page.mouse.up();
@@ -74,6 +80,7 @@ test('holding at the screen edge for 600 ms flips the day', async ({ page }) => 
 test('a quick swipe never starts a drag', async ({ page }) => {
   await openApp(page);
   const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T10:00' }]);
+  await bound(page, id);
   const box = (await page.getByTestId(`entry-${id}`).boundingBox())!;
   await page.mouse.move(box.x + 40, box.y + 10);
   await page.mouse.down();
@@ -111,4 +118,75 @@ test('entries disable the iOS text callout and selection', async ({ page }) => {
   expect(await entry.evaluate((el) => getComputedStyle(el).userSelect)).toBe('none');
   // Playwright's WebKit does not implement -webkit-touch-callout (computed value is null); tests/unit/drag.test.ts checks the CSS source.
   await expect.poll(() => entry.evaluate((el) => !el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })))).toBe(true); // listeners bind after paint
+});
+
+const dragState = (page: Page) =>
+  page.evaluate(() => { const d = (window as any).__vizitai.ui.get().drag; return d ? (d.entry.appt.id as string) : null; }); // eslint-disable-line @typescript-eslint/no-explicit-any
+
+/** Synthetic touch pointers (distinct pointerIds): Playwright's mouse has only one pointer. */
+async function touch(page: Page, id: string, type: 'pointerdown' | 'pointermove' | 'pointerup', pointerId: number, x: number, y: number) {
+  await page.getByTestId(`entry-${id}`).evaluate((el, a) => {
+    el.dispatchEvent(new PointerEvent(a.type, { bubbles: true, cancelable: true, pointerId: a.pointerId, pointerType: 'touch', isPrimary: a.pointerId === 11, clientX: a.x, clientY: a.y }));
+  }, { type, pointerId, x, y });
+}
+
+test('a second finger holding another entry cannot take over the drag', async ({ page }) => {
+  await openApp(page);
+  const [a, b] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T10:00' }, { name: 'Rasa', start: '2026-10-14T11:30' }]);
+  await expect(page.getByTestId(`entry-${b}`)).toBeVisible();
+  const row = await rowHeight(page);
+  const boxA = (await page.getByTestId(`entry-${a}`).boundingBox())!;
+  const boxB = (await page.getByTestId(`entry-${b}`).boundingBox())!;
+  const ax = boxA.x + boxA.width / 2, ay = boxA.y + 10, bx = boxB.x + boxB.width / 2, by = boxB.y + 10;
+  await bound(page, a);
+  await bound(page, b);
+  await touch(page, a, 'pointerdown', 11, ax, ay);
+  await page.waitForTimeout(450);
+  expect(await dragState(page)).toBe(a);
+  await touch(page, a, 'pointermove', 11, ax, ay + 2 * row + 3);
+  await touch(page, b, 'pointerdown', 12, bx, by);
+  await page.waitForTimeout(450);
+  expect(await dragState(page)).toBe(a);
+  await touch(page, b, 'pointerup', 12, bx, by);
+  expect(await dragState(page)).toBe(a);
+  await touch(page, a, 'pointerup', 11, ax, ay + 2 * row + 3);
+  await expect.poll(start(page, a)).toBe('2026-10-14T10:30');
+  expect(await dragState(page)).toBeNull();
+  expect(await apptState(page, b)).toMatchObject({ start: '2026-10-14T11:30', moves: [] });
+});
+
+test('two entries held at once: only the first to reach 400 ms lifts', async ({ page }) => {
+  await openApp(page);
+  const [a, b] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T10:00' }, { name: 'Rasa', start: '2026-10-14T11:30' }]);
+  await expect(page.getByTestId(`entry-${b}`)).toBeVisible();
+  const boxA = (await page.getByTestId(`entry-${a}`).boundingBox())!;
+  const boxB = (await page.getByTestId(`entry-${b}`).boundingBox())!;
+  const ax = boxA.x + boxA.width / 2, ay = boxA.y + 10, bx = boxB.x + boxB.width / 2, by = boxB.y + 10;
+  await bound(page, a);
+  await bound(page, b);
+  await touch(page, a, 'pointerdown', 11, ax, ay);
+  await touch(page, b, 'pointerdown', 12, bx, by); // B's hold starts before A lifts
+  await page.waitForTimeout(600);
+  expect(await dragState(page)).toBe(a);
+  await touch(page, b, 'pointerup', 12, bx, by);
+  await touch(page, a, 'pointerup', 11, ax, ay);
+  await expect.poll(() => dragState(page)).toBeNull();
+  expect((await apptState(page, a)).moves).toHaveLength(0);
+  expect((await apptState(page, b)).moves).toHaveLength(0);
+});
+
+test('holding still while lifted does not re-render the app every frame', async ({ page }) => {
+  await openApp(page);
+  const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T10:00' }]);
+  await lift(page, id);
+  const writes = await page.evaluate(async () => {
+    const { ui } = (window as any).__vizitai; // eslint-disable-line @typescript-eslint/no-explicit-any
+    let n = 0;
+    const off = ui.subscribe(() => { n++; });
+    await new Promise((r) => setTimeout(r, 500));
+    off();
+    return n;
+  });
+  expect(writes).toBe(0);
+  await page.mouse.up();
 });

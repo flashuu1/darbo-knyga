@@ -3,9 +3,15 @@ import { defineConfig } from 'vite';
 import preact from '@preact/preset-vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import pkg from './package.json' with { type: 'json' };
+import site from './site.config.json' with { type: 'json' };
 
-export default defineConfig({
-  base: '/',
+// Single source of truth for the production URL path (also read by scripts/scan-bundle.mjs).
+// VIZITAI_BASE overrides it for experiments. Only production mode gets the sub-path: `vite dev`
+// and the e2e build (--mode e2e) stay at '/', so tests and dev servers are unchanged.
+export default defineConfig(({ mode }) => {
+  const base = mode === 'production' ? (process.env.VIZITAI_BASE || site.basePath) : '/';
+  return {
+  base,
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   plugins: [
     preact(),
@@ -18,7 +24,7 @@ export default defineConfig({
       manifest: {
         name: 'Vizitai', short_name: 'Vizitai', lang: 'lt',
         display: 'standalone', orientation: 'portrait',
-        start_url: '/', scope: '/',
+        start_url: base, scope: base,
         theme_color: '#f2f2f7', background_color: '#f2f2f7',
         icons: [
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
@@ -35,4 +41,5 @@ export default defineConfig({
     environment: 'node',
     setupFiles: ['tests/unit/setup.ts'],
   },
+};
 });

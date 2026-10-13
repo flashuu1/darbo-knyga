@@ -1,7 +1,7 @@
 import type { Appointment, Service } from '../db/types';
 import { addMinutes, format, minutesOfDay, parse, snap } from './time';
 
-export const PERSONAL_MINUTES = 60;
+export const PERSONAL_MINUTES = 15;
 export interface Block { id: string; start: string; minutes: number }
 
 export function minutesFor(a: Appointment, services: Map<string, Service>): number {

@@ -122,7 +122,7 @@ test('moving onto another booking adds the overlap warning to the toast', async 
   const [a] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T10:00' }, { name: 'Jonas', start: '2026-10-14T14:00' }]);
   await page.getByTestId(`entry-${a}`).click();
   await page.getByTestId('act-move').click();
-  await pickMove(page, a, '2026-10-14T14:15');
+  await pickMove(page, a, '2026-10-14T14:00');
   await expect(page.getByTestId('toast')).toContainText('Šiuo laiku jau užregistruota: Jonas – Kirpimas');
 });
 

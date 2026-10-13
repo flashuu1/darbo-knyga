@@ -30,7 +30,9 @@ describe('overlap', () => {
   it('gives personal entries the default length', () => {
     const p = appt('p', '2026-10-14T12:00', { kind: 'personal', serviceId: null, clientId: null, title: 'Pietūs' });
     expect(minutesFor(p, services)).toBe(PERSONAL_MINUTES);
-    expect(findOverlap({ id: 'n', start: '2026-10-14T12:45', minutes: 30 }, [p], services)?.id).toBe('p');
+    expect(PERSONAL_MINUTES).toBe(15);
+    expect(findOverlap({ id: 'n', start: '2026-10-14T11:45', minutes: 30 }, [p], services)?.id).toBe('p');
+    expect(findOverlap({ id: 'n', start: '2026-10-14T12:15', minutes: 15 }, [p], services)).toBeUndefined();
   });
   it('finds the next free slot after now', () => {
     const blocks = [{ id: 'a', start: '2026-10-14T10:00', minutes: 60 }];

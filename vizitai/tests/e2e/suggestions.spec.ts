@@ -69,7 +69,7 @@ test('smart defaults: the next free slot skips today’s booking, recent clients
   await openApp(page, '2026-10-14T09:05:00');
   await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T09:00' }, { name: 'Jonas', start: '2026-10-13T10:00', service: 3 }]);
   await page.getByTestId('btn-add').click();
-  await expect.poll(() => page.evaluate(() => (window as any).__vizitai.ui.get().sheet?.start)).toBe('2026-10-14T09:45');
+  await expect.poll(() => page.evaluate(() => (window as any).__vizitai.ui.get().sheet?.start)).toBe('2026-10-14T09:15');
   await expect(page.getByTestId('suggest-0')).toHaveText('Jonas');
   await page.getByTestId('suggest-0').click();
   await expect(page.getByTestId('svc-3')).toHaveClass(/on/);

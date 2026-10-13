@@ -13,6 +13,9 @@ beforeEach(async () => {
 const firstService = async () => (await repo.listServices(true))[0];
 
 describe('seed', () => {
+  it('seeds every service with the 15-minute default length', async () => {
+    expect((await repo.listServices()).map((s) => s.minutes)).toEqual([15, 15, 15, 15, 15, 15]);
+  });
   it('creates six services and default settings once', async () => {
     expect((await repo.listServices()).map((s) => s.name)).toEqual(['Kirpimas', 'Dažymas', 'Kirpimas ir dažymas', 'Sruogelės', 'Šukuosena', 'Kita']);
     await ensureSeed(db);
@@ -97,16 +100,24 @@ describe('appointments', () => {
 
 describe('rules 2-3: overlap warns using the hidden service length', () => {
   it('reports the clashing name and service', async () => {
-    const s = await firstService(); // Kirpimas, 45 min
+    const s = await firstService(); // Kirpimas, 15 min by default: only the same start clashes
     await repo.createAppointment({ kind: 'client', name: 'Ona', serviceId: s.id, start: '2026-10-14T10:00' });
-    expect(await repo.findOverlapFor({ start: '2026-10-14T10:30', kind: 'client', serviceId: s.id }))
+    expect(await repo.findOverlapFor({ start: '2026-10-14T10:00', kind: 'client', serviceId: s.id }))
       .toEqual({ label: 'Ona', serviceName: 'Kirpimas' });
-    expect(await repo.findOverlapFor({ start: '2026-10-14T10:45', kind: 'client', serviceId: s.id })).toBeUndefined();
+    expect(await repo.findOverlapFor({ start: '2026-10-14T10:15', kind: 'client', serviceId: s.id })).toBeUndefined();
+    expect(await repo.findOverlapFor({ start: '2026-10-14T09:45', kind: 'client', serviceId: s.id })).toBeUndefined();
+  });
+  it('uses a longer stored length when the service has one', async () => {
+    const s = await firstService();
+    await repo.updateService(s.id, { minutes: 60 });
+    await repo.createAppointment({ kind: 'client', name: 'Ona', serviceId: s.id, start: '2026-10-14T10:00' });
+    expect(await repo.findOverlapFor({ start: '2026-10-14T10:45', kind: 'client', serviceId: s.id })).toEqual({ label: 'Ona', serviceName: 'Kirpimas' });
+    expect(await repo.findOverlapFor({ start: '2026-10-14T11:00', kind: 'client', serviceId: s.id })).toBeUndefined();
   });
   it('excludes the entry being moved', async () => {
     const s = await firstService();
     const a = await repo.createAppointment({ kind: 'client', name: 'Ona', serviceId: s.id, start: '2026-10-14T10:00' });
-    expect(await repo.findOverlapFor({ start: '2026-10-14T10:15', kind: 'client', serviceId: s.id, excludeId: a.id })).toBeUndefined();
+    expect(await repo.findOverlapFor({ start: '2026-10-14T10:00', kind: 'client', serviceId: s.id, excludeId: a.id })).toBeUndefined();
   });
 });
 
@@ -118,8 +129,8 @@ describe('queries', () => {
     await repo.createAppointment({ kind: 'client', name: 'Jonas', serviceId: s.id, start: '2026-10-15T10:00' });
     const e = await repo.entriesBetween('2026-10-14', '2026-10-15');
     expect(e.map((x) => x.label)).toEqual(['Ona', 'Pietūs']);
-    expect(e[0]).toMatchObject({ minutes: 45, color: 'blue' });
-    expect(e[1].minutes).toBe(60);
+    expect(e[0]).toMatchObject({ minutes: 15, color: 'blue' });
+    expect(e[1].minutes).toBe(15);
   });
   it('counts booked entries per date', async () => {
     const s = await firstService();
@@ -133,10 +144,11 @@ describe('queries', () => {
     await repo.createAppointment({ kind: 'client', name: 'A', serviceId: s.id, start: '2026-10-14T10:00' });
     expect(await repo.defaultStartFor('2026-10-15', '2026-10-14T09:05')).toBe('2026-10-15T08:00');
     expect(await repo.defaultStartFor('2026-10-14', '2026-10-14T09:05')).toBe('2026-10-14T09:15');
-    expect(await repo.defaultStartFor('2026-10-14', '2026-10-14T10:05')).toBe('2026-10-14T10:45');
+    expect(await repo.defaultStartFor('2026-10-14', '2026-10-14T10:00')).toBe('2026-10-14T10:15');
   });
   it('keeps the proposed start inside the working day', async () => {
-    const [, , s3] = await repo.listServices(true); // 120 min
+    const [, , s3] = await repo.listServices(true);
+    await repo.updateService(s3.id, { minutes: 120 });
     expect(await repo.defaultStartFor('2026-10-14', '2026-10-14T06:00')).toBe('2026-10-14T08:00');
     expect(await repo.defaultStartFor('2026-10-14', '2026-10-14T21:05')).toBe('2026-10-15T08:00');
     expect(await repo.defaultStartFor('2026-10-14', '2026-10-14T23:50')).toBe('2026-10-15T08:00');

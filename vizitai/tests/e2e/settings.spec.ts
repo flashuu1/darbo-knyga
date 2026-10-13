@@ -44,11 +44,16 @@ test('reorders, recolours, changes length and adds a service', async ({ page }) 
   const second = await page.getByTestId('svc-name-1').inputValue();
   await page.getByTestId('svc-up-1').click();
   await expect(page.getByTestId('svc-name-0')).toHaveValue(second);
+  await expect(page.getByTestId('svc-minutes-0')).toHaveText('15'); // the default length
   await page.getByTestId('svc-minus-0').click();
-  await expect(page.getByTestId('svc-minutes-0')).toHaveText('75');
+  await expect(page.getByTestId('svc-minutes-0')).toHaveText('15'); // never below 15
+  await page.getByTestId('svc-plus-0').click();
+  await page.getByTestId('svc-plus-0').click();
+  await page.getByTestId('svc-minus-0').click();
+  await expect(page.getByTestId('svc-minutes-0')).toHaveText('30');
   await page.getByTestId('svc-swatch-0').click();
   await page.getByTestId('svc-color-0-teal').click();
-  await expect.poll(() => page.evaluate(async () => (await (window as any).__vizitai.repo.listServices())[0])).toMatchObject({ color: 'teal', minutes: 75 }); // eslint-disable-line @typescript-eslint/no-explicit-any
+  await expect.poll(() => page.evaluate(async () => (await (window as any).__vizitai.repo.listServices())[0])).toMatchObject({ color: 'teal', minutes: 30 }); // eslint-disable-line @typescript-eslint/no-explicit-any
   await page.getByTestId('svc-add').click();
   await expect(page.getByTestId('svc-row-6')).toBeVisible();
 });

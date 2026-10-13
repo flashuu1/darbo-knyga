@@ -81,8 +81,10 @@ test('empty name field lists the recent clients', async ({ page }) => {
 test('an overlap warns on the first Išsaugoti and saves on the second', async ({ page }) => {
   await openApp(page);
   await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T10:00' }]);
-  await page.getByTestId('slot-2026-10-14T09:45').click();
+  await page.getByTestId('slot-2026-10-14T10:15').click();
   await page.getByTestId('field-name').fill('Jonas');
+  await page.getByTestId('time-input').fill('2026-10-14T10:00'); // 15-minute defaults: the same start clashes
+  await page.getByTestId('time-input').dispatchEvent('change');
   await page.getByTestId('btn-save').click();
   await expect(page.getByTestId('overlap-warning')).toHaveText('Šiuo laiku jau užregistruota: Ona – Kirpimas');
   await expect(page.getByTestId('sheet')).toBeVisible();

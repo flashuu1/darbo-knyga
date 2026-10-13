@@ -45,7 +45,7 @@ export function createRepo(db: VizitaiDB) {
       const all = await db.services.orderBy('order').toArray();
       return activeOnly ? all.filter((s) => s.active) : all;
     },
-    async addService(name: string, color: ServiceColor = 'teal', minutes = 60): Promise<Service> {
+    async addService(name: string, color: ServiceColor = 'teal', minutes = 15): Promise<Service> {
       const all = await db.services.toArray();
       const s: Service = { id: uuid(), name: cleanName(name) || t('service.new'), color, minutes, order: all.length ? Math.max(...all.map((x) => x.order)) + 1 : 0, active: true };
       await db.services.add(s);

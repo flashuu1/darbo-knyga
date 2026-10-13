@@ -1,0 +1,35 @@
+{
+  "name": "vizitai",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "build:e2e": "vite build --mode e2e",
+    "preview:e2e": "vite preview --port 4173 --strictPort",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run --passWithNoTests",
+    "e2e": "playwright test",
+    "icons": "node scripts/make-icons.mjs",
+    "scan:bundle": "node scripts/scan-bundle.mjs"
+  },
+  "dependencies": {
+    "dexie": "^4.4.6",
+    "preact": "^11.0.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.64.0",
+    "@preact/preset-vite": "^2.10.6",
+    "eslint": "^10.12.0",
+    "fake-indexeddb": "^6.2.5",
+    "sharp": "^0.35.5",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.2",
+    "vite": "^8.3.4",
+    "vite-plugin-pwa": "^2.0.0",
+    "vitest": "^5.0.4"
+  }
+}

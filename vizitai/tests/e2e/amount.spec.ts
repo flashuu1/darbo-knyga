@@ -155,3 +155,13 @@ test('a new booking raises the normal keyboard again after the number pad was us
   await page.getByTestId('slot-2026-10-14T12:00').click();
   expect(await page.getByTestId('kb-primer').getAttribute('inputmode')).toBe('text');
 });
+
+test('the Suma confirm button floats on its own: no grey box or line around it', async ({ page }) => {
+  await openApp(page, '2026-10-14T10:40:00');
+  const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T09:00' }]);
+  await page.getByTestId(`entry-${id}`).click();
+  await expect(page.getByTestId('amount-sheet')).toBeVisible();
+  const bar = await page.locator('.sheet-bar').evaluate((el) => { const s = getComputedStyle(el); return { bg: s.backgroundColor, border: s.borderTopWidth }; });
+  expect(bar.bg).toBe('rgba(0, 0, 0, 0)');
+  expect(bar.border).toBe('0px');
+});

@@ -6,6 +6,7 @@ import { t } from '../../i18n/lt';
 import { nowLocal, snap } from '../../logic/time';
 import { closeSheet, confirmCancel, moveWithToast, noShowWithToast, restoreWithToast } from '../actions';
 import { useLive, useServices } from '../hooks';
+import { statusLabel } from '../status';
 import { ui } from '../store';
 import { Sheet } from './Sheet';
 
@@ -19,8 +20,7 @@ export function AppointmentSheet({ id }: { id: string }) {
   if (!appt) return null;
 
   const past = appt.start < nowLocal();
-  const done = appt.status === 'booked' && past;
-  const status = appt.status === 'cancelled' ? t('status.cancelled') : appt.status === 'noshow' ? t('status.noshow') : done ? t('status.done') : t('status.booked');
+  const status = statusLabel(appt);
   const chips = all.filter((s) => s.active || s.id === appt.serviceId);
   const label = appt.kind === 'personal' ? appt.title ?? '' : client?.name ?? '';
   // Close the sheet first, then run the write once; a second tap or change event cannot repeat it.

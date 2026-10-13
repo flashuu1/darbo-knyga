@@ -94,7 +94,12 @@ export function createRepo(db: VizitaiDB) {
     },
     async updateClient(id: string, p: { name?: string; phone?: string }) {
       const patch: Partial<Client> = { updatedAt: now() };
-      if (p.name !== undefined) { const n = cleanName(p.name); if (n) { patch.name = n; patch.nameKey = foldName(n); } }
+      if (p.name !== undefined) {
+        const n = cleanName(p.name), key = foldName(n);
+        // An empty name, or one whose key belongs to another client, is ignored so nameKey stays unique.
+        const other = n ? await db.clients.where('nameKey').equals(key).first() : undefined;
+        if (n && (!other || other.id === id)) { patch.name = n; patch.nameKey = key; }
+      }
       if (p.phone !== undefined) patch.phone = p.phone.trim();
       await db.clients.update(id, patch);
     },

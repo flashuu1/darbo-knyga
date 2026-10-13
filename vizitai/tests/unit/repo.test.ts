@@ -192,3 +192,16 @@ describe('services', () => {
     expect(after[1].id).toBe(s1.id);
   });
 });
+
+describe('updateClient', () => {
+  it('ignores a name owned by another client or empty, but allows case-only changes', async () => {
+    const ona = await repo.matchOrCreateClient('Ona');
+    const zita = await repo.matchOrCreateClient('Zita');
+    await repo.updateClient(ona.id, { name: 'ZITA' });
+    expect((await repo.getClient(ona.id))?.name).toBe('Ona');
+    await repo.updateClient(ona.id, { name: '   ' });
+    expect((await repo.getClient(ona.id))?.name).toBe('Ona');
+    await repo.updateClient(zita.id, { name: 'ZITA', phone: ' 123 ' });
+    expect(await repo.getClient(zita.id)).toMatchObject({ name: 'ZITA', nameKey: 'zita', phone: '123' });
+  });
+});

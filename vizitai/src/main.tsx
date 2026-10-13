@@ -2,6 +2,7 @@ import { render } from 'preact';
 import './styles.css';
 import { isStandalone } from './pwa/standalone';
 import { InstallScreen } from './ui/screens/Install';
+import { initUpdates } from './pwa/updates';
 
 async function boot() {
   const root = document.getElementById('app')!;
@@ -18,5 +19,6 @@ async function boot() {
     await db.settings.update('settings', { persistGranted: await requestPersistence() });
   }
   render(<App />, root);
+  initUpdates(() => false);
 }
 void boot();

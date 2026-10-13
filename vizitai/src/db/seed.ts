@@ -1,3 +1,4 @@
+import { newId } from '../logic/id';
 import { t } from '../i18n/lt';
 import type { Service, Settings } from './types';
 import type { VizitaiDB } from './db';
@@ -17,7 +18,7 @@ export async function ensureSeed(db: VizitaiDB): Promise<void> {
       { name: t('service.default.style'), color: 'green', minutes: 60 },
       { name: t('service.default.other'), color: 'gray', minutes: 30 },
     ];
-    await db.services.bulkAdd(defs.map((d, i) => ({ ...d, id: crypto.randomUUID(), order: i, active: true })));
+    await db.services.bulkAdd(defs.map((d, i) => ({ ...d, id: newId(), order: i, active: true })));
     await db.settings.add({ ...DEFAULT_SETTINGS });
   });
 }

@@ -1,3 +1,4 @@
+import { newId } from '../logic/id';
 import { db } from './db';
 import type { Appointment, CancelReason, Client, Service, ServiceColor, Settings } from './types';
 import type { VizitaiDB } from './db';
@@ -14,7 +15,7 @@ const toMin = (hhmm: string) => +hhmm.slice(0, 2) * 60 + +hhmm.slice(3, 5);
 export function createRepo(db: VizitaiDB) {
   let lastTs = 0; // strictly increasing, so "most recent" ordering never ties within a millisecond
   const now = () => { lastTs = Math.max(Date.now(), lastTs + 1); return new Date(lastTs).toISOString(); };
-  const uuid = () => crypto.randomUUID();
+  const uuid = newId;
   const serviceMap = async () => new Map((await db.services.toArray()).map((s) => [s.id, s]));
 
   async function toEntries(list: Appointment[]): Promise<Entry[]> {

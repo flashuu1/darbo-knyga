@@ -3,7 +3,7 @@ import type { Appointment, CancelReason, Client, Service, ServiceColor, Settings
 import type { VizitaiDB } from './db';
 import { DEFAULT_SETTINGS } from './seed';
 import { cleanName, foldName, ltCollator } from '../logic/names';
-import { addDays, addMinutes, datePart, nowLocal, snap } from '../logic/time';
+import { addDays, addMinutes, datePart, minutesOfDay, nowLocal, snap } from '../logic/time';
 import { findOverlap, minutesFor, nextFreeSlot, PERSONAL_MINUTES, type Block } from '../logic/overlap';
 import { t } from '../i18n/lt';
 
@@ -159,7 +159,9 @@ export function createRepo(db: VizitaiDB) {
         .filter((a) => a.status === 'booked');
       const blocks: Block[] = list.map((a) => ({ id: a.id, start: a.start, minutes: minutesFor(a, services) }));
       const free = nextFreeSlot(now_, blocks, toMin(s.dayEnd));
-      return datePart(free) === date ? free : `${date}T${s.dayStart}`;
+      if (datePart(free) > date || minutesOfDay(free) >= toMin(s.dayEnd)) return `${addDays(date, 1)}T${s.dayStart}`;
+      if (minutesOfDay(free) < toMin(s.dayStart)) return `${date}T${s.dayStart}`;
+      return free;
     },
 
     async listClients(now_: string = nowLocal()): Promise<{ client: Client; lastVisit: string | null }[]> {

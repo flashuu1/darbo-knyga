@@ -135,6 +135,14 @@ describe('queries', () => {
     expect(await repo.defaultStartFor('2026-10-14', '2026-10-14T09:05')).toBe('2026-10-14T09:15');
     expect(await repo.defaultStartFor('2026-10-14', '2026-10-14T10:05')).toBe('2026-10-14T10:45');
   });
+  it('keeps the proposed start inside the working day', async () => {
+    const [, , s3] = await repo.listServices(true); // 120 min
+    expect(await repo.defaultStartFor('2026-10-14', '2026-10-14T06:00')).toBe('2026-10-14T08:00');
+    expect(await repo.defaultStartFor('2026-10-14', '2026-10-14T21:05')).toBe('2026-10-15T08:00');
+    expect(await repo.defaultStartFor('2026-10-14', '2026-10-14T23:50')).toBe('2026-10-15T08:00');
+    await repo.createAppointment({ kind: 'client', name: 'A', serviceId: s3.id, start: '2026-10-14T19:00' });
+    expect(await repo.defaultStartFor('2026-10-14', '2026-10-14T19:50')).toBe('2026-10-15T08:00');
+  });
   it('remembers the last service of a client', async () => {
     const [s1, s2] = await repo.listServices(true);
     const a = await repo.createAppointment({ kind: 'client', name: 'Ona', serviceId: s1.id, start: '2026-10-14T10:00' });

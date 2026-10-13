@@ -13,7 +13,7 @@ export function statusKind(a: Pick<Appointment, 'kind' | 'status' | 'start' | 'a
   if (a.status === 'cancelled') return 'cancelled';
   if (a.status === 'noshow') return 'noshow';
   if (a.start > now) return 'waiting';
-  return a.kind === 'personal' || isValidCents(a.amountCents) ? 'done' : 'unconfirmed';
+  return a.kind !== 'client' || isValidCents(a.amountCents) ? 'done' : 'unconfirmed';
 }
 
 const KEY = { waiting: 'status.waiting', unconfirmed: 'status.unconfirmed', done: 'status.done', cancelled: 'status.cancelled', noshow: 'status.noshow' } as const;

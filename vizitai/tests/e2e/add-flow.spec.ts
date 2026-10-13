@@ -117,11 +117,14 @@ test('an overlap warns on the first Išsaugoti and saves on the second', async (
   await expect.poll(() => apptCount(page)).toBe(2);
 });
 
-test('Asmeninis uses a title and skips the services', async ({ page }) => {
+test('Asmeninis is picked from her own choices (no typing) and skips the services', async ({ page }) => {
   await openApp(page);
   await page.getByTestId('slot-2026-10-14T12:00').click();
   await page.getByTestId('type-personal').click();
-  await nameThenEnter(page, 'Pietūs');
+  await expect(page.getByTestId('field-name')).toHaveCount(0);
+  await expect(page.getByTestId('btn-next')).toBeDisabled();
+  await page.getByTestId('option-0').click(); // Pietūs
+  await page.getByTestId('btn-next').click();
   await expect(page.getByTestId('svc-0')).toBeHidden();
   await expect(page.getByTestId('timewheel')).toBeVisible(); // straight to Laikas
   await page.getByTestId('btn-save-time').click();

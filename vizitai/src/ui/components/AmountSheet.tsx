@@ -33,10 +33,10 @@ export function AmountSheet({ id }: { id: string }) {
   };
 
   return (
-    <Sheet variant="dialog" title={t('amount.title')} onClose={closeSheet} testId="amount-sheet"
+    <Sheet variant="dialog" title={t(appt.kind === 'expense' ? 'expense.amount' : 'amount.title')} onClose={closeSheet} testId="amount-sheet"
       left={<button data-testid="btn-dismiss" onClick={closeSheet}>{t('btn.dismiss')}</button>}
       right={<button class="strong" data-testid="amount-confirm" disabled={!valid} onClick={confirm}>{t('amount.confirm')}</button>}>
-      <p class="amount-ctx" data-testid="amount-context">{client?.name ?? ''} · {formatWhen(appt.start)}</p>
+      <p class="amount-ctx" data-testid="amount-context">{client?.name ?? appt.title ?? ''} · {formatWhen(appt.start)}</p>
       <label class="amount-field">
         <input ref={input} data-testid="amount-input" inputMode="decimal" enterKeyHint="done" autocomplete="off" aria-label={t('amount.field')}
           placeholder="0" value={value}

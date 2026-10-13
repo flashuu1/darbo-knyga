@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import type { Appointment, Client, Service, Settings } from './types';
+import type { Appointment, Client, Option, Service, Settings } from './types';
 import { versions, type SchemaVersion } from './schema';
 
 export class VizitaiDB extends Dexie {
@@ -7,6 +7,7 @@ export class VizitaiDB extends Dexie {
   appointments!: Table<Appointment, string>;
   services!: Table<Service, string>;
   settings!: Table<Settings, string>;
+  options!: Table<Option, string>;
 
   constructor(name = 'vizitai', extraVersions: SchemaVersion[] = []) {
     super(name);

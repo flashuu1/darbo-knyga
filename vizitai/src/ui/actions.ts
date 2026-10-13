@@ -1,6 +1,6 @@
 import { db } from '../db/db';
 import { repo, type Entry } from '../db/repo';
-import type { Appointment, CancelReason } from '../db/types';
+import type { Appointment, CancelReason, Option } from '../db/types';
 import { formatDayShort, weekdayShort } from '../i18n/format';
 import { t } from '../i18n/lt';
 import { backupFileName, BackupError, exportData, importData, parseBackup, shareBackup, type BackupFile } from '../logic/backup';
@@ -96,6 +96,20 @@ export function confirmDeleteService(s: { id: string; name: string }) {
             if (r.result === 'hidden') showToast(t('service.hiddenInstead'), () => repo.restoreService(r.service));
             else showToast(t('service.deleted'), () => repo.restoreService(r.service));
           } catch { showToast(t('service.lastActive')); }
+        })() },
+        { label: t('btn.keep'), role: 'cancel' as const, onPress: () => {} },
+      ],
+    },
+  });
+}
+export function confirmDeleteOption(o: Option) {
+  ui.set({
+    action: {
+      title: t('option.deleteQ', { vardas: o.name }),
+      items: [
+        { label: t('btn.delete'), role: 'destructive' as const, onPress: () => void (async () => {
+          const gone = await repo.deleteOption(o.id);
+          if (gone) showToast(t('option.deleted'), () => repo.restoreOption(gone));
         })() },
         { label: t('btn.keep'), role: 'cancel' as const, onPress: () => {} },
       ],

@@ -61,7 +61,7 @@ export function ClientsScreen() {
               {cancelledRows.map((e, i) => (
                 <li key={e.appt.id}>
                   <button class="client-row cancelled-row" data-testid={`cancelled-row-${i}`} onClick={() => openCancelled(e)}>
-                    <span class="avatar muted" aria-hidden="true">{initials(e.label)}</span>
+                    <span class="avatar dim" aria-hidden="true">{initials(e.label)}</span>
                     <span class="client-text">
                       <b>{e.label}</b>
                       <span class="client-status"><span class="pill gone">{t('status.cancelled')}</span><span class="next">{formatWhen(e.appt.start)}</span></span>

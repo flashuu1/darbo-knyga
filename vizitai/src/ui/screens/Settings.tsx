@@ -8,6 +8,7 @@ import { snapClock, todayStr } from '../../logic/time';
 import { chooseImport, confirmDeleteService, runBackup, showToast } from '../actions';
 import { SwipeRow } from '../components/SwipeRow';
 import { useServices, useSettings } from '../hooks';
+import { OptionList } from '../components/OptionList';
 
 export function SettingsScreen() {
   const settings = useSettings();
@@ -79,6 +80,12 @@ export function SettingsScreen() {
         <div class="group">
           <button class="group-row accent" data-testid="svc-add" onClick={() => void repo.addService(t('service.new'))}>{t('service.add')}</button>
         </div>
+
+        <h2 class="section-head">{t('settings.personal')}</h2>
+        <OptionList group="personal" />
+
+        <h2 class="section-head">{t('settings.expenses')}</h2>
+        <OptionList group="expense" />
 
         <h2 class="section-head">{t('settings.hours')}</h2>
         <div class="group">

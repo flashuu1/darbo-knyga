@@ -1,5 +1,6 @@
 import type { Transaction } from 'dexie';
 import { t } from '../i18n/lt';
+import { newId } from '../logic/id';
 
 export interface SchemaVersion {
   version: number;
@@ -32,5 +33,15 @@ versions.push({
     const old = OLD_DEFAULT_MINUTES();
     return tx.table('services').toCollection().modify((s: { name: string; minutes: number }) => { if (old.get(s.name) === s.minutes) s.minutes = 15; });
   },
+});
+// v3: her own choices for personal entries and for expenses (money out), seeded with a few examples.
+export const defaultOptions = () => [
+  ...[t('option.personal.lunch'), t('option.personal.break'), t('option.personal.doctor'), t('option.personal.errands')].map((name, order) => ({ id: newId(), group: 'personal' as const, name, order })),
+  ...[t('option.expense.supplies'), t('option.expense.rent'), t('option.expense.taxes'), t('option.expense.other')].map((name, order) => ({ id: newId(), group: 'expense' as const, name, order })),
+];
+versions.push({
+  version: 3,
+  stores: { options: 'id, group, order' },
+  upgrade: async (tx) => { if ((await tx.table('options').count()) === 0) await tx.table('options').bulkAdd(defaultOptions()); },
 });
 export const SCHEMA_VERSION = versions[versions.length - 1].version;

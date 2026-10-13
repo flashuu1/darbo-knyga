@@ -23,7 +23,8 @@ export function AppointmentSheet({ id }: { id: string }) {
   const past = appt.start < now;
   const status = statusLabel(appt);
   const chips = all.filter((s) => s.active || s.id === appt.serviceId);
-  const label = appt.kind === 'personal' ? appt.title ?? '' : client?.name ?? '';
+  const label = appt.kind === 'client' ? client?.name ?? '' : appt.title ?? '';
+  const expense = appt.kind === 'expense';
   const amount = typeof appt.amountCents === 'number' ? appt.amountCents : null;
   // Close the sheet first, then run the write once; a second tap cannot repeat it.
   const after = (fn: () => Promise<void>) => () => {
@@ -49,7 +50,14 @@ export function AppointmentSheet({ id }: { id: string }) {
         </div>
       )}
       <div class="row"><span class="value">{formatWhen(appt.start)}</span></div>
-      <div class="row"><span class="label">{t('appt.status')}</span><span class={`value status-${statusKind(appt, now)}`} data-testid="appt-status">{status}</span></div>
+      {!expense && <div class="row"><span class="label">{t('appt.status')}</span><span class={`value status-${statusKind(appt, now)}`} data-testid="appt-status">{status}</span></div>}
+      {expense && (
+        <button class="row amount-row" data-testid="appt-amount" onClick={() => openAmount(id)}>
+          <span class="label">{t('expense.amount')}</span>
+          <span class="value out">{amount === null ? '' : `−${formatEuro(amount)}`}</span>
+          <span class="amount-edit">{t('amount.edit')}</span>
+        </button>
+      )}
       {canHaveAmount(appt, now) && (
         <button class={amount === null ? 'row amount-row due' : 'row amount-row'} data-testid="appt-amount" onClick={() => openAmount(id)}>
           <span class="label">{t('amount.title')}</span>
@@ -61,7 +69,7 @@ export function AppointmentSheet({ id }: { id: string }) {
         {appt.status === 'booked' && (
           <button class="action-row" data-testid="act-move" onClick={() => ui.set({ sheet: { type: 'move', id } })}>{t('act.move')}</button>
         )}
-        {appt.status === 'booked' && past && <button class="action-row" data-testid="act-noshow" onClick={after(() => noShowWithToast(id))}>{t('act.noshow')}</button>}
+        {appt.status === 'booked' && past && !expense && <button class="action-row" data-testid="act-noshow" onClick={after(() => noShowWithToast(id))}>{t('act.noshow')}</button>}
         {appt.kind === 'client' && <button class="action-row" data-testid="act-repeat" onClick={() => rebook(appt, { type: 'appt', id })}>{t('repeat.action')}</button>}
         {appt.status === 'booked' && <button class="action-row destructive" data-testid="act-cancel" onClick={() => { closeSheet(); confirmCancel(id); }}>{t('act.cancelAppt')}</button>}
         {appt.status !== 'booked' && <button class="action-row" data-testid="act-restore" onClick={after(() => restoreWithToast(id))}>{t('act.restore')}</button>}

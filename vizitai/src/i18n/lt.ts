@@ -62,6 +62,14 @@ export const lt = {
   'amount.field': 'Suma eurais', 'amount.invalid': 'Įveskite sumą, pvz., 45 arba 45,50',
   'amount.clearHint': 'Palikite tuščią ir patvirtinkite, kad suma būtų ištrinta',
   'amount.saved': 'Suma išsaugota', 'amount.cleared': 'Suma ištrinta',
+  // --- own choices (asmeninis / išlaidos), balance ---
+  'type.expense': 'Išlaida', 'settings.personal': 'Asmeniniai', 'settings.expenses': 'Išlaidų rūšys',
+  'option.add': 'Pridėti pasirinkimą', 'option.new': 'Naujas pasirinkimas', 'option.deleteQ': 'Ištrinti pasirinkimą {vardas}?', 'option.deleted': 'Pasirinkimas ištrintas',
+  'option.pick': 'Pasirinkite', 'option.none': 'Nėra pasirinkimų. Pridėkite juos nustatymuose.', 'option.field': 'Pasirinkimo pavadinimas',
+  'option.personal.lunch': 'Pietūs', 'option.personal.break': 'Pertrauka', 'option.personal.doctor': 'Gydytojas', 'option.personal.errands': 'Asmeniniai reikalai',
+  'option.expense.supplies': 'Medžiagos', 'option.expense.rent': 'Nuoma', 'option.expense.taxes': 'Mokesčiai', 'option.expense.other': 'Kita',
+  'expense.amount': 'Išlaidų suma', 'expense.title': 'Išlaida', 'expense.add': 'Pridėti išlaidą',
+  'balance.label': 'Balansas', 'balance.in': 'Gauta', 'balance.out': 'Išlaidos',
 } as const;
 
 export type Key = keyof typeof lt;

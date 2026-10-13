@@ -5,7 +5,7 @@ export const PERSONAL_MINUTES = 15;
 export interface Block { id: string; start: string; minutes: number }
 
 export function minutesFor(a: Appointment, services: Map<string, Service>): number {
-  if (a.kind === 'personal' || !a.serviceId) return PERSONAL_MINUTES;
+  if (a.kind !== 'client' || !a.serviceId) return PERSONAL_MINUTES;
   return services.get(a.serviceId)?.minutes ?? PERSONAL_MINUTES;
 }
 export function blocksOverlap(a: Block, b: Block): boolean {
@@ -14,7 +14,7 @@ export function blocksOverlap(a: Block, b: Block): boolean {
 }
 export function findOverlap(candidate: Block, booked: Appointment[], services: Map<string, Service>): Appointment | undefined {
   return booked.find(
-    (a) => a.id !== candidate.id && a.status === 'booked' &&
+    (a) => a.id !== candidate.id && a.status === 'booked' && a.kind !== 'expense' && // money out never blocks the chair
       blocksOverlap(candidate, { id: a.id, start: a.start, minutes: minutesFor(a, services) }),
   );
 }

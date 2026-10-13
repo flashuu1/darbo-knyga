@@ -1,21 +1,23 @@
-import type { Appointment, Client, Service, Settings } from '../db/types';
+import type { Appointment, Client, Option, Service, Settings } from '../db/types';
 import type { VizitaiDB } from '../db/db';
-import { SCHEMA_VERSION } from '../db/schema';
+import { defaultOptions, SCHEMA_VERSION } from '../db/schema';
 import { DEFAULT_SETTINGS } from '../db/seed';
 
 export interface BackupFile {
   app: 'vizitai'; schemaVersion: number; exportedAt: string;
   clients: Client[]; appointments: Appointment[]; services: Service[]; settings: Settings[];
+  /** Absent in files made before personal/expense choices existed. */
+  options?: Option[];
 }
 export class BackupError extends Error {
   constructor(public code: 'format' | 'newer') { super(code); }
 }
 
 export async function exportData(db: VizitaiDB): Promise<BackupFile> {
-  const [clients, appointments, services, settings] = await Promise.all([
-    db.clients.toArray(), db.appointments.toArray(), db.services.toArray(), db.settings.toArray(),
+  const [clients, appointments, services, settings, options] = await Promise.all([
+    db.clients.toArray(), db.appointments.toArray(), db.services.toArray(), db.settings.toArray(), db.options.toArray(),
   ]);
-  return { app: 'vizitai', schemaVersion: SCHEMA_VERSION, exportedAt: new Date().toISOString(), clients, appointments, services, settings };
+  return { app: 'vizitai', schemaVersion: SCHEMA_VERSION, exportedAt: new Date().toISOString(), clients, appointments, services, settings, options };
 }
 
 export function parseBackup(text: string): BackupFile {
@@ -31,15 +33,16 @@ export function parseBackup(text: string): BackupFile {
 }
 
 export async function importData(db: VizitaiDB, f: BackupFile): Promise<void> {
-  await db.transaction('rw', db.clients, db.appointments, db.services, db.settings, async () => {
+  await db.transaction('rw', db.clients, db.appointments, db.services, db.settings, db.options, async () => {
     // persistGranted describes this device's storage, not the file's: keep the local value.
     const persistGranted = (await db.settings.get('settings'))?.persistGranted ?? null;
     // A file without the settings record would make ensureSeed add the six default services again.
     const settings = f.settings.some((s) => s.id === 'settings') ? f.settings : [...f.settings, { ...DEFAULT_SETTINGS }];
-    await Promise.all([db.clients.clear(), db.appointments.clear(), db.services.clear(), db.settings.clear()]);
+    await Promise.all([db.clients.clear(), db.appointments.clear(), db.services.clear(), db.settings.clear(), db.options.clear()]);
     await db.clients.bulkAdd(f.clients);
     await db.appointments.bulkAdd(f.appointments);
     await db.services.bulkAdd(f.services);
+    await db.options.bulkAdd(Array.isArray(f.options) ? f.options : defaultOptions()); // an older file has none: start from the examples
     await db.settings.bulkAdd(settings.map((s) => (s.id === 'settings' ? { ...s, persistGranted } : s)));
   });
 }

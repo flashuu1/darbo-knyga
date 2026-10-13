@@ -1,6 +1,6 @@
 import { newId } from '../logic/id';
 import { db } from './db';
-import type { Appointment, CancelReason, Client, Service, ServiceColor, Settings } from './types';
+import type { Appointment, CancelReason, Client, Option, OptionGroup, Service, ServiceColor, Settings } from './types';
 import type { VizitaiDB } from './db';
 import { DEFAULT_SETTINGS } from './seed';
 import { cleanName, foldName, ltCollator } from '../logic/names';
@@ -38,8 +38,8 @@ export function createRepo(db: VizitaiDB) {
     const clients = new Map((await db.clients.bulkGet(ids)).filter((c): c is Client => !!c).map((c) => [c.id, c]));
     return list.map((appt) => {
       const service = appt.serviceId ? services.get(appt.serviceId) ?? null : null;
-      const label = appt.kind === 'personal' ? appt.title ?? '' : clients.get(appt.clientId ?? '')?.name ?? '';
-      return { appt, label, service, minutes: minutesFor(appt, services), color: service?.color ?? 'gray', amountCents: isValidCents(appt.amountCents) ? appt.amountCents : null };
+      const label = appt.kind === 'client' ? clients.get(appt.clientId ?? '')?.name ?? '' : appt.title ?? '';
+      return { appt, label, service, minutes: minutesFor(appt, services), color: appt.kind === 'expense' ? 'red' : service?.color ?? 'gray', amountCents: isValidCents(appt.amountCents) ? appt.amountCents : null };
     });
   }
   // Same start: the earlier booking first, so side-by-side lanes keep a stable order.
@@ -87,6 +87,27 @@ export function createRepo(db: VizitaiDB) {
         if (others.length === 0) throw new Error('last-active');
       }
       await db.services.update(id, { active });
+    },
+
+    async listOptions(group: OptionGroup): Promise<Option[]> { return (await db.options.where('group').equals(group).toArray()).sort((a, b) => a.order - b.order); },
+    async addOption(group: OptionGroup, name: string): Promise<Option> {
+      const all = await db.options.where('group').equals(group).toArray();
+      const o: Option = { id: uuid(), group, name: cleanName(name) || t('option.new'), order: all.length ? Math.max(...all.map((x) => x.order)) + 1 : 0 };
+      await db.options.add(o);
+      return o;
+    },
+    async renameOption(id: string, name: string) { const n = cleanName(name); if (n) await db.options.update(id, { name: n }); }, // an empty name is ignored
+    /** Entries keep the name they were made with, so a choice can always be removed. Undo: restoreOption. */
+    async deleteOption(id: string): Promise<Option | null> { const o = await db.options.get(id); if (o) await db.options.delete(id); return o ?? null; },
+    async restoreOption(o: Option) { await db.options.put(o); },
+    /** All the money in (amounts of visits) and out (expenses) so far; cancelled and no-show entries do not count. */
+    async balance(): Promise<{ inCents: number; outCents: number; balanceCents: number }> {
+      let inCents = 0, outCents = 0;
+      for (const a of await db.appointments.toArray()) {
+        if (a.status !== 'booked' || !isValidCents(a.amountCents)) continue;
+        if (a.kind === 'client') inCents += a.amountCents; else if (a.kind === 'expense') outCents += a.amountCents;
+      }
+      return { inCents, outCents, balanceCents: inCents - outCents };
     },
 
     getClient: (id: string) => db.clients.get(id),
@@ -143,16 +164,18 @@ export function createRepo(db: VizitaiDB) {
       return list.length ? list[list.length - 1].serviceId : null;
     },
 
-    async createAppointment(i: { kind: 'client' | 'personal'; name?: string; title?: string; serviceId?: string | null; start: string }): Promise<Appointment> {
+    async createAppointment(i: { kind: 'client' | 'personal' | 'expense'; name?: string; title?: string; serviceId?: string | null; start: string; optionId?: string | null; amountCents?: number }): Promise<Appointment> {
       parse(i.start); // throws on a malformed time; any minute is allowed (the time wheel is not limited to a grid)
       const start = i.start;
       let clientId: string | null = null, title: string | null = null;
       if (i.kind === 'client') clientId = (await this.matchOrCreateClient(i.name ?? '')).id;
       else { title = cleanName(i.title ?? ''); if (!title) throw new Error('empty-title'); }
+      if (i.kind === 'expense' && !isValidCents(i.amountCents)) throw new Error('bad-amount');
       const ts = now();
       const a: Appointment = {
         id: uuid(), kind: i.kind, clientId, title, serviceId: i.kind === 'client' ? i.serviceId ?? null : null, start,
         status: 'booked', cancelReason: null, cancelledAt: null, moves: [], createdAt: ts, updatedAt: ts,
+        ...(i.kind === 'client' ? {} : { optionId: i.optionId ?? null }), ...(i.kind === 'expense' ? { amountCents: i.amountCents } : {}),
       };
       await db.appointments.add(a);
       return a;
@@ -219,9 +242,10 @@ export function createRepo(db: VizitaiDB) {
       return db.appointments.where('status').equals('cancelled').filter((a) => !!a.cancelledAt && a.cancelledAt < cutoff).delete();
     },
 
-    async findOverlapFor(i: { start: string; kind: 'client' | 'personal'; serviceId: string | null; excludeId?: string }) {
+    async findOverlapFor(i: { start: string; kind: 'client' | 'personal' | 'expense'; serviceId: string | null; excludeId?: string }) {
+      if (i.kind === 'expense') return undefined; // money out can be noted at any time
       const services = await serviceMap();
-      const minutes = i.kind === 'personal' || !i.serviceId ? PERSONAL_MINUTES : services.get(i.serviceId)?.minutes ?? PERSONAL_MINUTES;
+      const minutes = i.kind !== 'client' || !i.serviceId ? PERSONAL_MINUTES : services.get(i.serviceId)?.minutes ?? PERSONAL_MINUTES;
       const lo = addMinutes(i.start, -1440), hi = addMinutes(i.start, 1440);
       const near = await db.appointments.where('start').between(lo, hi, true, true).toArray();
       const hit = findOverlap({ id: i.excludeId ?? '', start: i.start, minutes }, near, services);

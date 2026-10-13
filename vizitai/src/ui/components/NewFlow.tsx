@@ -2,19 +2,20 @@ import type { CSSProperties } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { repo } from '../../db/repo';
 import type { Client } from '../../db/types';
-import { formatWhen } from '../../i18n/format';
+import { euroSign, formatWhen, parseAmountInput } from '../../i18n/format';
 import { t } from '../../i18n/lt';
 import { cleanName } from '../../logic/names';
 import { datePart } from '../../logic/time';
 import { closeSheet, highlight } from '../actions';
-import { useLive, useServices } from '../hooks';
+import { useLive, useOptions, useServices } from '../hooks';
 import { useKeyboardHeight } from '../keyboard';
 import { ui, type Origin } from '../store';
 import { DateTimePicker } from './DateTimePicker';
 import { Sheet } from './Sheet';
 
 // Enough to find someone as the client list grows, few enough to stay clear of the keyboard.
-const MAX_SUGGESTIONS = 5;
+const MAX_SUGGESTIONS = 8;
+type Kind = 'client' | 'personal' | 'expense';
 type Screen = 0 | 1 | 2; // 0 = client, 1 = service, 2 = time
 
 /**
@@ -26,7 +27,9 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
   const services = useServices(true);
   const kb = useKeyboardHeight();
   const [screen, setScreen] = useState<Screen>(prefill.screen === 'time' ? 2 : 0);
-  const [kind, setKind] = useState<'client' | 'personal'>('client');
+  const [kind, setKind] = useState<Kind>('client');
+  const [optionId, setOptionId] = useState<string | null>(null);
+  const [amountText, setAmountText] = useState('');
   const [name, setName] = useState('');
   const [linked, setLinked] = useState<Client | null>(null);
   const [serviceId, setServiceId] = useState<string | null>(prefill.serviceId ?? null);
@@ -36,11 +39,16 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
   const input = useRef<HTMLInputElement>(null);
   const busy = useRef(false);
   const typed = useRef(false); // she has typed in or picked into the name field
-  const matches = useLive(() => repo.searchClients(name), [name], [] as Client[]);
+  const matches = useLive(() => repo.searchClients(name, MAX_SUGGESTIONS + 1), [name], [] as Client[]);
   // A prefilled/last service may since have been hidden: fall back to the first card.
   const sid = services.some((s) => s.id === serviceId) ? serviceId : services[0]?.id ?? null;
   const hasName = cleanName(name).length > 0;
-  const canSave = hasName && (kind === 'personal' || sid !== null);
+  const options = useOptions(kind === 'expense' ? 'expense' : 'personal');
+  const chosen = kind === 'client' ? null : options.find((o) => o.id === optionId) ?? null;
+  const cents = parseAmountInput(amountText);
+  // The first screen is done when she has a name (client) or has picked one of her own choices (and an amount for an expense).
+  const canNext = kind === 'client' ? hasName : chosen !== null && (kind !== 'expense' || cents !== null);
+  const canSave = canNext && (kind !== 'client' || sid !== null);
 
   // The tap that opened the flow focused the hidden primer (the iOS keyboard is up); hand focus to the field.
   useEffect(() => { if (screen === 0) input.current?.focus(); }, []);
@@ -55,7 +63,13 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
 
   const touch = <T,>(set: (v: T) => void) => (v: T) => { set(v); setClash(null); };
   const go = (s: Screen) => { if (s !== 0) input.current?.blur(); setScreen(s); };
-  const next = () => { if (hasName) go(kind === 'client' ? 1 : 2); };
+  const next = () => { if (canNext) go(kind === 'client' ? 1 : 2); };
+  // Dragging the list while the keyboard is up puts the keyboard away (like iOS lists), so the whole list can be scrolled and seen.
+  const touchY = useRef(0);
+  const dismissOnDrag = (e: TouchEvent) => {
+    const el = document.activeElement;
+    if (el instanceof HTMLInputElement && Math.abs(e.touches[0]!.clientY - touchY.current) > 10) el.blur();
+  };
   // Started from "Užregistruoti į priekį": backing out (Atgal or a swipe down) returns to the appointment sheet or
   // client card it came from, not through the service and name screens.
   const origin = prefill.screen === 'time' ? prefill.from : undefined;
@@ -83,8 +97,9 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
     try {
       const hit = await repo.findOverlapFor({ start, kind, serviceId: kind === 'client' ? sid : null });
       if (hit && clash === null) { setClash(t('warn.overlap', { vardas: hit.label, paslauga: hit.serviceName })); return; }
-      const a = await repo.createAppointment(kind === 'client'
-        ? { kind, name, serviceId: sid, start } : { kind, title: name, start });
+      const a = await repo.createAppointment(kind === 'client' ? { kind, name, serviceId: sid, start }
+        : kind === 'personal' ? { kind, title: chosen!.name, optionId: chosen!.id, start }
+        : { kind, title: chosen!.name, optionId: chosen!.id, amountCents: cents!, start });
       if (prefill.replaceId) await repo.deleteAppointment(prefill.replaceId); // booked in place of a cancelled visit
       ui.set({ sheet: null, date: datePart(a.start), ...(prefill.from?.type === 'client' ? { client: null, tab: 'calendar' as const, view: 'day' as const } : {}) });
       highlight(a.id);
@@ -105,19 +120,42 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
         ? <button data-testid="btn-dismiss" onClick={closeSheet}>{t('btn.dismiss')}</button>
         : <button class="back" data-testid="btn-back" onClick={back}>‹ {t('nav.back')}</button>}
       >
-      <div class="flow" style={{ '--screen': screen, '--kb': `${kb}px` } as CSSProperties}>
-        {/* 0 Klientas */}
-        <section class="flow-pane" {...pane(0)}>
+      <div class={kb > 0 ? 'flow kb-open' : 'flow'} style={{ '--screen': screen, '--kb': `${kb}px` } as CSSProperties}>
+        {/* 0 Klientas / Asmeninis / Išlaida */}
+        <section class="flow-pane" {...pane(0)} onTouchStart={(e) => { touchY.current = e.touches[0]!.clientY; }} onTouchMove={dismissOnDrag}>
           <div class="segmented wide">
-            {(['client', 'personal'] as const).map((k) => (
+            {(['client', 'personal', 'expense'] as const).map((k) => (
               <button key={k} data-testid={`type-${k}`} class={kind === k ? 'seg on' : 'seg'}
-                onClick={() => { setKind(k); setLinked(null); setClash(null); }}>{t(`type.${k}`)}</button>
+                onClick={() => { setKind(k); setOptionId(null); setLinked(null); setClash(null); }}>{t(`type.${k}`)}</button>
             ))}
           </div>
-          <input ref={input} class="field" data-testid="field-name" value={name} autocomplete="off" autocapitalize="words" enterkeyhint="next"
-            placeholder={kind === 'client' ? t('field.name') : t('field.title')}
-            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); next(); } }}
-            onInput={(e) => { typed.current = true; setName((e.target as HTMLInputElement).value); setLinked(null); setClash(null); }} />
+          {kind === 'client' && (
+            <input ref={input} class="field" data-testid="field-name" value={name} autocomplete="off" autocapitalize="words" enterkeyhint="next" placeholder={t('field.name')}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); next(); } }}
+              onInput={(e) => { typed.current = true; setName((e.target as HTMLInputElement).value); setLinked(null); setClash(null); }} />
+          )}
+          {kind !== 'client' && (
+            <>
+              <ul class="suggest options" data-testid="option-list">
+                {options.length === 0 && <li class="suggest-head" data-testid="option-none">{t('option.none')}</li>}
+                {options.map((o, i) => (
+                  <li key={o.id}>
+                    <button data-testid={`option-${i}`} class={o.id === optionId ? 'on' : ''} aria-pressed={o.id === optionId} onClick={() => { setOptionId(o.id); setClash(null); }}>
+                      <span>{o.name}</span><span class="check" aria-hidden="true">✓</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {kind === 'expense' && (
+                <label class="amount-field">
+                  <input data-testid="expense-amount" inputMode="decimal" enterKeyHint="done" autocomplete="off" aria-label={t('expense.amount')} placeholder="0" value={amountText}
+                    onInput={(e) => { setAmountText((e.target as HTMLInputElement).value); setClash(null); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLInputElement).blur(); } }} />
+                  <span class="amount-eur" aria-hidden="true">{euroSign}</span>
+                </label>
+              )}
+            </>
+          )}
           {kind === 'client' && (
             <ul class="suggest">
               {!name.trim() && matches.length > 0 && <li class="suggest-head">{t('suggest.recent')}</li>}
@@ -156,7 +194,7 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
 
         {/* The main button: always at the bottom of the flow, riding up above the keyboard while it is open. */}
         <div class={kb > 0 ? 'flow-bar kb-open' : 'flow-bar'}>
-          {screen === 0 && <button class="primary" data-testid="btn-next" disabled={!hasName} onClick={next}>{t('btn.next')}</button>}
+          {screen === 0 && <button class="primary" data-testid="btn-next" disabled={!canNext} onClick={next}>{t('btn.next')}</button>}
           {screen === 1 && <button class="primary" data-testid="btn-save" disabled={!canSave || saving} onClick={() => void save()}>{t('btn.save')}</button>}
           {screen === 2 && <button class="primary" data-testid="btn-save-time" disabled={!canSave || saving} onClick={() => void save()}>{t('btn.save')}</button>}
         </div>

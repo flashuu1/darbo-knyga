@@ -1,5 +1,6 @@
 import { CalendarScreen } from './ui/screens/Calendar';
 import { ClientsScreen } from './ui/screens/Clients';
+import { ExpensesScreen } from './ui/screens/Expenses';
 import { SettingsScreen } from './ui/screens/Settings';
 import { KB_PRIMER_ID } from './ui/actions';
 import { Sheets } from './ui/components/Sheets';
@@ -11,7 +12,7 @@ export function App() {
   return (
     <div class="app" data-testid="app">
       <main class="screen">
-        {tab === 'calendar' ? <CalendarScreen /> : tab === 'clients' ? <ClientsScreen /> : <SettingsScreen />}
+        {tab === 'calendar' ? <CalendarScreen /> : tab === 'clients' ? <ClientsScreen /> : tab === 'expenses' ? <ExpensesScreen /> : <SettingsScreen />}
       </main>
       <TabBar />
       <Sheets />

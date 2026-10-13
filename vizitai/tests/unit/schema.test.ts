@@ -15,7 +15,7 @@ describe('schema upgrades', () => {
     v1.close();
 
     const v2 = new VizitaiDB(name, [{
-      version: 3,
+      version: 5,
       stores: { appointments: 'id, clientId, start, status, createdAt' },
       upgrade: (tx) => tx.table('appointments').toCollection().modify((a) => { a.createdAt = a.createdAt ?? 'migrated'; }),
     }]);
@@ -47,6 +47,24 @@ describe('v2: every service defaults to 15 minutes', () => {
     await db.open();
     const mins = Object.fromEntries((await db.services.toArray()).map((s) => [s.id, s.minutes]));
     expect(mins).toEqual({ s1: 15, s2: 15, s3: 15, s4: 20, s5: 60 });
+    db.close();
+  });
+});
+
+describe('v4: the example choices of version 3 are removed', () => {
+  it('deletes options still carrying a template name and keeps her own', async () => {
+    const name = `v4-${crypto.randomUUID()}`;
+    const old = new Dexie(name);
+    for (const v of versions.filter((x) => x.version <= 3)) old.version(v.version).stores(v.stores as Record<string, string>);
+    await old.table('options').bulkAdd([
+      { id: 'o1', group: 'personal', name: 'Pietūs', order: 0 },
+      { id: 'o2', group: 'expense', name: 'Nuoma', order: 0 },
+      { id: 'o3', group: 'expense', name: 'Kavos aparatas', order: 1 },
+    ]);
+    old.close();
+    const db = new VizitaiDB(name);
+    await db.open();
+    expect((await db.options.toArray()).map((o) => o.id)).toEqual(['o3']);
     db.close();
   });
 });

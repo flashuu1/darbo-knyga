@@ -17,7 +17,7 @@ export function EntryBlock({ e, startMin, col, cols, compact, anchor }: {
   const { highlight } = useStore(ui);
   const now = useNow();
   const due = isAmountDue(e.appt, now);
-  const paid = !due && e.amountCents !== null && e.appt.status === 'booked'; // confirmed: she has received it
+  const paid = e.appt.kind === 'client' && !due && e.amountCents !== null && e.appt.status === 'booked'; // confirmed: she has received it
   const ref = useRef<HTMLButtonElement>(null);
   const latest = useRef(e);
   latest.current = e;

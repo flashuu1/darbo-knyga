@@ -102,6 +102,13 @@ export function confirmDeleteService(s: { id: string; name: string }) {
     },
   });
 }
+/** Removes an expense (it is not a visit, so there is nothing to cancel). Anuliuoti puts it back. */
+export async function deleteExpenseWithToast(id: string) {
+  const before = await repo.getAppointment(id);
+  if (!before) return;
+  await repo.deleteAppointment(id);
+  showToast(t('expense.deleted'), () => repo.putSnapshot(before));
+}
 export function confirmDeleteOption(o: Option) {
   ui.set({
     action: {

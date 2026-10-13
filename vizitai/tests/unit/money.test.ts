@@ -10,14 +10,18 @@ beforeEach(async () => {
   db = new VizitaiDB(`t-${crypto.randomUUID()}`);
   await ensureSeed(db);
   repo = createRepo(db);
+  for (const n of ['Pietūs', 'Gydytojas']) await repo.addOption('personal', n);
+  for (const n of ['Medžiagos', 'Nuoma']) await repo.addOption('expense', n);
 });
 
 describe('her own choices', () => {
-  it('start with a few examples for personal entries and for expenses', async () => {
-    expect((await repo.listOptions('personal')).map((o) => o.name)).toEqual(['Pietūs', 'Pertrauka', 'Gydytojas', 'Asmeniniai reikalai']);
-    expect((await repo.listOptions('expense')).map((o) => o.name)).toEqual(['Medžiagos', 'Nuoma', 'Mokesčiai', 'Kita']);
+  it('start empty: no templates, she creates them in Settings', async () => {
+    // (the setup above added four of her own; a fresh install has none)
+    const fresh = new VizitaiDB(`t-${crypto.randomUUID()}`);
+    await ensureSeed(fresh);
+    expect(await fresh.options.count()).toBe(0);
     await ensureSeed(db);
-    expect(await db.options.count()).toBe(8); // seeded once
+    expect(await db.options.count()).toBe(4);
   });
   it('can be added, renamed (a blank name is ignored), deleted and restored', async () => {
     const o = await repo.addOption('expense', '  Kava  ');
@@ -70,14 +74,14 @@ describe('expenses and the balance', () => {
 });
 
 describe('backup', () => {
-  it('keeps her choices, and an older file without them starts from the examples', async () => {
+  it('keeps her choices, and an older file without them has none', async () => {
     await repo.addOption('personal', 'Sporto salė');
     const file = await exportData(db);
-    expect(file.options).toHaveLength(9);
+    expect(file.options).toHaveLength(5);
     await importData(db, parseBackup(JSON.stringify(file)));
-    expect(await db.options.count()).toBe(9);
+    expect(await db.options.count()).toBe(5);
     const old = { ...file }; delete old.options;
     await importData(db, parseBackup(JSON.stringify(old)));
-    expect(await db.options.count()).toBe(8);
+    expect(await db.options.count()).toBe(0);
   });
 });

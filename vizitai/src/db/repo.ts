@@ -201,7 +201,7 @@ export function createRepo(db: VizitaiDB) {
     deleteAppointment: (id: string) => db.appointments.delete(id),
     /** Cancelled visits that have not been purged yet, newest cancellation first. */
     async cancelledEntries(): Promise<Entry[]> {
-      const list = (await db.appointments.where('status').equals('cancelled').toArray()).sort((a, b) => (b.cancelledAt ?? '').localeCompare(a.cancelledAt ?? ''));
+      const list = (await db.appointments.where('status').equals('cancelled').toArray()).filter((a) => a.kind !== 'expense').sort((a, b) => (b.cancelledAt ?? '').localeCompare(a.cancelledAt ?? ''));
       return toEntries(list);
     },
     /** Deletes a client and all their visits. Returns what is needed to put them back (undo). */
@@ -257,6 +257,19 @@ export function createRepo(db: VizitaiDB) {
     async entriesBetween(fromDate: string, toDateExclusive: string): Promise<Entry[]> {
       const list = await db.appointments.where('start').between(`${fromDate}T00:00`, `${toDateExclusive}T00:00`, true, false).toArray();
       return toEntries(list.sort(byStart));
+    },
+    /** One month (YYYY-MM) of money: the expenses entered (newest first), what came in, and the expenses per kind. */
+    async monthOverview(ym: string) {
+      const [y, m] = ym.split('-').map(Number) as [number, number];
+      const next = m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, '0')}`;
+      const list = (await this.entriesBetween(`${ym}-01`, `${next}-01`)).filter((e) => e.appt.status === 'booked' && e.amountCents !== null);
+      const entries = list.filter((e) => e.appt.kind === 'expense').sort((a, b) => b.appt.start.localeCompare(a.appt.start));
+      const inCents = list.filter((e) => e.appt.kind === 'client').reduce((s, e) => s + e.amountCents!, 0);
+      const outCents = entries.reduce((s, e) => s + e.amountCents!, 0);
+      const kinds = new Map<string, number>();
+      for (const e of entries) kinds.set(e.label, (kinds.get(e.label) ?? 0) + e.amountCents!);
+      const byKind = [...kinds].map(([name, cents]) => ({ name, cents })).sort((a, b) => b.cents - a.cents || ltCollator.compare(a.name, b.name));
+      return { entries, inCents, outCents, byKind };
     },
     async countsByDate(fromDate: string, toDateExclusive: string): Promise<Map<string, number>> {
       const list = await db.appointments.where('start').between(`${fromDate}T00:00`, `${toDateExclusive}T00:00`, true, false).toArray();

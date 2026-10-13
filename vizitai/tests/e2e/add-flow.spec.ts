@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { openApp, seedAppts, pickTime } from './helpers';
+import { openApp, seedAppts, seedOptions, pickTime } from './helpers';
 
 /** Types the name on the first screen and presses return (keyboard "Toliau") to reach Paslauga. */
 async function nameThenEnter(page: Page, name: string) {
@@ -119,6 +119,7 @@ test('an overlap warns on the first Išsaugoti and saves on the second', async (
 
 test('Asmeninis is picked from her own choices (no typing) and skips the services', async ({ page }) => {
   await openApp(page);
+  await seedOptions(page);
   await page.getByTestId('slot-2026-10-14T12:00').click();
   await page.getByTestId('type-personal').click();
   await expect(page.getByTestId('field-name')).toHaveCount(0);

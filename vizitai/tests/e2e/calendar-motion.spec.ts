@@ -91,6 +91,7 @@ test('a mostly vertical drag never changes the day, and a short sideways drag sp
 test('switching Diena and Savaitė slides the grid over and keeps the same hours in view', async ({ page }) => {
   await openApp(page);
   const top = () => page.getByTestId('timeline').evaluate((el) => el.scrollTop);
+  await page.waitForTimeout(700); // let the first scroll to "now" finish
   const before = await top();
   await page.getByTestId('seg-week').click();
   await expect.poll(() => page.evaluate(() => document.querySelector('.grid')!.getAnimations().length)).toBeGreaterThan(0);

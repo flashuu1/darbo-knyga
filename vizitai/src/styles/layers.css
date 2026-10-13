@@ -223,6 +223,14 @@ p.link-name { color: var(--label); }
 .entry-amount.out { color: var(--red); background: color-mix(in srgb, var(--red) 14%, transparent); font-variant-numeric: tabular-nums; }
 .amount-row .value.out { color: var(--red); }
 
+/* Išlaidos tab */
+.month-nav { display: flex; align-items: center; justify-content: space-between; margin: 0 var(--s4) var(--s2); font-weight: 600; text-transform: capitalize; }
+.sum-row { display: flex; justify-content: space-between; align-items: center; margin: 0; font-variant-numeric: tabular-nums; }
+.sum-row b.out, .client-row b.out { color: var(--red); font-variant-numeric: tabular-nums; }
+.sum-row b.pos { color: var(--green-ink); }
+.sum-row b.neg { color: var(--red); }
+.client-row > b.out { flex: none; }
+
 /* the balance under the calendar title */
 .balance { display: flex; align-items: baseline; gap: var(--s2); margin: 0 var(--s4) var(--s2); font-size: .85rem; color: var(--label-2); }
 .balance b { font-size: 1rem; font-weight: 700; color: var(--green-ink); font-variant-numeric: tabular-nums; }

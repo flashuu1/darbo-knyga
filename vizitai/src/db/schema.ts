@@ -1,6 +1,5 @@
 import type { Transaction } from 'dexie';
-import { t } from '../i18n/lt';
-import { newId } from '../logic/id';
+import { t, type Key } from '../i18n/lt';
 
 export interface SchemaVersion {
   version: number;
@@ -34,14 +33,16 @@ versions.push({
     return tx.table('services').toCollection().modify((s: { name: string; minutes: number }) => { if (old.get(s.name) === s.minutes) s.minutes = 15; });
   },
 });
-// v3: her own choices for personal entries and for expenses (money out), seeded with a few examples.
-export const defaultOptions = () => [
-  ...[t('option.personal.lunch'), t('option.personal.break'), t('option.personal.doctor'), t('option.personal.errands')].map((name, order) => ({ id: newId(), group: 'personal' as const, name, order })),
-  ...[t('option.expense.supplies'), t('option.expense.rent'), t('option.expense.taxes'), t('option.expense.other')].map((name, order) => ({ id: newId(), group: 'expense' as const, name, order })),
-];
+// v3: her own choices for personal entries and for expenses (money out). They start empty: she creates them in Settings.
+versions.push({ version: 3, stores: { options: 'id, group, order' } });
+// v4: version 3 first shipped with example choices; those templates are removed (a name she changed is hers and stays).
+const TEMPLATE_NAMES = () => new Set([
+  'option.personal.lunch', 'option.personal.break', 'option.personal.doctor', 'option.personal.errands',
+  'option.expense.supplies', 'option.expense.rent', 'option.expense.taxes', 'option.expense.other',
+].map((k) => t(k as Key)));
 versions.push({
-  version: 3,
-  stores: { options: 'id, group, order' },
-  upgrade: async (tx) => { if ((await tx.table('options').count()) === 0) await tx.table('options').bulkAdd(defaultOptions()); },
+  version: 4,
+  stores: {},
+  upgrade: (tx) => { const names = TEMPLATE_NAMES(); return tx.table('options').filter((o: { name: string }) => names.has(o.name)).delete(); },
 });
 export const SCHEMA_VERSION = versions[versions.length - 1].version;

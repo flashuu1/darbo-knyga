@@ -1,6 +1,6 @@
 import type { Appointment, Client, Option, Service, Settings } from '../db/types';
 import type { VizitaiDB } from '../db/db';
-import { defaultOptions, SCHEMA_VERSION } from '../db/schema';
+import { SCHEMA_VERSION } from '../db/schema';
 import { DEFAULT_SETTINGS } from '../db/seed';
 
 export interface BackupFile {
@@ -42,7 +42,7 @@ export async function importData(db: VizitaiDB, f: BackupFile): Promise<void> {
     await db.clients.bulkAdd(f.clients);
     await db.appointments.bulkAdd(f.appointments);
     await db.services.bulkAdd(f.services);
-    await db.options.bulkAdd(Array.isArray(f.options) ? f.options : defaultOptions()); // an older file has none: start from the examples
+    await db.options.bulkAdd(Array.isArray(f.options) ? f.options : []); // an older file has none
     await db.settings.bulkAdd(settings.map((s) => (s.id === 'settings' ? { ...s, persistGranted } : s)));
   });
 }

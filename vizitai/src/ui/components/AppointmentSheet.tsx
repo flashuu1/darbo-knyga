@@ -5,7 +5,7 @@ import { formatEuro, formatWhen } from '../../i18n/format';
 import { t } from '../../i18n/lt';
 import { canHaveAmount } from '../../logic/amount';
 import { nowLocal } from '../../logic/time';
-import { closeSheet, confirmCancel, noShowWithToast, rebook, restoreWithToast } from '../actions';
+import { closeSheet, confirmCancel, deleteExpenseWithToast, noShowWithToast, rebook, restoreWithToast } from '../actions';
 import { openAmount } from '../amount';
 import { useLive, useServices } from '../hooks';
 import { statusKind, statusLabel } from '../status';
@@ -71,8 +71,9 @@ export function AppointmentSheet({ id }: { id: string }) {
         )}
         {appt.status === 'booked' && past && !expense && <button class="action-row" data-testid="act-noshow" onClick={after(() => noShowWithToast(id))}>{t('act.noshow')}</button>}
         {appt.kind === 'client' && <button class="action-row" data-testid="act-repeat" onClick={() => rebook(appt, { type: 'appt', id })}>{t('repeat.action')}</button>}
-        {appt.status === 'booked' && <button class="action-row destructive" data-testid="act-cancel" onClick={() => { closeSheet(); confirmCancel(id); }}>{t('act.cancelAppt')}</button>}
-        {appt.status !== 'booked' && <button class="action-row" data-testid="act-restore" onClick={after(() => restoreWithToast(id))}>{t('act.restore')}</button>}
+        {expense && <button class="action-row destructive" data-testid="act-delete-expense" onClick={after(() => deleteExpenseWithToast(id))}>{t('expense.delete')}</button>}
+        {appt.status === 'booked' && !expense && <button class="action-row destructive" data-testid="act-cancel" onClick={() => { closeSheet(); confirmCancel(id); }}>{t('act.cancelAppt')}</button>}
+        {appt.status !== 'booked' && !expense && <button class="action-row" data-testid="act-restore" onClick={after(() => restoreWithToast(id))}>{t('act.restore')}</button>}
       </div>
     </Sheet>
   );

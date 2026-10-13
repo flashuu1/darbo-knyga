@@ -1,7 +1,7 @@
 export const lt = {
   'app.name': 'Vizitai',
   'boot.error': 'Nepavyko atidaryti programėlės. Uždarykite ją ir atidarykite iš naujo.',
-  'tab.calendar': 'Kalendorius', 'tab.clients': 'Klientai', 'tab.settings': 'Nustatymai',
+  'tab.calendar': 'Kalendorius', 'tab.clients': 'Klientai', 'tab.settings': 'Nustatymai', 'tab.expenses': 'Išlaidos',
   'view.day': 'Diena', 'view.week': 'Savaitė', 'view.month': 'Mėnuo',
   'nav.today': 'Šiandien', 'nav.back': 'Atgal',
   'sheet.new.title': 'Naujas vizitas',
@@ -63,12 +63,14 @@ export const lt = {
   'amount.clearHint': 'Palikite tuščią ir patvirtinkite, kad suma būtų ištrinta',
   'amount.saved': 'Suma išsaugota', 'amount.cleared': 'Suma ištrinta',
   // --- own choices (asmeninis / išlaidos), balance ---
-  'type.expense': 'Išlaida', 'settings.personal': 'Asmeniniai', 'settings.expenses': 'Išlaidų rūšys',
+  'type.expense': 'Išlaidos', 'settings.personal': 'Asmeniniai', 'settings.expenses': 'Išlaidų rūšys',
   'option.add': 'Pridėti pasirinkimą', 'option.new': 'Naujas pasirinkimas', 'option.deleteQ': 'Ištrinti pasirinkimą {vardas}?', 'option.deleted': 'Pasirinkimas ištrintas',
   'option.pick': 'Pasirinkite', 'option.none': 'Nėra pasirinkimų. Pridėkite juos nustatymuose.', 'option.field': 'Pasirinkimo pavadinimas',
   'option.personal.lunch': 'Pietūs', 'option.personal.break': 'Pertrauka', 'option.personal.doctor': 'Gydytojas', 'option.personal.errands': 'Asmeniniai reikalai',
   'option.expense.supplies': 'Medžiagos', 'option.expense.rent': 'Nuoma', 'option.expense.taxes': 'Mokesčiai', 'option.expense.other': 'Kita',
   'expense.amount': 'Išlaidų suma', 'expense.title': 'Išlaida', 'expense.add': 'Pridėti išlaidą',
+  'expenses.empty': 'Šį mėnesį išlaidų nėra', 'expenses.byKind': 'Pagal rūšį', 'expenses.entries': 'Visos išlaidos',
+  'expense.delete': 'Ištrinti išlaidą', 'expense.deleted': 'Išlaida ištrinta',
   'balance.label': 'Balansas', 'balance.in': 'Gauta', 'balance.out': 'Išlaidos',
 } as const;
 

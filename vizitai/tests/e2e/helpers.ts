@@ -17,6 +17,14 @@ export async function seedAppts(page: Page, list: { name: string; start: string;
     return ids;
   }, list);
 }
+/** Gives the lists of her own choices some entries (the app starts with none). */
+export async function seedOptions(page: Page) {
+  await page.evaluate(async () => {
+    const { repo } = (window as any).__vizitai; // eslint-disable-line @typescript-eslint/no-explicit-any
+    for (const n of ['Pietūs', 'Pertrauka', 'Gydytojas', 'Asmeniniai reikalai']) await repo.addOption('personal', n);
+    for (const n of ['Medžiagos', 'Nuoma', 'Mokesčiai', 'Kita']) await repo.addOption('expense', n);
+  });
+}
 export const apptState = (page: Page, id: string) =>
   page.evaluate((x) => (window as any).__vizitai.repo.getAppointment(x), id); // eslint-disable-line @typescript-eslint/no-explicit-any
 

@@ -26,7 +26,7 @@ export const lt = {
   'client.visitCount': 'Vizitų skaičius: {n}', 'client.cancelledCount': 'Atšaukė: {n}', 'client.noshowCount': 'Neatvyko: {n}',
   'client.lastVisit': 'Paskutinis vizitas: {data}',
   'settings.services': 'Paslaugos', 'settings.hours': 'Darbo laikas', 'settings.backup': 'Atsarginė kopija',
-  'settings.version': 'Versija', 'settings.storage': 'Saugykla',
+  'settings.version': 'Versija', 'settings.build': 'Sukurta: {data} · {id}', 'settings.storage': 'Saugykla',
   'service.add': 'Pridėti paslaugą', 'service.new': 'Nauja paslauga', 'service.hide': 'Paslėpti', 'service.show': 'Rodyti',
   'service.hidden': 'Paslėpta', 'service.minutes': 'Trukmė (min.)', 'service.lastActive': 'Turi likti bent viena paslauga',
   'service.default.cut': 'Kirpimas', 'service.default.color': 'Dažymas', 'service.default.cutColor': 'Kirpimas ir dažymas',

@@ -27,6 +27,8 @@ The production build uses the base path from `site.config.json` (`VIZITAI_BASE` 
 
 On the iPhone: open the URL in Safari, tap Share → Add to Home Screen, then always open the app from that icon.
 
+**Which build is installed.** Settings shows the version and a build row, "Sukurta: 2026 m. spalio 14 d. 15:42 · abc1234": the build time in Vilnius time and the short commit hash (`__BUILD_TIME__` and `__BUILD_ID__`, set in `vite.config.ts`; in GitHub Actions the hash comes from `GITHUB_SHA`, locally from `git rev-parse`, otherwise `dev`). After a deploy the app downloads the new build in the background and switches to it on the next open or when it comes back to the foreground (never while a sheet is open), so compare the hash with the latest commit on `main` to see whether the update has arrived.
+
 ## On-device checklist
 
 Things the e2e tests cannot prove; check them on her iPhone before handing it over:

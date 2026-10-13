@@ -129,6 +129,10 @@ test('shows the storage status and app version', async ({ page }) => {
   await page.getByTestId('tab-settings').click();
   await expect(page.getByTestId('storage-status')).toHaveText(/Duomenys/);
   await expect(page.getByTestId('app-version')).toContainText('Versija: ');
+  // build row: "Sukurta: 2026 m. spalio 14 d. 15:42 · abc1234" (id is the short commit hash, or 'dev')
+  await expect(page.getByTestId('app-build')).toHaveText(/^Sukurta: \d{4} m\. \p{L}+ \d{1,2} d\. \d{2}:\d{2} · [0-9a-z]+$/u);
+  const id = (await page.getByTestId('app-build').textContent())!.split(' · ').pop()!;
+  expect(id.length).toBeGreaterThan(0);
 });
 
 test('a blank service name reverts to the stored name', async ({ page }) => {

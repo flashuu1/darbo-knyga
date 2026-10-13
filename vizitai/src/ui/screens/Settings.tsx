@@ -2,7 +2,7 @@ import type { CSSProperties } from 'preact';
 import { useRef, useState } from 'preact/hooks';
 import { repo } from '../../db/repo';
 import { SERVICE_COLORS } from '../../db/types';
-import { formatDayShort } from '../../i18n/format';
+import { formatBuildTime, formatDayShort } from '../../i18n/format';
 import { t } from '../../i18n/lt';
 import { snapClock, todayStr } from '../../logic/time';
 import { chooseImport, runBackup, showToast } from '../actions';
@@ -89,6 +89,7 @@ export function SettingsScreen() {
         <p class="label">{t('settings.storage')}</p>
         <p class="muted-left" data-testid="storage-status">{settings.persistGranted ? t('storage.persistent') : t('storage.notPersistent')}</p>
         <p class="muted-left" data-testid="app-version">{t('settings.version')}: {__APP_VERSION__}</p>
+        <p class="muted-left" data-testid="app-build">{t('settings.build', { data: formatBuildTime(__BUILD_TIME__), id: __BUILD_ID__ })}</p>
       </div>
     </section>
   );

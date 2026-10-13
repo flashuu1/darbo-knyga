@@ -14,3 +14,15 @@ test('a Safari tab shows only the install screen and writes nothing', async ({ p
   const dbs = await page.evaluate(() => indexedDB.databases());
   expect(dbs).toEqual([]);
 });
+
+test('if the database cannot be opened, a Lithuanian message replaces the blank screen', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+  await page.addInitScript(() => {
+    IDBFactory.prototype.open = function () { throw new DOMException('blocked for the test', 'UnknownError'); };
+  });
+  await page.goto('/');
+  await expect(page.getByTestId('boot-error')).toHaveText('Nepavyko atidaryti programėlės. Uždarykite ją ir atidarykite iš naujo.');
+  await expect(page.getByTestId('app')).toHaveCount(0);
+  expect(errors.length).toBeGreaterThan(0); // logged with console.error
+});

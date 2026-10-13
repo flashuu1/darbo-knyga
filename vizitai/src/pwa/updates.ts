@@ -26,6 +26,6 @@ export function initUpdates(isBusy: () => boolean): () => void {
         });
       },
     });
-  });
+  }).catch((e) => console.error(e)); // e.g. the chunk failed to load: the app keeps working without updates
   return gate.poke;
 }

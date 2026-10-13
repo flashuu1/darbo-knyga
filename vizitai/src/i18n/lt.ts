@@ -1,5 +1,6 @@
 export const lt = {
   'app.name': 'Vizitai',
+  'boot.error': 'Nepavyko atidaryti programėlės. Uždarykite ją ir atidarykite iš naujo.',
   'tab.calendar': 'Kalendorius', 'tab.clients': 'Klientai', 'tab.settings': 'Nustatymai',
   'view.day': 'Diena', 'view.week': 'Savaitė', 'view.month': 'Mėnuo',
   'nav.today': 'Šiandien', 'nav.back': 'Atgal',

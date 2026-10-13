@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'preact';
-import { useRef, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { repo } from '../../db/repo';
 import { formatWhen } from '../../i18n/format';
 import { t } from '../../i18n/lt';
@@ -14,9 +14,18 @@ export function AppointmentSheet({ id }: { id: string }) {
   const appt = useLive(() => repo.getAppointment(id), [id], undefined);
   const client = useLive(async () => (appt?.clientId ? repo.getClient(appt.clientId) : undefined), [appt?.clientId], undefined);
   const all = useServices(false);
-  const [inline, setInline] = useState(false);
-  const picker = useRef<HTMLInputElement>(null);
   const busy = useRef(false);
+  // Perkelti: the iOS picker fires `change` as soon as a day is tapped, so a picked value only waits here;
+  // it is saved when the picker closes (blur) or when the sheet closes by any other way (unmount).
+  const pending = useRef<string | null>(null);
+  const [picked, setPicked] = useState<string | null>(null); // raw picker value, so a re-render never resets the wheels
+  useEffect(() => () => {
+    const v = pending.current;
+    pending.current = null;
+    if (!v || busy.current) return; // another action already ran
+    busy.current = true;
+    moveWithToast(id, v).catch((e) => console.error(e));
+  }, []);
   if (!appt) return null;
 
   const past = appt.start < nowLocal();
@@ -30,10 +39,6 @@ export function AppointmentSheet({ id }: { id: string }) {
     closeSheet();
     fn().catch((e) => console.error(e));
   };
-
-  function openMove() {
-    try { picker.current?.showPicker(); } catch { setInline(true); }
-  }
 
   return (
     <Sheet title={label} onClose={closeSheet} right={<button class="strong" data-testid="btn-close" onClick={closeSheet}>{t('btn.close')}</button>}>
@@ -52,10 +57,21 @@ export function AppointmentSheet({ id }: { id: string }) {
       )}
       <div class="row"><span class="value">{formatWhen(appt.start)}</span></div>
       <div class="row"><span class="label">{t('appt.status')}</span><span class="value" data-testid="appt-status">{status}</span></div>
-      <input ref={picker} type="datetime-local" step={900} value={appt.start} data-testid="move-input" class={inline ? 'move-input inline' : 'move-input'}
-        onChange={(e) => { const v = (e.target as HTMLInputElement).value; if (v) after(() => moveWithToast(id, snap(v)))(); }} />
       <div class="actions-list">
-        {appt.status === 'booked' && <button class="action-row" data-testid="act-move" onClick={openMove}>{t('act.move')}</button>}
+        {appt.status === 'booked' && (
+          <label class="action-row move-row" data-testid="act-move">
+            <span>{t('act.move')}</span>
+            {/* Transparent native picker laid over the row (same pattern as the New sheet's time row). */}
+            <input type="datetime-local" step={900} value={picked ?? appt.start} data-testid="move-input"
+              onChange={(e) => {
+                const v = (e.target as HTMLInputElement).value;
+                setPicked(v || null);
+                const s = v ? snap(v) : null;
+                pending.current = s && s !== appt.start ? s : null;
+              }}
+              onBlur={() => { if (pending.current) closeSheet(); }} />
+          </label>
+        )}
         {appt.status === 'booked' && past && <button class="action-row" data-testid="act-noshow" onClick={after(() => noShowWithToast(id))}>{t('act.noshow')}</button>}
         {appt.kind === 'client' && <button class="action-row" data-testid="act-repeat" onClick={() => { closeSheet(); repeatFrom(appt); }}>{t('repeat.action')}</button>}
         {appt.status === 'booked' && <button class="action-row destructive" data-testid="act-cancel" onClick={() => { closeSheet(); confirmCancel(id); }}>{t('act.cancelAppt')}</button>}

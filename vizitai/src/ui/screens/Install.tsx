@@ -11,3 +11,12 @@ export function InstallScreen() {
     </main>
   );
 }
+
+/** Shown when start-up fails (e.g. the database cannot be opened), instead of a blank white screen. */
+export function BootErrorScreen() {
+  return (
+    <main class="install" data-testid="boot-error-screen">
+      <p data-testid="boot-error">{t('boot.error')}</p>
+    </main>
+  );
+}

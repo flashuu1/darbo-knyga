@@ -1,12 +1,13 @@
 import { render } from 'preact';
 import './styles.css';
 import { isStandalone } from './pwa/standalone';
-import { InstallScreen } from './ui/screens/Install';
+import { BootErrorScreen, InstallScreen } from './ui/screens/Install';
 import { initUpdates } from './pwa/updates';
 import { isBusy, ui } from './ui/store';
 
+const root = document.getElementById('app')!;
+
 async function boot() {
-  const root = document.getElementById('app')!;
   if (!isStandalone()) {
     render(<InstallScreen />, root); // Safari tab: nothing else is loaded, nothing is written
     return;
@@ -26,4 +27,7 @@ async function boot() {
   render(<App />, root);
   initUpdates(isBusy);
 }
-void boot();
+boot().catch((e) => {
+  console.error(e);
+  render(<BootErrorScreen />, root);
+});

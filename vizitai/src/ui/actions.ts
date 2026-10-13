@@ -14,6 +14,17 @@ export function showToast(text: string, undo?: () => Promise<void>) {
   ui.set({ toast: { id: ++toastId, text, undo } });
   toastTimer = window.setTimeout(() => ui.set({ toast: null }), 5000);
 }
+// The toast floats above sheets, action sheets and the client card, where a stray tap on "Anuliuoti"
+// would silently undo the previous action. So opening any of them dismisses it for good (no reappearing
+// undo later). A toast raised while one is already open (e.g. cancelling from the client card) stays.
+let layers: unknown[] = [null, null, null];
+ui.subscribe(() => {
+  const s = ui.get();
+  const next = [s.sheet, s.action, s.client];
+  const opened = next.some((v, i) => v !== null && v !== layers[i]);
+  layers = next;
+  if (opened && s.toast) { clearTimeout(toastTimer); ui.set({ toast: null }); }
+});
 export const KB_PRIMER_ID = 'kb-primer';
 /**
  * iOS raises the keyboard only for a focus() made synchronously inside the tap handler, and keeps it

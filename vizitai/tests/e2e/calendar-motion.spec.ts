@@ -21,22 +21,22 @@ const rowHeight = (page: Page) => page.evaluate(() => document.querySelector('[d
 const padTransform = (page: Page) => page.evaluate(() => (document.querySelector('.grid-pad') as HTMLElement).style.transform);
 const swipe = (page: Page, dx: number, dy = 0) => fingers(page, 'timeline', [[[150, 300]], [[150 + dx * 0.3, 300 + dy * 0.3]], [[150 + dx * 0.6, 300 + dy * 0.6]], [[150 + dx, 300 + dy]], [[150 + dx, 300 + dy]]], 20);
 
-test('pinching out shows more of the day (smaller hours), pinching in makes them bigger, and it is remembered', async ({ page }) => {
+test('fingers together show more of the day (smaller hours), fingers apart make them bigger, and it is remembered', async ({ page }) => {
   await openApp(page);
   await expect(page.getByTestId('slot-2026-10-14T10:00')).toBeVisible();
   const h0 = await rowHeight(page);
-  await fingers(page, 'timeline', [[[150, 200], [150, 300]], [[150, 150], [150, 350]], [[150, 100], [150, 400]], [[150, 100], [150, 400]]]); // fingers apart
+  await fingers(page, 'timeline', [[[150, 100], [150, 400]], [[150, 150], [150, 350]], [[150, 200], [150, 300]], [[150, 200], [150, 300]]]); // fingers together
   await expect.poll(() => rowHeight(page)).toBeLessThan(h0 * 0.6);
   const small = await rowHeight(page);
   expect(await page.evaluate(() => (window as any).__vizitai.ui.get().zoom)).toBeLessThan(0.6);
   expect(await page.evaluate(() => Number(localStorage.getItem('vizitai.zoom')))).toBeLessThan(0.6);
-  await fingers(page, 'timeline', [[[150, 100], [150, 400]], [[150, 150], [150, 300]], [[150, 200], [150, 250]], [[150, 200], [150, 250]]]); // fingers together
+  await fingers(page, 'timeline', [[[150, 200], [150, 300]], [[150, 150], [150, 350]], [[150, 50], [150, 450]], [[150, 50], [150, 450]]]); // fingers apart
   await expect.poll(() => rowHeight(page)).toBeGreaterThan(small * 1.8);
 });
 
 test('zoomed far out, the whole working day fits on one screen, and the Week view uses the same zoom', async ({ page }) => {
   await openApp(page);
-  await fingers(page, 'timeline', [[[150, 200], [150, 240]], [[150, 150], [150, 400]], [[150, 50], [150, 500]], [[150, 50], [150, 500]]]);
+  await fingers(page, 'timeline', [[[150, 50], [150, 500]], [[150, 150], [150, 400]], [[150, 200], [150, 240]], [[150, 200], [150, 240]]]); // together
   await expect.poll(() => rowHeight(page)).toBeLessThan(20);
   const tl = (await page.getByTestId('timeline').boundingBox())!;
   const a = (await page.getByTestId('slot-2026-10-14T08:00').boundingBox())!, z = (await page.getByTestId('slot-2026-10-14T19:45').boundingBox())!;
@@ -88,13 +88,28 @@ test('a mostly vertical drag never changes the day, and a short sideways drag sp
   await expect.poll(() => padTransform(page)).toBe('');
 });
 
-test('switching Diena and Savaitė eases the new view in', async ({ page }) => {
+test('switching Diena and Savaitė slides the grid over and keeps the same hours in view', async ({ page }) => {
   await openApp(page);
+  const top = () => page.getByTestId('timeline').evaluate((el) => el.scrollTop);
+  const before = await top();
   await page.getByTestId('seg-week').click();
-  expect(await page.evaluate(() => document.querySelector('.timeline')!.getAnimations().some((a) => (a as CSSAnimation).animationName === 'view-in'))).toBe(true);
+  await expect.poll(() => page.evaluate(() => document.querySelector('.grid')!.getAnimations().length)).toBeGreaterThan(0);
   await expect(page.getByTestId('col-2026-10-18')).toBeVisible();
+  expect(Math.abs((await top()) - before)).toBeLessThan(2);
   await page.getByTestId('seg-day').click();
-  expect(await page.evaluate(() => document.querySelector('.timeline')!.getAnimations().some((a) => (a as CSSAnimation).animationName === 'view-in'))).toBe(true);
+  await expect.poll(() => page.evaluate(() => document.querySelector('.grid')!.getAnimations().length)).toBeGreaterThan(0);
+  expect(Math.abs((await top()) - before)).toBeLessThan(2);
+});
+
+test('zoomed far out only some hours get a label, and the labels come back when zoomed in', async ({ page }) => {
+  await openApp(page);
+  const visible = () => page.evaluate(() => [...document.querySelectorAll<HTMLElement>('.hour-label')].filter((l) => getComputedStyle(l).display !== 'none').length);
+  const all = await page.evaluate(() => document.querySelectorAll('.hour-label').length);
+  expect(await visible()).toBe(all);
+  await fingers(page, 'timeline', [[[150, 50], [150, 500]], [[150, 150], [150, 400]], [[150, 200], [150, 240]], [[150, 200], [150, 240]]]);
+  await expect.poll(visible).toBeLessThan(all / 2);
+  await fingers(page, 'timeline', [[[150, 200], [150, 240]], [[150, 150], [150, 400]], [[150, 50], [150, 500]], [[150, 50], [150, 500]]]);
+  await expect.poll(visible).toBe(all);
 });
 
 test('the empty-day message fades out by itself and at once when she scrolls; a new empty day shows it again', async ({ page }) => {

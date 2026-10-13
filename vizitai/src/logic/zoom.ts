@@ -6,11 +6,23 @@ const BASE_ROW_PX = 44;
 
 export const clampZoom = (z: number): number => (Number.isFinite(z) ? Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z)) : ZOOM_DEFAULT);
 
+/** A little more than 1:1, so a small pinch is already a clear change. */
+const PINCH_GAIN = 1.3;
+
 /**
- * Pinching OUT (fingers apart) shows more time in the same space, pinching IN makes the hours bigger,
- * so the new zoom is the old one scaled by (start distance / current distance).
+ * Like a map: fingers APART zoom in (bigger hours), fingers TOGETHER zoom out (more of the day in view),
+ * so the new zoom is the old one scaled by (current distance / start distance).
  */
-export const pinchZoom = (z0: number, d0: number, d: number): number => (d0 > 0 && d > 0 ? clampZoom((z0 * d0) / d) : clampZoom(z0));
+export const pinchZoom = (z0: number, d0: number, d: number): number => (d0 > 0 && d > 0 ? clampZoom(z0 * Math.pow(d / d0, PINCH_GAIN)) : clampZoom(z0));
+
+/** Rounds to a whole number of pixels per row, so the grid lines are crisp once the pinch ends. */
+export const snapZoom = (z: number): number => clampZoom(Math.round(z * BASE_ROW_PX) / BASE_ROW_PX);
+
+/** Every how many hours a time label (and hour line) is drawn: one hour only gets a label when it has room. */
+export const labelStep = (zoom: number): number => {
+  const hourPx = zoom * BASE_ROW_PX * 4;
+  return [1, 2, 3, 6, 12].find((s) => s * hourPx >= 72) ?? 12;
+};
 
 /** How much room one 15-minute row gets, so entries can drop details when it gets small. */
 export type Density = 'normal' | 'tight' | 'tiny';

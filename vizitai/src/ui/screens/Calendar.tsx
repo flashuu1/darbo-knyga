@@ -60,8 +60,7 @@ export function CalendarScreen() {
           </div>
         )}
       </header>
-      {view === 'day' && <TimelineGrid key="day" dates={[date]} compact={false} onSwipe={step} />}
-      {view === 'week' && <TimelineGrid key="week" dates={days} compact onSwipe={step} />}
+      {view !== 'month' && <TimelineGrid dates={view === 'day' ? [date] : days} compact={view === 'week'} onSwipe={step} />}
       {view === 'month' && <MonthGrid onSwipe={step} />}
     </section>
   );

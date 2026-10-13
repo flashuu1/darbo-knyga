@@ -179,12 +179,14 @@ svg { flex: none; }
 .grid { position: relative; display: flex; height: calc(var(--row) * var(--rows));
   /* hour, half-hour and quarter lines, solid 1px hairlines that run through the time column too */
   background-image: linear-gradient(var(--line-hour) 0 1px, transparent 1px), linear-gradient(var(--line-half) 0 1px, transparent 1px), linear-gradient(var(--line-quarter) 0 1px, transparent 1px);
-  background-size: 100% calc(var(--row) * 4), 100% calc(var(--row) * 2), 100% var(--row); background-repeat: repeat-y; }
+  background-size: 100% calc(var(--row) * var(--hstep, 4)), 100% calc(var(--row) * 2), 100% var(--row); background-repeat: repeat-y;
+  background-position: 0 calc(var(--row) * var(--hoff, 0)), 0 0, 0 0; }
 .gutter { position: relative; width: var(--gutter); flex: none; border-right: 1px solid var(--line-hour); }
 /* Hour labels sit ON their line: centred vertically on the row boundary. */
 .hour-label { position: absolute; right: 9px; top: calc(var(--row) * var(--at)); transform: translateY(-50%); padding: 2px 3px; background: var(--page); border-radius: 4px;
   font-size: .95rem; font-weight: 650; color: var(--label); font-variant-numeric: tabular-nums; line-height: 1; letter-spacing: -.01em; }
 .hour-label.covered { opacity: 0; }
+.hour-label[data-skip] { display: none; }
 .now-label { position: absolute; right: 6px; top: calc(var(--row) * var(--at)); transform: translateY(-50%); z-index: 2;
   font-size: .85rem; font-weight: 700; color: #fff; background: var(--red); border-radius: 6px; padding: 3px 5px; line-height: 1;
   font-variant-numeric: tabular-nums; }

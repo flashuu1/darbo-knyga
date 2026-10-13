@@ -215,8 +215,12 @@ p.link-name { color: var(--label); }
 .flow-pane:first-child { padding-bottom: calc(var(--kb, 0px) + 140px); }
 
 /* switching Diena / Savaitė / Mėnuo: the new view eases in */
-.view-anim { animation: view-in 340ms var(--ease-spring) both; }
-@keyframes view-in { from { opacity: 0; transform: translateY(10px) scale(.985); } }
+.view-anim { animation: view-in 300ms var(--ease-spring) both; }
+@keyframes view-in { from { opacity: 0; transform: translateY(6px); } }
+.timeline.pinching { --row: calc(2.75rem * var(--zoom, 1)); }
+/* zoomed out, the quarter and half-hour lines go first, so the day is not a wall of lines */
+.timeline[data-density='tight'] { --line-quarter: transparent; }
+.timeline[data-density='tiny'] { --line-quarter: transparent; --line-half: transparent; }
 .grid-pad { will-change: transform; }
 /* the empty-day message fades by itself (and at once when she scrolls) */
 .empty-overlay { transition: opacity 600ms var(--ease-out); }

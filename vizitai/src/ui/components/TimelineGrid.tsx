@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'preact';
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { repo, type Entry } from '../../db/repo';
 import { layoutLanes, visibleRange } from '../../logic/layout';
 import { addDays, datePart, hhmm, minutesOfDay } from '../../logic/time';
@@ -9,12 +9,24 @@ import { useNow } from '../clock';
 import { useLive, useSettings } from '../hooks';
 import { CalendarIcon } from '../icons';
 import { ui, useStore } from '../store';
-import { clampZoom, densityFor, pinchZoom, saveZoom } from '../../logic/zoom';
+import { clampZoom, densityFor, labelStep, pinchZoom, saveZoom, snapZoom } from '../../logic/zoom';
 import { EntryBlock } from './EntryBlock';
 
 const toMin = (hm: string) => +hm.slice(0, 2) * 60 + +hm.slice(3, 5);
 /** Most lanes side by side before the rest collapse into a "+N" chip. */
 const MAX_LANES = { day: 3, week: 2 };
+
+/** Zoom level: how much detail the entries show, and which hours get a label and a line (all set directly, so a pinch never re-renders). */
+function applyLevel(root: HTMLElement, z: number, startMin: number) {
+  root.dataset.density = densityFor(z);
+  const step = labelStep(z);
+  const firstLine = Math.ceil(startMin / (60 * step)) * 60 * step;
+  root.style.setProperty('--hstep', String(4 * step));
+  root.style.setProperty('--hoff', String((firstLine - startMin) / 15));
+  root.querySelectorAll<HTMLElement>('.hour-label').forEach((l) => {
+    if ((+(l.dataset.min ?? 0) / 60) % step !== 0) l.setAttribute('data-skip', ''); else l.removeAttribute('data-skip');
+  });
+}
 
 export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; compact: boolean; onSwipe?: (dir: -1 | 1) => void }) {
   const settings = useSettings();
@@ -24,11 +36,12 @@ export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; com
   const rangeKey = first + '|' + last;
   const data = useLive(async () => ({ key: rangeKey, list: await repo.entriesBetween(first, addDays(last, 1)) }), [first, last], { key: '', list: [] as Entry[] });
   const loaded = data.key === rangeKey;
-  const entries = loaded ? data.list : [];
+  const entries = data.list.filter((e) => { const d = datePart(e.appt.start); return d >= first && d <= last; }); // the previous range stays on screen until the new one arrives
   const { startMin, endMin } = visibleRange(settings, entries);
   const rows = (endMin - startMin) / 15;
   const workFrom = toMin(settings.dayStart), workTo = toMin(settings.dayEnd);
   const scroller = useRef<HTMLDivElement>(null);
+  const rootEl = useRef<HTMLDivElement>(null);
   const { drag, zoom } = useStore(ui);
   const live = useRef({ startMin: 0, rows: 1, onSwipe });
   const skipAnim = useRef(false);
@@ -37,10 +50,17 @@ export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; com
   const nowMin = minutesOfDay(now);
   const showNow = dates.includes(today) && nowMin >= startMin && nowMin < endMin;
 
+  useLayoutEffect(() => { if (rootEl.current) applyLevel(rootEl.current, zoom, startMin); }, [zoom, startMin, rows]);
+
   // Open on "now" for today, else near the first booking, else at the start of the working day.
+  // Switching Diena <-> Savaitė keeps the scroll position, so the same hours stay in view.
+  const lastCount = useRef(dates.length);
   useEffect(() => {
     const el = scroller.current;
     if (!el || !loaded || ui.get().drag) return; // never scroll under a finger that is dragging
+    const switched = lastCount.current !== dates.length;
+    lastCount.current = dates.length;
+    if (switched) return;
     const live = entries.filter((e) => e.appt.status !== 'cancelled');
     const target = dates.includes(datePart(now)) ? minutesOfDay(now)
       : live.length ? Math.min(...live.map((e) => minutesOfDay(e.appt.start))) - 30
@@ -54,20 +74,25 @@ export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; com
     el.scrollTop = Math.max(0, colTop + ((Math.max(target, startMin) - startMin) / 15) * rowPx - lead);
   }, [first, last, loaded]);
 
-  // A short fade of the entries when the day changes; the grid itself stays mounted (drag anchor).
-  const prevFirst = useRef(first);
+  // A short fade of the entries when the day changes, a slide when Diena <-> Savaitė switch; the grid itself stays mounted (drag anchor).
+  const prevFirst = useRef(first), prevLen = useRef(dates.length);
   useEffect(() => {
     const el = scroller.current;
-    if (!el || prevFirst.current === first) return;
-    if (skipAnim.current) { skipAnim.current = false; prevFirst.current = first; return; }
+    if (!el) return;
+    const switched = prevLen.current !== dates.length, moved = prevFirst.current !== first;
     const dir = first > prevFirst.current ? 1 : -1;
-    prevFirst.current = first;
+    prevFirst.current = first; prevLen.current = dates.length;
+    if (!switched && !moved) return;
+    if (!switched && skipAnim.current) { skipAnim.current = false; return; }
+    skipAnim.current = false;
     if (ui.get().drag || !el.animate || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     el.querySelector('.grid')?.animate(
-      [{ opacity: 0.35, transform: `translateX(${dir * 14}px)` }, { opacity: 1, transform: 'none' }],
-      { duration: 240, easing: 'cubic-bezier(.2,.8,.2,1)' },
+      switched
+        ? [{ opacity: 0.2, transform: `translateX(${dates.length > 1 ? 28 : -28}px)` }, { opacity: 1, transform: 'none' }]
+        : [{ opacity: 0.35, transform: `translateX(${dir * 14}px)` }, { opacity: 1, transform: 'none' }],
+      switched ? { duration: 380, easing: 'cubic-bezier(.32,.72,0,1)' } : { duration: 240, easing: 'cubic-bezier(.2,.8,.2,1)' },
     );
-  }, [first]);
+  }, [first, dates.length]);
 
   // The empty-day message shows for a moment when an empty day opens, and fades out by itself or as soon as she scrolls.
   const emptyDay = loaded && entries.length === 0 && dates.length === 1;
@@ -86,19 +111,30 @@ export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; com
     const root = el?.parentElement;
     const pad = el?.querySelector<HTMLElement>('.grid-pad');
     if (!el || !root || !pad) return;
-    type Pinch = { d0: number; z0: number; z: number; anchorMin: number };
+    type Pinch = { d0: number; z0: number; z: number; anchorMin: number; midY: number };
     let pinch: Pinch | null = null;
     let slide: { x0: number; y0: number; t0: number; dx: number; lock: 'h' | 'v' | null } | null = null;
     const dist = (t: TouchList) => Math.hypot(t[0]!.clientX - t[1]!.clientX, t[0]!.clientY - t[1]!.clientY);
     const col = () => el.querySelector<HTMLElement>('.col');
-    const rowPx = () => (col()?.offsetHeight ?? 44) / live.current.rows;
+    const rowPx = () => (col()?.getBoundingClientRect().height ?? 44 * live.current.rows) / live.current.rows;
+    /** Sets the zoom and keeps the time that is between her fingers where it was. */
+    const applyZoom = (z: number, midY: number, anchorMin: number) => {
+      root.style.setProperty('--zoom', String(z));
+      applyLevel(root, z, live.current.startMin);
+      const c = col();
+      if (!c) return;
+      const top = c.getBoundingClientRect().top - el.getBoundingClientRect().top + el.scrollTop;
+      ownScroll.current = performance.now() + 300;
+      el.scrollTop = top + ((anchorMin - live.current.startMin) / 15) * rowPx() - (midY - el.getBoundingClientRect().top);
+    };
     const minuteAt = (y: number) => live.current.startMin + ((y - (col()?.getBoundingClientRect().top ?? 0)) / rowPx()) * 15;
 
     const start = (e: TouchEvent) => {
       if (e.touches.length === 2) {
         slide = null; pad.style.transition = 'none'; pad.style.transform = '';
         const midY = (e.touches[0]!.clientY + e.touches[1]!.clientY) / 2;
-        pinch = { d0: dist(e.touches), z0: ui.get().zoom, z: ui.get().zoom, anchorMin: minuteAt(midY) };
+        pinch = { d0: dist(e.touches), z0: ui.get().zoom, z: ui.get().zoom, anchorMin: minuteAt(midY), midY };
+        root.classList.add('pinching'); // exact (unrounded) row heights while the fingers move
       } else if (e.touches.length === 1 && !pinch && !ui.get().drag) {
         const p = e.touches[0]!;
         slide = { x0: p.clientX, y0: p.clientY, t0: performance.now(), dx: 0, lock: null };
@@ -108,14 +144,8 @@ export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; com
       if (pinch && e.touches.length === 2) {
         e.preventDefault();
         pinch.z = pinchZoom(pinch.z0, pinch.d0, dist(e.touches));
-        root.style.setProperty('--zoom', String(pinch.z));
-        const midY = (e.touches[0]!.clientY + e.touches[1]!.clientY) / 2;
-        const c = col();
-        if (c) { // keep the time between her fingers where it was
-          const top = c.getBoundingClientRect().top - el.getBoundingClientRect().top + el.scrollTop;
-          ownScroll.current = performance.now() + 300;
-          el.scrollTop = top + ((pinch.anchorMin - live.current.startMin) / 15) * rowPx() - (midY - el.getBoundingClientRect().top);
-        }
+        pinch.midY = (e.touches[0]!.clientY + e.touches[1]!.clientY) / 2;
+        applyZoom(pinch.z, pinch.midY, pinch.anchorMin);
         return;
       }
       if (!slide || e.touches.length !== 1) return;
@@ -136,7 +166,9 @@ export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; com
     const finish = (e: TouchEvent) => {
       if (pinch) {
         if (e.touches.length < 2) {
-          const z = clampZoom(pinch.z);
+          const z = snapZoom(clampZoom(pinch.z));
+          applyZoom(z, pinch.midY, pinch.anchorMin); // whole pixels per row once the fingers are up
+          root.classList.remove('pinching');
           pinch = null;
           saveZoom(z);
           ui.set({ zoom: z });
@@ -172,7 +204,7 @@ export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; com
         window.setTimeout(() => { pad.style.transition = ''; }, 360);
       }, 130);
     };
-    const cancel = () => { pinch = null; slide = null; };
+    const cancel = () => { if (pinch) { const z = snapZoom(clampZoom(pinch.z)); applyZoom(z, pinch.midY, pinch.anchorMin); saveZoom(z); ui.set({ zoom: z }); } root.classList.remove('pinching'); pinch = null; slide = null; };
     const onScroll = () => { if (performance.now() > ownScroll.current) setEmptyShown(false); };
     el.addEventListener('touchstart', start, { passive: true });
     el.addEventListener('touchmove', move, { passive: false });
@@ -193,13 +225,13 @@ export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; com
   const rowStyle = (m: number) => ({ '--at': (m - startMin) / 15 }) as CSSProperties;
 
   return (
-    <div class="timeline view-anim" data-density={densityFor(zoom)} style={{ '--zoom': zoom } as CSSProperties}>
+    <div class="timeline" ref={rootEl} style={{ '--zoom': zoom } as CSSProperties}>
       <div class="grid-scroll" ref={scroller} data-testid="timeline">
         <div class="grid-pad">
           <div class={compact ? 'grid week' : 'grid'} style={{ '--rows': rows } as CSSProperties}>
             <div class="gutter" aria-hidden="true">
               {hours.map((m) => (
-                <span key={m} class={showNow && Math.abs(nowMin - m) < 10 ? 'hour-label covered' : 'hour-label'} style={rowStyle(m)}>{hhmm(m % 1440)}</span>
+                <span key={m} class={showNow && Math.abs(nowMin - m) < 10 ? 'hour-label covered' : 'hour-label'} data-min={m} style={rowStyle(m)}>{hhmm(m % 1440)}</span>
               ))}
               {showNow && <span class="now-label" data-testid="now-label" style={rowStyle(nowMin)}>{hhmm(nowMin)}</span>}
             </div>

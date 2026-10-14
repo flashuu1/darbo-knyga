@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { apptState, openApp, seedAppts } from './helpers';
+import { apptState, expectPickedTime, openApp, seedAppts } from './helpers';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const amountOf = async (page: Page, id: string) => (await apptState(page, id)).amountCents;
@@ -25,6 +25,8 @@ test('tapping an orange visit adds the amount, which then shows on the entry; An
   await page.getByTestId('amount-input').fill('45,5');
   await expect(page.getByTestId('amount-confirm')).toBeEnabled();
   await page.getByTestId('amount-confirm').click();
+  await expect(page.getByTestId('again-question')).toHaveText('Užregistruoti dar kartą?'); // the first amount of a visit asks this
+  await page.getByTestId('again-no').click();
   await expect(page.getByTestId('amount-sheet')).toHaveCount(0);
   await expect.poll(() => amountOf(page, id)).toBe(4550);
   await expect(page.getByTestId(`amount-${id}`)).toContainText('45,50');
@@ -164,4 +166,90 @@ test('the Suma confirm button floats on its own: no grey box or line around it',
   const bar = await page.locator('.sheet-bar').evaluate((el) => { const s = getComputedStyle(el); return { bg: s.backgroundColor, border: s.borderTopWidth }; });
   expect(bar.bg).toBe('rgba(0, 0, 0, 0)');
   expect(bar.border).toBe('0px');
+});
+
+test('after the first amount: Taip opens the date and time for the same client and service, in the same button place', async ({ page }) => {
+  await openApp(page);
+  const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T08:00', service: 2 }]);
+  await page.getByTestId(`entry-${id}`).click();
+  await page.getByTestId('amount-input').fill('40');
+  const before = (await page.getByTestId('amount-confirm').boundingBox())!;
+  await page.getByTestId('amount-confirm').click();
+  await expect(page.getByTestId('again-yes')).toBeVisible();
+  await page.waitForTimeout(450);
+  const yes = (await page.getByTestId('again-yes').boundingBox())!;
+  expect(Math.abs(yes.y - before.y)).toBeLessThan(2); // the blue button stays at the height of the confirm button
+  expect(yes.height).toBeGreaterThanOrEqual(44);
+  await expect(page.getByTestId('again-saved')).toContainText('40,00');
+  await page.getByTestId('again-yes').click();
+  await expect(page.getByTestId('timewheel')).toBeVisible(); // straight to Laikas
+  await expectPickedTime(page, '08:00');
+  await page.getByTestId('btn-save-time').click();
+  await expect(page.getByTestId('sheet')).toHaveCount(0);
+  await expect.poll(() => page.evaluate(async () => (await (window as any).__vizitai.db.appointments.toArray()).length)).toBe(2);
+  const all = await page.evaluate(async () => (window as any).__vizitai.db.appointments.toArray());
+  const next = all.find((x: any) => x.id !== id);
+  expect(next.start).toBe('2026-10-15T08:00');
+  expect(next.serviceId).toBe(all.find((x: any) => x.id === id).serviceId);
+  expect(next.clientId).toBe(all.find((x: any) => x.id === id).clientId);
+  expect(await amountOf(page, id)).toBe(4000);
+});
+
+test('changing an amount that is already there asks nothing', async ({ page }) => {
+  await openApp(page);
+  const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T08:00' }]);
+  await page.evaluate(async (x) => (window as any).__vizitai.repo.setAmount(x, 1000), id);
+  await page.getByTestId(`entry-${id}`).click();
+  await page.getByTestId('appt-amount').click();
+  await page.getByTestId('amount-input').fill('20');
+  await page.getByTestId('amount-confirm').click();
+  await expect(page.getByTestId('amount-sheet')).toHaveCount(0);
+  await expect(page.getByTestId('again-question')).toHaveCount(0);
+  await expect.poll(() => amountOf(page, id)).toBe(2000);
+});
+
+test('in Klientai the orange pill adds the amount of the past visit right there', async ({ page }) => {
+  await openApp(page);
+  const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T08:00' }]);
+  await page.getByTestId('tab-clients').click();
+  await page.getByTestId('client-pending-0').click();
+  await expect(page.getByTestId('amount-sheet')).toBeVisible();
+  await expect(page.getByTestId('client-card')).toHaveCount(0); // not the card: straight to Suma
+  await expect(page.getByTestId('amount-input')).toBeFocused();
+  await page.getByTestId('amount-input').fill('35');
+  await page.getByTestId('amount-confirm').click();
+  await page.getByTestId('again-no').click();
+  await expect.poll(() => amountOf(page, id)).toBe(3500);
+  await expect(page.getByTestId('client-pending-0')).toHaveCount(0); // no longer waiting
+  await expect(page.getByTestId('client-paid-0')).toBeVisible();
+});
+
+test('from Klientai, Taip books the next visit and shows it in the calendar', async ({ page }) => {
+  await openApp(page);
+  await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T08:00' }]);
+  await page.getByTestId('tab-clients').click();
+  await page.getByTestId('client-pending-0').click();
+  await page.getByTestId('amount-input').fill('35');
+  await page.getByTestId('amount-confirm').click();
+  await page.getByTestId('again-yes').click();
+  await page.getByTestId('btn-save-time').click();
+  await expect(page.getByTestId('calendar')).toBeVisible();
+  await expect(page.getByTestId('title')).toContainText('15 d.');
+});
+
+test('every visit waiting for its amount glows, in Diena and in Savaitė, and stops when the amount is in', async ({ page }) => {
+  await openApp(page, '2026-10-14T12:00:00');
+  const [past, future] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T08:00' }, { name: 'Rasa', start: '2026-10-14T15:00' }]);
+  const glows = () => page.locator('.entry-glow').count();
+  await expect.poll(glows).toBe(1); // only the past one
+  const g = await page.locator('.entry-glow').evaluate((el) => getComputedStyle(el).animationName);
+  expect(g).toBe('due-glow');
+  await page.waitForTimeout(800); // the first scroll to "now" has finished
+  const eb = (await page.getByTestId(`entry-${past}`).boundingBox())!, gb = (await page.locator('.entry-glow').boundingBox())!;
+  expect(Math.abs(eb.x - gb.x)).toBeLessThan(2); expect(Math.abs(eb.y - gb.y)).toBeLessThan(2); // sits right behind the entry
+  await page.getByTestId('seg-week').click();
+  await expect.poll(glows).toBe(1);
+  await page.evaluate(async (x) => (window as any).__vizitai.repo.setAmount(x, 3000), past);
+  await expect.poll(glows).toBe(0);
+  void future;
 });

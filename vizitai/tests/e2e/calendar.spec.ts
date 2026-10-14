@@ -77,7 +77,7 @@ test('today shows a red now line at the current time, scrolled into view, and it
     const l = (await line.boundingBox())!, s = (await page.getByTestId(`slot-2026-10-14T${slot}`).boundingBox())!;
     return l.y + l.height / 2 - (s.y + (5 / 15) * s.height);
   };
-  expect(Math.abs(await at('13:00'))).toBeLessThan(2.5); // 13:05 is a third of the 13:00 row
+  await expect.poll(async () => Math.abs(await at('13:00'))).toBeLessThan(2.5); // 13:05 is a third of the 13:00 row (once the first scroll to now has finished)
   const tl = (await page.getByTestId('timeline').boundingBox())!;
   const l = (await line.boundingBox())!;
   expect(l.y).toBeGreaterThan(tl.y);

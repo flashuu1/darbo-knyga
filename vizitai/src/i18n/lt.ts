@@ -71,6 +71,7 @@ export const lt = {
   'expense.amount': 'Išlaidų suma', 'expense.title': 'Išlaida', 'expense.add': 'Pridėti išlaidą',
   'expenses.empty': 'Šį mėnesį išlaidų nėra', 'expenses.byKind': 'Pagal rūšį', 'expenses.entries': 'Visos išlaidos',
   'expense.delete': 'Ištrinti išlaidą', 'expense.deleted': 'Išlaida ištrinta',
+  'again.title': 'Užregistruoti dar kartą?', 'again.yes': 'Taip, užregistruoti', 'again.no': 'Ne',
   'balance.label': 'Balansas', 'balance.in': 'Gauta', 'balance.out': 'Išlaidos',
 } as const;
 

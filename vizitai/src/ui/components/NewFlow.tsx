@@ -102,7 +102,7 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
         : kind === 'personal' ? { kind, title: chosen!.name, optionId: chosen!.id, start }
         : { kind, title: chosen!.name, optionId: chosen!.id, amountCents: cents!, start });
       if (prefill.replaceId) await repo.deleteAppointment(prefill.replaceId); // booked in place of a cancelled visit
-      ui.set({ sheet: null, date: datePart(a.start), ...(prefill.from?.type === 'client' ? { client: null, tab: 'calendar' as const, view: 'day' as const } : {}) });
+      ui.set({ sheet: null, date: datePart(a.start), ...(prefill.from?.type === 'client' ? { client: null, tab: 'calendar' as const, view: 'day' as const } : prefill.from ? { tab: 'calendar' as const } : {}) });
       highlight(a.id);
     } catch (e) {
       console.error(e);

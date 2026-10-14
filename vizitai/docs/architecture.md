@@ -327,3 +327,20 @@ Every service defaults to 15 minutes; the length is edited per service in Nustat
 - **The calendar stays mounted** behind the other tabs, so coming back is instant and keeps the scroll position and zoom. Each calendar column uses `contain: layout style`.
 
 - **Suma sheet.** Opens the number pad (the hidden keyboard primer is switched to `inputmode=decimal` inside the tap), and its confirm button is a full-width bar at the bottom of the screen that rides above the keyboard, like the booking flow. The header keeps Atšaukti and the link to the visit.
+
+## Product direction (the master picture; not a build list)
+
+This is the direction every feature is measured against. Nothing in this section is built on request; it is what we keep getting closer to.
+
+- **A personal assistant, not a notebook.** She does the work; the app keeps the books. Whatever she enters once is used everywhere after it: the calendar, the clients, the money, what needs doing next. Over time the app takes over more by itself (suggesting and eventually making bookings, reminding, noticing who is overdue), while entry stays manual until the client base is built up.
+- **A tool she relies on, and her clients rely on.** It replaces the paper notebook completely, and becomes where a client's history, purpose, timing and payments live. Later it can show clients when she is free (see "calendar availability" below).
+- **A minute at the end of the day.** She glances at it between clients and does the books at the end of the day. Booking takes at most a minute; everything that can be worked out must already be worked out when she opens it, so the numbers are accurate without her chasing them: what is waiting for an amount, who should be booked again, what the day brought in and cost.
+- **Insights over time.** With many clients and years of entries it must answer questions (who is regular, who has gone quiet, what earns, what costs, how the months compare). That needs queue, filtering and smart indexing, which we revisit once the data is there.
+- **Rules that follow from it:** never make her enter the same thing twice; prefer defaults and one-tap choices to typing; anything waiting for her attention is visible at a glance (orange glow, pills in Klientai); every flow keeps its main action in the thumb zone; performance and smoothness are a prerequisite for every feature.
+- **Possible later steps** (hypothetical): public availability, self-booking with her approval, automatic suggestions for rebooking. These need a backend, which would change the "no network, one device" rule and the privacy position; decide together before building.
+
+## Orange glow and settling up
+
+- A visit whose time has passed and that has no amount yet glows orange (a soft pulsing ring with two small sparks) in Diena and Savaitė; it stops the moment the amount is in. Only opacity and transform animate. Reduced-motion users get a still ring.
+- In Klientai the orange "Pridėti sumą" pill opens Suma for that client's longest-waiting past visit directly, without opening the client card.
+- The first amount of a client visit is followed by "Užregistruoti dar kartą?" in the same sheet: the blue "Taip, užregistruoti" button sits where "Patvirtinti" was (the number pad stays up, so nothing moves), "Ne" closes with Anuliuoti available. Taip opens the date and time picker for the same client and service (tomorrow at the same time preselected), and saving shows that day in the calendar. Changing or clearing an existing amount asks nothing.

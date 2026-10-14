@@ -33,6 +33,8 @@ export function EntryBlock({ e, startMin, col, cols, compact, anchor }: {
   const svc = e.service?.name ?? (e.appt.kind === 'personal' ? t('type.personal') : e.appt.kind === 'expense' ? t('type.expense') : '');
   const out = e.appt.kind === 'expense' && e.amountCents !== null && e.appt.status === 'booked'; // money out
   return (
+    <>
+    {due && !thin && <span class="entry-glow" aria-hidden="true" style={style} />}
     <button ref={ref} class={cls} style={style} data-testid={`entry-${e.appt.id}`} data-entry-id={e.appt.id} data-entry-box={thin ? undefined : ''}
       onClick={() => (thin ? openCancelled(e) : openEntry(e.appt))}>
       {one ? (
@@ -54,5 +56,6 @@ export function EntryBlock({ e, startMin, col, cols, compact, anchor }: {
       {out && <span class="entry-amount out" data-testid={`amount-${e.appt.id}`}>−{formatEuro(e.amountCents!)}</span>}
       {paid && <span class="entry-amount paid" data-testid={`amount-${e.appt.id}`}>✓ {formatEuro(e.amountCents!)}</span>}
     </button>
+    </>
   );
 }

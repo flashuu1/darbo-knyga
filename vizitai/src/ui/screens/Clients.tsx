@@ -7,6 +7,7 @@ import { t } from '../../i18n/lt';
 import { foldName } from '../../logic/names';
 import { useLive } from '../hooks';
 import { NextIcon, SearchIcon } from '../icons';
+import { openAmount } from '../amount';
 import { ui } from '../store';
 
 /** Monogram for a client: the first letters of the first two words. */
@@ -41,7 +42,11 @@ export function ClientsScreen() {
                   <span class="client-text">
                     <b>{r.client.name}</b>
                     <span class="client-status">
-                      {r.pending && <span class="pill due" data-testid={`client-pending-${i}`}>{t('client.pending')}</span>}
+                      {r.pending && (
+                        <span class="pill due tap" role="button" tabIndex={0} data-testid={`client-pending-${i}`}
+                          onClick={(e) => { e.stopPropagation(); openAmount(r.pending!.id); }}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openAmount(r.pending!.id); } }}>{t('client.pending')}</span>
+                      )}
                       {r.paidCents > 0 && <span class="pill paid" data-testid={`client-paid-${i}`}>✓ {t('client.paid', { suma: formatEuro(r.paidCents) })}</span>}
                       {r.nextVisit && <span class="next" data-testid={`client-next-${i}`}>{t('client.next', { kada: formatWhen(r.nextVisit) })}</span>}
                       {!r.pending && r.paidCents === 0 && !r.nextVisit && r.lastVisit && <span>{t('client.lastVisit', { data: formatDayShort(r.lastVisit) })}</span>}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 
-export const EXIT_MS = 300;
+export const EXIT_MS = 240; // a little longer than --t-med (220 ms), the exit animation
 const reduced = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /**

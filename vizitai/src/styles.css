@@ -42,7 +42,7 @@
   --ease-spring: cubic-bezier(.32, .72, 0, 1);  /* iOS sheet curve */
   --ease-out: cubic-bezier(.2, .8, .2, 1);
   --ease-in: cubic-bezier(.4, 0, 1, 1);
-  --t-press: 110ms; --t-fast: 180ms; --t-med: 260ms; --t-sheet: 380ms;
+  --t-press: 90ms; --t-fast: 150ms; --t-med: 220ms; --t-sheet: 320ms;
 }
 @media (prefers-color-scheme: dark) {
   :root {

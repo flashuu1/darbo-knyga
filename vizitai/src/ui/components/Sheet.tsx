@@ -45,12 +45,12 @@ export function Sheet({ title, left, right, bar, onClose, onBackdrop, children, 
       el.style.transition = 'transform var(--t-med) var(--ease-in)';
       el.style.transform = 'translateY(100%)';
       if (back.current) { back.current.style.transition = 'opacity var(--t-med) var(--ease-in)'; back.current.style.opacity = '0'; }
-      window.setTimeout(() => closeFn.current(), 200);
+      window.setTimeout(() => closeFn.current(), 190);
     } else {
       el.style.transition = 'transform var(--t-med) var(--ease-spring)';
       el.style.transform = '';
       if (back.current) { back.current.style.transition = 'opacity var(--t-med) var(--ease-out)'; back.current.style.opacity = ''; }
-      window.setTimeout(() => { el.style.transition = ''; if (back.current) back.current.style.transition = ''; }, 320);
+      window.setTimeout(() => { el.style.transition = ''; if (back.current) back.current.style.transition = ''; }, 240);
     }
   };
 

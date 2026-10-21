@@ -9,6 +9,8 @@ import { lockDocument } from './pwa/lock';
 
 const root = document.getElementById('app')!;
 lockDocument();
+// iOS Safari only shows :active (the pressed look of every button) when the page has a touch listener
+document.addEventListener('touchstart', () => {}, { passive: true });
 
 async function boot() {
   if (!isStandalone()) {

@@ -21,6 +21,7 @@ export function SwipeRow({ children, onDelete, testId }: { children: ComponentCh
     const el = content.current;
     if (!el) return;
     el.style.transition = animate ? 'transform var(--t-med) var(--ease-spring)' : 'none';
+    el.style.willChange = animate ? '' : 'transform'; // a layer only while a finger drags (a long list of rows would otherwise be dozens of layers)
     el.style.transform = to ? `translateX(${to}px)` : '';
   };
   const close = () => { slide(0, true); setOpen(false); if (openRow === close) openRow = null; };

@@ -41,7 +41,7 @@ export function SettingsScreen() {
   const close = () => {
     if (leaving) return;
     setLeaving(true);
-    window.setTimeout(() => { setPage(null); setLeaving(false); }, 230);
+    window.setTimeout(() => { setPage(null); setLeaving(false); }, 230); // the pop-out animation is --t-med (220 ms)
   };
   const lastBackup = settings.lastBackupAt ? formatDayShort(todayStr(new Date(settings.lastBackupAt))) : t('backup.never');
 

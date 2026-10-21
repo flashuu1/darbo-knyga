@@ -114,7 +114,7 @@ export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; com
       switched
         ? [{ opacity: 0.2, transform: `translateX(${dates.length > 1 ? 28 : -28}px)` }, { opacity: 1, transform: 'none' }]
         : [{ opacity: 0.35, transform: `translateX(${dir * 14}px)` }, { opacity: 1, transform: 'none' }],
-      switched ? { duration: 380, easing: 'cubic-bezier(.32,.72,0,1)' } : { duration: 240, easing: 'cubic-bezier(.2,.8,.2,1)' },
+      switched ? { duration: 320, easing: 'cubic-bezier(.32,.72,0,1)' } : { duration: 200, easing: 'cubic-bezier(.2,.8,.2,1)' },
     );
   }, [first, dates.length]);
 
@@ -221,7 +221,7 @@ export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; com
       const dir: 1 | -1 = dx < 0 ? 1 : -1;
       const w = el.clientWidth;
       skipAnim.current = true;
-      pad.style.transition = 'transform 130ms cubic-bezier(.4,0,1,1), opacity 130ms';
+      pad.style.transition = 'transform 110ms cubic-bezier(.4,0,1,1), opacity 110ms';
       pad.style.transform = `translateX(${-dir * w * 0.55}px)`;
       pad.style.opacity = '.15';
       window.setTimeout(() => {
@@ -229,11 +229,11 @@ export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; com
         pad.style.transition = 'none';
         pad.style.transform = `translateX(${dir * w * 0.45}px)`;
         void pad.offsetWidth; // apply that start position, then glide in
-        pad.style.transition = 'transform 340ms cubic-bezier(.32,.72,0,1), opacity 260ms ease-out';
+        pad.style.transition = 'transform 300ms cubic-bezier(.32,.72,0,1), opacity 220ms ease-out';
         pad.style.transform = '';
         pad.style.opacity = '';
-        window.setTimeout(() => { pad.style.transition = ''; }, 360);
-      }, 130);
+        window.setTimeout(() => { pad.style.transition = ''; }, 320);
+      }, 110);
     };
     const cancel = () => { if (pinch) { const z = snapZoom(clampZoom(pinch.z)); applyZoom(z, pinch.midY, pinch.anchorMin); saveZoom(z); ui.set({ zoom: z }); } root.classList.remove('pinching'); endPinchListener(); pinch = null; slide = null; };
     const onScroll = () => { if (performance.now() > ownScroll.current) setEmptyShown(false); };

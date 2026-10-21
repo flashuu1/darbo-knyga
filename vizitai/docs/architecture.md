@@ -344,3 +344,7 @@ This is the direction every feature is measured against. Nothing in this section
 - A visit whose time has passed and that has no amount yet glows orange (a soft pulsing ring with two small sparks) in Diena and Savaitė; it stops the moment the amount is in. Only opacity and transform animate. Reduced-motion users get a still ring.
 - In Klientai the orange "Pridėti sumą" pill opens Suma for that client's longest-waiting past visit directly, without opening the client card.
 - The first amount of a client visit is followed by "Užregistruoti dar kartą?" in the same sheet: the blue "Taip, užregistruoti" button sits where "Patvirtinti" was (the number pad stays up, so nothing moves), "Ne" closes with Anuliuoti available. Taip opens the date and time picker for the same client and service (tomorrow at the same time preselected), and saving shows that day in the calendar. Changing or clearing an existing amount asks nothing.
+
+## Nustatymai layout
+
+Nustatymai is a list of categories like iOS Settings, in three groups: Kalendorius (Paslaugos, Darbo laikas), Pasirinkimai (Asmeniniai, Išlaidų rūšys), Duomenys (Atsarginė kopija with a red dot when one is due, Apie programą with storage, version and build). Each row shows a coloured icon, its name and a short value, and opens its own page that slides in from the right, with a back button named Nustatymai, a large title, and a swipe from the left edge to go back. The build id also shows under the list.

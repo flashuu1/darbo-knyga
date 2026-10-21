@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { apptState, openApp, seedAppts } from './helpers';
+import { apptState, openApp, seedAppts, openSettings } from './helpers';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const count = (page: Page, table: 'clients' | 'appointments' | 'services') => page.evaluate((t) => (window as any).__vizitai.db[t].count(), table);
@@ -64,7 +64,7 @@ test('a swipe never opens the client card', async ({ page }) => {
 test('a service can be deleted by swiping; one that has visits is hidden instead; the last one cannot go', async ({ page }) => {
   await openApp(page);
   const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-20T10:00', service: 0 }]);
-  await page.getByTestId('tab-settings').click();
+  await openSettings(page, 'services');
   await page.getByTestId('svc-add').click();
   await expect(page.getByTestId('svc-row-6')).toBeVisible();
   expect(await count(page, 'services')).toBe(7);
@@ -90,7 +90,7 @@ test('the last active service cannot be deleted', async ({ page }) => {
     const all = await repo.listServices();
     for (const s of all.slice(1)) await repo.deleteService(s.id);
   });
-  await page.getByTestId('tab-settings').click();
+  await openSettings(page, 'services');
   await expect(page.getByTestId('svc-row-0')).toBeVisible();
   await swipeLeft(page, 'svc-swipe-0');
   await page.getByTestId('svc-swipe-0-trash').click();

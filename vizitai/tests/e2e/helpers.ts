@@ -17,6 +17,13 @@ export async function seedAppts(page: Page, list: { name: string; start: string;
     return ids;
   }, list);
 }
+/** Opens a page of Nustatymai (the list of categories, then the chosen page). */
+export async function openSettings(page: Page, section: 'services' | 'hours' | 'personal' | 'expenses' | 'backup' | 'about') {
+  await page.getByTestId('tab-settings').click();
+  await page.getByTestId(`settings-row-${section}`).click();
+  await expect(page.getByTestId(`settings-page-${section}`)).toBeVisible();
+  await page.waitForTimeout(450); // the page has slid in
+}
 /** Gives the lists of her own choices some entries (the app starts with none). */
 export async function seedOptions(page: Page) {
   await page.evaluate(async () => {

@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { apptState, expectPickedTime, openApp, seedAppts } from './helpers';
+import { apptState, expectPickedTime, openApp, seedAppts, openSettings } from './helpers';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const amountOf = async (page: Page, id: string) => (await apptState(page, id)).amountCents;
@@ -102,7 +102,7 @@ test('the amount survives export, clear and import', async ({ page }) => {
     const { db } = (window as any).__vizitai;
     await Promise.all([db.clients.clear(), db.appointments.clear(), db.services.clear(), db.settings.clear()]);
   });
-  await page.getByTestId('tab-settings').click();
+  await openSettings(page, 'backup');
   await page.getByTestId('import-input').setInputFiles({ name: 'b.json', mimeType: 'application/json', buffer: Buffer.from(json) });
   await page.getByTestId('action-item-0').click();
   await expect.poll(() => amountOf(page, id)).toBe(4550);

@@ -317,6 +317,31 @@ p.link-name { color: var(--label); }
 @keyframes burst { 0% { transform: translate(0, 0) scale(.3) rotate(0); opacity: 1; } 65% { opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(1) rotate(var(--rot)); opacity: 0; } }
 .again-sum { margin-top: var(--s2); }
 
+/* Dienos suvestinė */
+button.balance { width: calc(100% - 2 * var(--s4)); text-align: left; padding: 6px 0; min-height: 36px; }
+.b-chev { flex: none; color: var(--label-3); display: inline-flex; }
+.b-chev svg { width: 14px; height: 14px; }
+.due-badge { flex: none; min-width: 22px; height: 22px; padding: 0 6px; box-sizing: border-box; border-radius: 11px; background: var(--due); color: #fff; font-size: .78rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums; }
+.eod-hero { position: relative; margin: 0 0 var(--s3); background: var(--sheet-card); }
+.eod-hero .yay { position: absolute; left: 0; right: 0; top: 0; height: 60px; }
+.eod-progress { margin-top: var(--s3); }
+.eod-progress p { margin: 6px 0 0; font-size: .85rem; color: var(--label-2); font-variant-numeric: tabular-nums; }
+.eod-bar { height: 8px; border-radius: 4px; background: var(--fill); overflow: hidden; }
+.eod-bar i { display: block; height: 100%; border-radius: 4px; background: var(--in); transition: width var(--t-sheet) var(--ease-spring); }
+.eod-done { color: var(--green-ink); font-weight: 700; font-size: 1rem; }
+.eod-list { background: var(--sheet-card); }
+.eod-row { list-style: none; padding: var(--s3) var(--s4); }
+.eod-row + .eod-row { border-top: .5px solid var(--sep); }
+.eod-top { display: flex; align-items: center; gap: var(--s3); }
+.eod-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.eod-text b { font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.eod-text span { color: var(--label-2); font-size: .82rem; }
+.eod-chips { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s2); padding-left: calc(38px + var(--s3)); }
+.eod-chips .amt-chip { min-height: 44px; }
+.amt-chip.other { background: transparent; box-shadow: inset 0 0 0 1.5px var(--fill-2); color: var(--accent); }
+.eod-row.paid .avatar.paid-av { background: var(--in); font-size: 1.1rem; }
+.eod-amt { color: var(--green-ink); font-variant-numeric: tabular-nums; }
+
 /* Vestuvės and other floral services: flowers drift up from the entry while it is coming up and while it waits for its payment.
    Like the glow, the flowers are sized from the entry's own height (cqh), so they scale as she pinches in and out and are there at every zoom. */
 .entry-bloom { position: absolute; z-index: 3; pointer-events: none; box-sizing: border-box; container-type: size;

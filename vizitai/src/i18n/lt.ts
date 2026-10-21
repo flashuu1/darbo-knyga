@@ -75,6 +75,8 @@ export const lt = {
   'settings.about': 'Apie programą', 'settings.group.calendar': 'Kalendorius', 'settings.group.choices': 'Pasirinkimai', 'settings.group.data': 'Duomenys',
   'expenses.left': 'Liko šį mėnesį', 'expenses.chart': 'Pinigų srautas pagal dienas', 'expenses.paidBy': 'Kas sumokėjo', 'expenses.paidCount': 'mokėjo: {n}',
   'act.call': 'Skambinti', 'appt.minutes': '{n} min.', 'amount.suggest': 'Dažniausiai', 'amount.saved.yay': 'Suma išsaugota!',
+  'eod.title': 'Dienos suvestinė', 'eod.waiting': 'Laukia sumos', 'eod.older': 'Ankstesni vizitai be sumos', 'eod.paid': 'Sumokėta', 'eod.other': 'Kita suma', 'eod.again': 'Užregistruoti dar kartą',
+  'eod.alldone': 'Viskas suvesta!', 'eod.progress': 'Sumokėta {a} iš {b}', 'eod.upcoming': 'Dar laukia vizitų: {n}', 'eod.empty': 'Šią dieną vizitų nebuvo', 'eod.open': 'Atidaryti dienos suvestinę',
   'balance.label': 'Balansas', 'balance.in': 'Gauta', 'balance.out': 'Išlaidos',
 } as const;
 

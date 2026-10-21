@@ -1,6 +1,7 @@
 import { ActionSheet } from './ActionSheet';
 import { AmountSheet } from './AmountSheet';
 import { AppointmentSheet } from './AppointmentSheet';
+import { DaySummarySheet } from './DaySummarySheet';
 import { DragGhost } from './DragGhost';
 import { MoveSheet } from './MoveSheet';
 import { NewFlow } from './NewFlow';
@@ -9,7 +10,7 @@ import { ClientCard } from '../screens/ClientCard';
 import { usePresence } from '../presence';
 import { ui, useStore, type Sheet } from '../store';
 
-const keyOf = (s: Sheet) => (s.type === 'new' ? `new${s.start}${s.clientId ?? ''}${s.screen ?? ''}` : `${s.type}${s.id}`);
+const keyOf = (s: Sheet) => (s.type === 'new' ? `new${s.start}${s.clientId ?? ''}${s.screen ?? ''}` : s.type === 'day' ? `day${s.date}` : `${s.type}${s.id}`);
 
 export function Sheets() {
   const { sheet, client } = useStore(ui);
@@ -24,6 +25,7 @@ export function Sheets() {
           {shown.type === 'appt' && <AppointmentSheet id={shown.id} />}
           {shown.type === 'move' && <MoveSheet id={shown.id} />}
           {shown.type === 'amount' && <AmountSheet id={shown.id} />}
+          {shown.type === 'day' && <DaySummarySheet date={shown.date} />}
         </div>
       )}
       <ActionSheet />

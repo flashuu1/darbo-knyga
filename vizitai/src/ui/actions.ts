@@ -5,7 +5,7 @@ import { formatDayShort, weekdayShort } from '../i18n/format';
 import { t } from '../i18n/lt';
 import { backupFileName, BackupError, exportData, importData, parseBackup, shareBackup, type BackupFile } from '../logic/backup';
 import { addDays, datePart, timePart, todayStr } from '../logic/time';
-import { ui, type Origin } from './store';
+import { ui, type Origin, type Sheet } from './store';
 
 let toastId = 0;
 let toastTimer = 0;
@@ -66,7 +66,17 @@ export function showOverflow(list: Entry[]) {
     },
   });
 }
-export const closeSheet = () => ui.set({ sheet: null });
+export const sheetKey = (s: Sheet) => (s.type === 'new' ? 'new' : s.type === 'day' ? 'day' : `${s.type}${s.id}`);
+export function closeSheet() {
+  const { back, sheet } = ui.get();
+  if (back && sheet && sheetKey(sheet) === back.for) ui.set({ sheet: back.sheet, back: null }); // e.g. Suma opened from the day summary
+  else ui.set({ sheet: null, back: null });
+}
+/** The day summary (end of the day) for a date, never in the future. */
+export function openDay(date?: string) {
+  const d = date ?? ui.get().date;
+  ui.set({ sheet: { type: 'day', date: d > todayStr() ? todayStr() : d } });
+}
 async function deleteCancelled(a: Appointment) {
   await repo.deleteAppointment(a.id);
   showToast(t('cancelled.deleted'), () => repo.putSnapshot(a));

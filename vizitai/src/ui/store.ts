@@ -23,7 +23,7 @@ export function useStore<T>(s: Store<T>): T {
 /** Where "Užregistruoti į priekį" was started, so backing out returns there. */
 export interface Origin { type: 'appt' | 'client'; id: string }
 export type Sheet = { type: 'new'; start: string; clientId?: string; serviceId?: string; screen?: 'time'; from?: Origin; replaceId?: string } | { type: 'appt'; id: string }
-  | { type: 'amount'; id: string } | { type: 'move'; id: string };
+  | { type: 'amount'; id: string } | { type: 'move'; id: string } | { type: 'day'; date: string };
 export interface ToastState { id: number; text: string; undo?: () => Promise<void> }
 export interface DragState { entry: Entry; label: string; x: number; y: number; grabDY: number; grabDX: number; left: number; width: number; over: { date: string; start: string } | null }
 export interface ActionItem { label: string; role?: 'destructive' | 'cancel'; onPress: () => void }
@@ -31,8 +31,10 @@ export interface UiState {
   tab: Tab; view: 'day' | 'week' | 'month'; date: string;
   sheet: Sheet | null; client: string | null; toast: ToastState | null; highlight: string | null;
   zoom: number; drag: DragState | null; action: { title?: string; items: ActionItem[] } | null;
+  /** Closing the sheet named by `for` goes back to `sheet` (the day summary opens Suma and returns to itself). */
+  back: { for: string; sheet: Sheet } | null;
 }
 export const ui = createStore<UiState>({
-  tab: 'calendar', view: 'day', date: todayStr(), sheet: null, client: null, toast: null, highlight: null, zoom: loadZoom(), drag: null, action: null,
+  tab: 'calendar', view: 'day', date: todayStr(), sheet: null, client: null, toast: null, highlight: null, zoom: loadZoom(), drag: null, action: null, back: null,
 });
 export const isBusy = () => { const s = ui.get(); return !!(s.sheet || s.action || s.client || s.drag); };

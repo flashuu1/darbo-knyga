@@ -4,12 +4,12 @@ import { t } from '../i18n/lt';
 import { isAmountDue } from '../logic/amount';
 import { nowLocal } from '../logic/time';
 import { closeSheet, openAppt, primeKeyboard, showToast } from './actions';
-import { ui } from './store';
+import { ui, type Sheet } from './store';
 
 /** Opens the Suma sheet. Call synchronously from the tap so iOS raises the number keyboard (see primeKeyboard). */
-export function openAmount(id: string) {
+export function openAmount(id: string, back?: Sheet) {
   primeKeyboard('decimal');
-  ui.set({ sheet: { type: 'amount', id } });
+  ui.set({ sheet: { type: 'amount', id }, back: back ? { for: `amount${id}`, sheet: back } : null });
 }
 /** A tap on a calendar entry: a visit waiting for its amount opens Suma, everything else the appointment sheet. */
 export function openEntry(a: Appointment) {

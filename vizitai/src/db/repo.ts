@@ -7,7 +7,7 @@ import { cleanName, foldName, ltCollator } from '../logic/names';
 import { addDays, addMinutes, datePart, minutesOfDay, nowLocal, parse } from '../logic/time';
 import { findOverlap, minutesFor, nextFreeSlot, PERSONAL_MINUTES, type Block } from '../logic/overlap';
 import { t } from '../i18n/lt';
-import { isValidCents } from '../logic/amount';
+import { isAmountDue, isValidCents } from '../logic/amount';
 
 /** One row of the contacts list (see listClients). */
 export interface ClientRow {
@@ -237,6 +237,34 @@ export function createRepo(db: VizitaiDB) {
         }
       }
       return out.slice(0, 3);
+    },
+    /** How many client visits have taken place and still wait for their amount (everywhere, any day). */
+    async dueCount(now_: string = nowLocal()): Promise<number> {
+      return (await db.appointments.toArray()).filter((a) => isAmountDue(a, now_)).length;
+    },
+    /**
+     * The end of a day: its client visits that wait for their amount (with the amounts this client paid before as
+     * suggestions), earlier visits still waiting (only when the day is today), the ones already settled, the day's money.
+     */
+    async daySummary(date: string, now_: string = nowLocal()) {
+      const list = await this.entriesBetween(date, addDays(date, 1));
+      const visits = list.filter((e) => e.appt.kind === 'client' && e.appt.status === 'booked');
+      const due = visits.filter((e) => e.appt.start <= now_ && e.amountCents === null);
+      const paid = visits.filter((e) => e.amountCents !== null);
+      const upcoming = visits.filter((e) => e.appt.start > now_).length;
+      const expenses = list.filter((e) => e.appt.kind === 'expense' && e.appt.status === 'booked' && e.amountCents !== null);
+      let older: Entry[] = [];
+      if (date === datePart(now_)) {
+        const before = await db.appointments.where('start').below(`${date}T00:00`).toArray();
+        older = await toEntries(before.filter((a) => isAmountDue(a, now_)).sort(byStart));
+      }
+      const suggest: Record<string, number[]> = {};
+      for (const e of [...due, ...older]) if (e.appt.clientId) suggest[e.appt.id] = await this.amountSuggestions(e.appt.clientId, e.appt.serviceId);
+      return {
+        date, due, older, paid, upcoming, suggest,
+        inCents: paid.reduce((n, e) => n + e.amountCents!, 0),
+        outCents: expenses.reduce((n, e) => n + e.amountCents!, 0),
+      };
     },
     async countVisits(clientId: string): Promise<number> { return db.appointments.where('clientId').equals(clientId).count(); },
     /**

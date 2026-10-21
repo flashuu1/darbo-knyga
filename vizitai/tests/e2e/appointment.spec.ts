@@ -207,3 +207,51 @@ test('cancelled entries older than a week are gone after the app starts', async 
   await page.waitForFunction(() => !!(window as any).__vizitai); // eslint-disable-line @typescript-eslint/no-explicit-any
   await expect.poll(() => page.evaluate(async () => (await (window as any).__vizitai.db.appointments.toArray()).map((a: { id: string }) => a.id))).toEqual([recent]); // eslint-disable-line @typescript-eslint/no-explicit-any
 });
+
+test('the entry sheet shows who, when and what she can do: money, then grouped actions, with the risky ones apart', async ({ page }) => {
+  await openApp(page, '2026-10-14T10:40:00');
+  const [done] = await seedAppts(page, [{ name: 'Ona Petraitė', start: '2026-10-14T15:00' }]);
+  await page.evaluate(async (x) => { const { repo } = (window as any).__vizitai; const c = (await repo.getAppointment(x)).clientId; await repo.updateClient(c, { phone: '+370 600 12345' }); }, done); // eslint-disable-line @typescript-eslint/no-explicit-any
+  await page.getByTestId(`entry-${done}`).click();
+  await expect(page.getByTestId('appt-name')).toHaveText('Ona Petraitė');
+  await expect(page.getByTestId('appt-when')).toContainText('15:00');
+  await expect(page.getByTestId('appt-when')).toContainText('Kirpimas');
+  await expect(page.getByTestId('appt-when')).toContainText('15 min.');
+  await expect(page.getByTestId('appt-status')).toHaveText('Laukiama');
+  for (const id of ['act-move', 'act-repeat', 'act-cancel']) await expect(page.getByTestId(id)).toBeVisible();
+  expect(await page.getByTestId('act-call').getAttribute('href')).toBe('tel:+37060012345');
+  // every action is a full-width, thumb-sized row
+  for (const id of ['act-move', 'act-repeat', 'act-cancel']) expect((await page.getByTestId(id).boundingBox())!.height).toBeGreaterThanOrEqual(48);
+  // the risky one sits in its own group, below the others
+  const move = (await page.getByTestId('act-move').boundingBox())!, cancel = (await page.getByTestId('act-cancel').boundingBox())!;
+  expect(cancel.y).toBeGreaterThan(move.y + move.height);
+});
+
+test('a visit still waiting for its amount puts a big orange button in the sheet', async ({ page }) => {
+  await openApp(page, '2026-10-14T10:40:00');
+  const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T09:00' }]);
+  await page.getByTestId(`entry-${id}`).click(); // due: opens Suma first
+  await page.getByTestId('amount-open-appt').click();
+  await expect(page.getByTestId('appt-status')).toHaveText('Nepatvirtinta');
+  await expect(page.getByTestId('appt-amount')).toHaveClass(/money-cta/);
+  await expect(page.getByTestId('appt-amount')).toContainText('Pridėti sumą');
+});
+
+test('a tap just beside a thin entry opens it instead of booking next to it; farther away still books', async ({ page }) => {
+  await openApp(page);
+  const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T15:00' }]);
+  await page.waitForTimeout(700);
+  await page.getByTestId(`entry-${id}`).scrollIntoViewIfNeeded();
+  await page.waitForTimeout(300);
+  const b = (await page.getByTestId(`entry-${id}`).boundingBox())!;
+  await page.mouse.click(b.x + b.width + 6, b.y + b.height / 2); // 6 px right of the entry (the empty margin of the column)
+  await expect(page.getByTestId('appt-name')).toHaveText('Ona');
+  await page.getByTestId('btn-close').click();
+  await expect(page.getByTestId('sheet')).toHaveCount(0);
+  await page.mouse.click(b.x + 40, b.y - 6); // just above it: the row before
+  await expect(page.getByTestId('appt-name')).toHaveText('Ona');
+  await page.getByTestId('btn-close').click();
+  await expect(page.getByTestId('sheet')).toHaveCount(0);
+  await page.mouse.click(b.x + 40, b.y - 40); // clearly an empty row: a new booking
+  await expect(page.getByTestId('field-name')).toBeVisible();
+});

@@ -8,10 +8,13 @@ import { nowLocal } from '../../logic/time';
 import { closeSheet, confirmCancel, deleteExpenseWithToast, noShowWithToast, rebook, restoreWithToast } from '../actions';
 import { openAmount } from '../amount';
 import { useLive, useServices } from '../hooks';
+import { CalendarIcon, CloseIcon, NextIcon, PersonIcon, PhoneIcon, RepeatIcon, TrashIcon, WalletIcon } from '../icons';
 import { statusKind, statusLabel } from '../status';
 import { ui } from '../store';
+import { initials } from '../screens/Clients';
 import { Sheet } from './Sheet';
 
+/** The sheet of one entry: who and when at the top, the money next, then what she can do, grouped, with the destructive ones apart. */
 export function AppointmentSheet({ id }: { id: string }) {
   const appt = useLive(() => repo.getAppointment(id), [id], undefined);
   const client = useLive(async () => (appt?.clientId ? repo.getClient(appt.clientId) : undefined), [appt?.clientId], undefined);
@@ -21,11 +24,14 @@ export function AppointmentSheet({ id }: { id: string }) {
 
   const now = nowLocal();
   const past = appt.start < now;
-  const status = statusLabel(appt);
+  const kind = statusKind(appt, now);
   const chips = all.filter((s) => s.active || s.id === appt.serviceId);
+  const service = all.find((s) => s.id === appt.serviceId);
   const label = appt.kind === 'client' ? client?.name ?? '' : appt.title ?? '';
-  const expense = appt.kind === 'expense';
   const amount = typeof appt.amountCents === 'number' ? appt.amountCents : null;
+  const expense = appt.kind === 'expense';
+  const isClient = appt.kind === 'client';
+  const phone = client?.phone?.trim();
   // Close the sheet first, then run the write once; a second tap cannot repeat it.
   const after = (fn: () => Promise<void>) => () => {
     if (busy.current) return;
@@ -33,15 +39,24 @@ export function AppointmentSheet({ id }: { id: string }) {
     closeSheet();
     fn().catch((e) => console.error(e));
   };
+  const sub = [formatWhen(appt.start), service?.name, service && isClient ? t('appt.minutes', { n: service.minutes }) : undefined].filter(Boolean).join(' · ');
 
   return (
     <Sheet title={label} onClose={closeSheet} right={<button class="strong" data-testid="btn-close" onClick={closeSheet}>{t('btn.close')}</button>}>
-      {appt.kind === 'client' ? (
-        <button class="link-name" data-testid="appt-name" onClick={() => ui.set({ sheet: null, client: appt.clientId })}>{label}</button>
-      ) : (
-        <p class="link-name" data-testid="appt-name">{label}</p>
-      )}
-      {appt.kind === 'client' && (
+      <div class="appt-hero">
+        <span class={isClient ? 'avatar hero-av' : 'avatar hero-av alt'} aria-hidden="true">{isClient ? initials(label) : expense ? <WalletIcon /> : <PersonIcon />}</span>
+        <div class="hero-text">
+          {isClient ? (
+            <button class="link-name" data-testid="appt-name" onClick={() => ui.set({ sheet: null, client: appt.clientId })}>{label}</button>
+          ) : (
+            <p class="link-name" data-testid="appt-name">{label}</p>
+          )}
+          <p class="hero-sub" data-testid="appt-when">{sub}</p>
+        </div>
+        {!expense && <span class={`status-pill status-${kind}`} data-testid="appt-status">{statusLabel(appt, now)}</span>}
+      </div>
+
+      {isClient && (
         <div class="chips">
           {chips.map((s, i) => (
             <button key={s.id} data-testid={`appt-svc-${i}`} class={appt.serviceId === s.id ? 'chip on' : 'chip'} style={{ '--svc': `var(--c-${s.color})` } as CSSProperties}
@@ -49,31 +64,67 @@ export function AppointmentSheet({ id }: { id: string }) {
           ))}
         </div>
       )}
-      <div class="row"><span class="value">{formatWhen(appt.start)}</span></div>
-      {!expense && <div class="row"><span class="label">{t('appt.status')}</span><span class={`value status-${statusKind(appt, now)}`} data-testid="appt-status">{status}</span></div>}
+
+      {canHaveAmount(appt, now) && (
+        amount === null ? (
+          <button class="money-cta" data-testid="appt-amount" onClick={() => openAmount(id)}>
+            <span>{t('amount.add')}</span><NextIcon />
+          </button>
+        ) : (
+          <button class="money-done" data-testid="appt-amount" onClick={() => openAmount(id)}>
+            <span class="md-check" aria-hidden="true">✓</span>
+            <span class="md-sum">{formatEuro(amount)}</span>
+            <span class="amount-edit">{t('amount.edit')}</span>
+          </button>
+        )
+      )}
       {expense && (
-        <button class="row amount-row" data-testid="appt-amount" onClick={() => openAmount(id)}>
-          <span class="label">{t('expense.amount')}</span>
-          <span class="value out">{amount === null ? '' : `−${formatEuro(amount)}`}</span>
+        <button class="money-done out" data-testid="appt-amount" onClick={() => openAmount(id)}>
+          <span class="md-label">{t('expense.amount')}</span>
+          <span class="md-sum value out">{amount === null ? '' : `−${formatEuro(amount)}`}</span>
           <span class="amount-edit">{t('amount.edit')}</span>
         </button>
       )}
-      {canHaveAmount(appt, now) && (
-        <button class={amount === null ? 'row amount-row due' : 'row amount-row'} data-testid="appt-amount" onClick={() => openAmount(id)}>
-          <span class="label">{t('amount.title')}</span>
-          <span class="value">{amount === null ? t('amount.add') : formatEuro(amount)}</span>
-          {amount !== null && <span class="amount-edit">{t('amount.edit')}</span>}
-        </button>
-      )}
-      <div class="actions-list">
+
+      <div class="act-group">
         {appt.status === 'booked' && (
-          <button class="action-row" data-testid="act-move" onClick={() => ui.set({ sheet: { type: 'move', id } })}>{t('act.move')}</button>
+          <button class="act-row" data-testid="act-move" onClick={() => ui.set({ sheet: { type: 'move', id } })}>
+            <span class="act-ico" style={{ background: 'var(--c-blue)' }}><CalendarIcon /></span><span class="act-label">{t('act.move')}</span><span class="chev"><NextIcon /></span>
+          </button>
         )}
-        {appt.status === 'booked' && past && !expense && <button class="action-row" data-testid="act-noshow" onClick={after(() => noShowWithToast(id))}>{t('act.noshow')}</button>}
-        {appt.kind === 'client' && <button class="action-row" data-testid="act-repeat" onClick={() => rebook(appt, { type: 'appt', id })}>{t('repeat.action')}</button>}
-        {expense && <button class="action-row destructive" data-testid="act-delete-expense" onClick={after(() => deleteExpenseWithToast(id))}>{t('expense.delete')}</button>}
-        {appt.status === 'booked' && !expense && <button class="action-row destructive" data-testid="act-cancel" onClick={() => { closeSheet(); confirmCancel(id); }}>{t('act.cancelAppt')}</button>}
-        {appt.status !== 'booked' && !expense && <button class="action-row" data-testid="act-restore" onClick={after(() => restoreWithToast(id))}>{t('act.restore')}</button>}
+        {isClient && (
+          <button class="act-row" data-testid="act-repeat" onClick={() => rebook(appt, { type: 'appt', id })}>
+            <span class="act-ico" style={{ background: 'var(--c-green)' }}><RepeatIcon /></span><span class="act-label">{t('repeat.action')}</span><span class="chev"><NextIcon /></span>
+          </button>
+        )}
+        {isClient && phone && (
+          <a class="act-row" data-testid="act-call" href={`tel:${phone.replace(/[^\d+]/g, '')}`}>
+            <span class="act-ico" style={{ background: 'var(--c-teal)' }}><PhoneIcon /></span><span class="act-label">{t('act.call')}</span><span class="act-value">{phone}</span><span class="chev"><NextIcon /></span>
+          </a>
+        )}
+      </div>
+
+      <div class="act-group danger">
+        {appt.status === 'booked' && past && !expense && (
+          <button class="act-row" data-testid="act-noshow" onClick={after(() => noShowWithToast(id))}>
+            <span class="act-ico" style={{ background: 'var(--c-orange)' }}><CloseIcon /></span><span class="act-label">{t('act.noshow')}</span>
+          </button>
+        )}
+        {expense && (
+          <button class="act-row destructive" data-testid="act-delete-expense" onClick={after(() => deleteExpenseWithToast(id))}>
+            <span class="act-ico" style={{ background: 'var(--c-red)' }}><TrashIcon /></span><span class="act-label">{t('expense.delete')}</span>
+          </button>
+        )}
+        {appt.status === 'booked' && !expense && (
+          <button class="act-row destructive" data-testid="act-cancel" onClick={() => { closeSheet(); confirmCancel(id); }}>
+            <span class="act-ico" style={{ background: 'var(--c-red)' }}><CloseIcon /></span><span class="act-label">{t('act.cancelAppt')}</span>
+          </button>
+        )}
+        {appt.status !== 'booked' && !expense && (
+          <button class="act-row" data-testid="act-restore" onClick={after(() => restoreWithToast(id))}>
+            <span class="act-ico" style={{ background: 'var(--c-green)' }}><RepeatIcon /></span><span class="act-label">{t('act.restore')}</span>
+          </button>
+        )}
       </div>
     </Sheet>
   );

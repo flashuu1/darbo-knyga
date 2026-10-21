@@ -5,6 +5,8 @@ export const GearIcon = () => (<svg {...base}><circle cx="12" cy="12" r="3" /><p
 export const WalletIcon = () => (<svg {...base}><rect x="3.5" y="6" width="17" height="13.500" rx="3" /><path d="M3.500 10.500h17M16 15h1.500M6.500 3.500l9 2.500" /></svg>);
 export const ScissorsIcon = () => (<svg {...base}><circle cx="6.500" cy="6.500" r="2.800" /><circle cx="6.500" cy="17.500" r="2.800" /><path d="M8.800 8.400L20 18M8.800 15.600L20 6" /></svg>);
 export const InfoIcon = () => (<svg {...base}><circle cx="12" cy="12" r="8.500" /><path d="M12 11v5.500M12 7.700v.1" /></svg>);
+export const RepeatIcon = () => (<svg {...base}><path d="M4 11V9.500A3.500 3.500 0 017.500 6H19M16 3l3 3-3 3M20 13v1.500a3.500 3.500 0 01-3.500 3.500H5M8 21l-3-3 3-3" /></svg>);
+export const PhoneIcon = () => (<svg {...base}><path d="M6.500 3.500h3l1.500 4-2 1.200a11 11 0 005.300 5.300l1.200-2 4 1.500v3a2 2 0 01-2.200 2A15.500 15.500 0 014.500 5.700 2 2 0 016.500 3.500z" /></svg>);
 export const PlusIcon = () => (<svg {...base}><path d="M12 5v14M5 12h14" /></svg>);
 export const ChevronIcon = () => (<svg {...base} width={14} height={14}><path d="M6 9l6 6 6-6" /></svg>);
 export const BackIcon = () => (<svg {...base} width={20} height={20} stroke-width={2.4}><path d="M15 5l-7 7 7 7" /></svg>);

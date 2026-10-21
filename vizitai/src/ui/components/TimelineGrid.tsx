@@ -16,6 +16,26 @@ const toMin = (hm: string) => +hm.slice(0, 2) * 60 + +hm.slice(3, 5);
 /** Most lanes side by side before the rest collapse into a "+N" chip. */
 const MAX_LANES = { day: 3, week: 2 };
 
+// A finger is bigger than a thin entry. A tap that lands within this distance of an entry opens that entry instead of
+// booking a new one beside it (a tap on the entry itself never gets here: the entry catches it).
+const NEAR_X = 14, NEAR_Y = 9;
+function slotTap(e: MouseEvent, slot: string) {
+  const x = e.clientX, y = e.clientY;
+  if (x || y) { // a keyboard activation has no position
+    let best: HTMLElement | null = null, bestD = Infinity;
+    const grid = (e.currentTarget as HTMLElement).closest('.grid');
+    grid?.querySelectorAll<HTMLElement>('[data-entry-box]').forEach((el) => {
+      const r = el.getBoundingClientRect();
+      const dx = Math.max(r.left - x, 0, x - r.right), dy = Math.max(r.top - y, 0, y - r.bottom);
+      if (dx > NEAR_X || dy > NEAR_Y) return;
+      const d = Math.hypot(dx, dy);
+      if (d < bestD) { bestD = d; best = el; }
+    });
+    if (best) { (best as HTMLElement).click(); return; } // still inside the tap, so a due visit can raise the number pad
+  }
+  openNew(slot);
+}
+
 /**
  * The tappable 15-minute rows of one column. They only change when the day, the visible range or the working hours do,
  * so a re-render of the calendar (a new minute, new data) skips all of these buttons.
@@ -33,7 +53,7 @@ class Slots extends Component<SlotsProps> {
           const m = startMin + i * 15;
           const slot = `${d}T${hhmm(m)}`;
           const cls = ['slot', i % 4 === 0 ? 'h' : i % 2 === 0 ? 'hh' : 'q', m < workFrom || m >= workTo ? 'off' : ''].join(' ');
-          return (<button key={slot} class={cls} data-testid={`slot-${slot}`} aria-label={slot.slice(11)} onClick={() => openNew(slot)} />);
+          return (<button key={slot} class={cls} data-testid={`slot-${slot}`} aria-label={slot.slice(11)} onClick={(e) => slotTap(e, slot)} />);
         })}
       </>
     );

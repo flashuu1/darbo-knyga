@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'preact';
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { repo } from '../../db/repo';
 import type { Appointment } from '../../db/types';
 import { euroSign, formatAmountInput, formatEuro, parseAmountInput } from '../../i18n/format';
@@ -10,6 +10,22 @@ import { saveAmountWithToast } from '../amount';
 import { useLive } from '../hooks';
 import { useKeyboardHeight } from '../keyboard';
 import { Sheet } from './Sheet';
+
+const BURST_COLORS = ['green', 'yellow', 'orange', 'pink', 'blue', 'teal'];
+/** A short burst of confetti behind the tick: transform and opacity only, over in under a second. */
+function Burst() {
+  const parts = useMemo(() => Array.from({ length: 26 }, (_, i) => {
+    const a = (i / 26) * Math.PI * 2 + Math.random() * 0.4, d = 70 + Math.random() * 90;
+    return { dx: Math.cos(a) * d, dy: Math.sin(a) * d - 24, rot: Math.round((Math.random() - 0.5) * 540), c: BURST_COLORS[i % BURST_COLORS.length]!, s: 6 + Math.round(Math.random() * 5), delay: Math.round(Math.random() * 50), round: i % 3 !== 0 };
+  }), []);
+  return (
+    <div class="burst" aria-hidden="true" data-testid="burst">
+      {parts.map((p, i) => (
+        <i key={i} class={p.round ? 'round' : ''} style={{ '--dx': `${p.dx}px`, '--dy': `${p.dy}px`, '--rot': `${p.rot}deg`, '--c': `var(--c-${p.c})`, '--s': `${p.s}px`, '--d': `${p.delay}ms` } as CSSProperties} />
+      ))}
+    </div>
+  );
+}
 
 // iOS shows a strip (arrows and a tick) above the number pad: keep the bar just above it (measured from a screenshot on the iPhone, ~24 pt)
 const PASTE_BAR = 24;
@@ -27,6 +43,7 @@ export function AmountSheet({ id }: { id: string }) {
   const input = useRef<HTMLInputElement>(null);
   const kb = useKeyboardHeight();
   const busy = useRef(false);
+  const suggestions = useLive(() => (appt?.clientId ? repo.amountSuggestions(appt.clientId, appt.serviceId) : []), [appt?.clientId, appt?.serviceId], [] as number[]);
   // The tap that opened the sheet focused the hidden primer, so the number keyboard is already up.
   useEffect(() => { input.current?.focus(); }, [appt !== undefined]);
   if (!appt) return null;
@@ -73,8 +90,12 @@ export function AmountSheet({ id }: { id: string }) {
             <button class="primary" data-testid="again-yes" onClick={again}>{t('again.yes')}</button>
           </div>
         )}>
-        <p class="amount-ctx" data-testid="amount-context">{name} · {formatWhen(appt.start)}</p>
+        <div class="yay">
+          <Burst />
+          <span class="yay-check" aria-hidden="true">✓</span>
+        </div>
         <p class="again-sum" data-testid="again-saved">{t('amount.saved')}: {formatEuro(saved.cents)}</p>
+        <p class="amount-ctx" data-testid="amount-context">{name} · {formatWhen(appt.start)}</p>
         <h3 class="again-q" data-testid="again-question">{t('again.title')}</h3>
       </Sheet>
     );
@@ -96,6 +117,13 @@ export function AmountSheet({ id }: { id: string }) {
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); confirm(); } }} />
         <span class="amount-eur" aria-hidden="true">{euroSign}</span>
       </label>
+      {suggestions.length > 0 && stored === null && (
+        <div class="amt-chips" data-testid="amount-suggestions" aria-label={t('amount.suggest')}>
+          {suggestions.map((c, i) => (
+            <button key={c} class={cents === c ? 'amt-chip on' : 'amt-chip'} data-testid={`amount-suggest-${i}`} onClick={() => { setText(formatAmountInput(c)); input.current?.focus(); }}>{formatEuro(c)}</button>
+          ))}
+        </div>
+      )}
       {bad && <p class="warn center" role="alert" data-testid="amount-invalid">{t('amount.invalid')}</p>}
       {stored !== null && !bad && <p class="hint center">{t('amount.clearHint')}</p>}
       <button class="link-btn" data-testid="amount-open-appt" onClick={() => openAppt(id)}>{t('amount.openAppt')}</button>

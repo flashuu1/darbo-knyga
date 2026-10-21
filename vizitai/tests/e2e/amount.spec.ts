@@ -253,3 +253,33 @@ test('every visit waiting for its amount glows, in Diena and in Savaitė, and st
   await expect.poll(glows).toBe(0);
   void future;
 });
+
+test('after an amount: a small burst of confetti and a tick, and the Ne button is clearly visible', async ({ page }) => {
+  await openApp(page);
+  const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T08:00' }]);
+  await page.getByTestId(`entry-${id}`).click();
+  await page.getByTestId('amount-input').fill('30');
+  await page.getByTestId('amount-confirm').click();
+  await expect(page.getByTestId('burst')).toBeAttached();
+  expect(await page.getByTestId('burst').locator('i').count()).toBeGreaterThan(15);
+  const anim = await page.getByTestId('burst').locator('i').first().evaluate((el) => getComputedStyle(el).animationName);
+  expect(anim).toBe('burst');
+  // "Ne" has a solid outline and bold accent text, not a faint grey button
+  const no = await page.getByTestId('again-no').evaluate((el) => { const s = getComputedStyle(el); return { shadow: s.boxShadow, weight: s.fontWeight }; });
+  expect(no.shadow).not.toBe('none');
+  expect(Number(no.weight)).toBeGreaterThanOrEqual(600);
+  expect((await page.getByTestId('again-no').boundingBox())!.height).toBeGreaterThanOrEqual(48);
+});
+
+test('the amounts she took from this client before are one tap away', async ({ page }) => {
+  await openApp(page);
+  const [old, id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-07T08:00' }, { name: 'Ona', start: '2026-10-14T08:00' }]);
+  await page.evaluate(async (x) => (window as any).__vizitai.repo.setAmount(x, 4500), old);
+  await page.getByTestId(`entry-${id}`).click();
+  await expect(page.getByTestId('amount-suggest-0')).toContainText('45,00');
+  await page.getByTestId('amount-suggest-0').click();
+  await expect(page.getByTestId('amount-input')).toHaveValue('45');
+  await page.getByTestId('amount-confirm').click();
+  await page.getByTestId('again-no').click();
+  await expect.poll(() => amountOf(page, id)).toBe(4500);
+});

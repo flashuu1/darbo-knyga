@@ -224,6 +224,20 @@ export function createRepo(db: VizitaiDB) {
         await db.appointments.bulkPut(snap.appts);
       });
     },
+    /** The amounts this client paid before, most recent first, distinct, at most 3; the same service first. */
+    async amountSuggestions(clientId: string, serviceId: string | null): Promise<number[]> {
+      const list = (await db.appointments.where('clientId').equals(clientId).toArray())
+        .filter((a) => a.status === 'booked' && isValidCents(a.amountCents) && a.amountCents > 0)
+        .sort((a, b) => b.start.localeCompare(a.start));
+      const out: number[] = [];
+      for (const pass of [true, false]) {
+        for (const a of list) {
+          if ((a.serviceId === serviceId) !== pass || out.includes(a.amountCents!)) continue;
+          out.push(a.amountCents!);
+        }
+      }
+      return out.slice(0, 3);
+    },
     async countVisits(clientId: string): Promise<number> { return db.appointments.where('clientId').equals(clientId).count(); },
     /**
      * Deletes a service. One that visits still use is only hidden (their labels and colours must not vanish);

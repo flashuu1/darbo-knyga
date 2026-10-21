@@ -88,6 +88,7 @@ test('Settings lists her own choices; she can add, rename and swipe-delete them,
   await expect.poll(() => page.evaluate(async () => (await (window as any).__vizitai.repo.listOptions('personal')).map((o: any) => o.name))).toContain('Sporto salė');
   await page.getByTestId('settings-back').click();
   await page.getByTestId('settings-row-expenses').click();
+  await page.waitForTimeout(450); // the page slides in
   await expect(page.getByTestId('opt-expense-row-3')).toBeVisible();
   await swipeLeft(page, 'opt-expense-swipe-0');
   await page.getByTestId('opt-expense-swipe-0-trash').click();
@@ -201,4 +202,51 @@ test('every choice has an empty circle that fills and ticks when it is picked', 
   expect(await bg(1)).toBe(empty); // the others stay empty: one choice at a time
   await page.getByTestId('option-1').click();
   await expect.poll(() => bg(0)).toBe(empty);
+});
+
+test('Išlaidos leads with what is left, shows the month as a chart, who paid as dots, and keeps money out calm (never red)', async ({ page }) => {
+  await openApp(page);
+  await seedOptions(page);
+  const [a, b] = await seedAppts(page, [{ name: 'Ona Petraitė', start: '2026-10-05T09:00' }, { name: 'Rasa Kazlauskaitė', start: '2026-10-05T11:00' }]);
+  await page.evaluate(async ([x, y]) => {
+    const { repo } = (window as any).__vizitai;
+    await repo.setAmount(x, 20000); await repo.setAmount(y, 5000);
+    const [mat] = await repo.listOptions('expense');
+    await repo.createAppointment({ kind: 'expense', title: mat.name, optionId: mat.id, amountCents: 4000, start: '2026-10-06T10:00' });
+  }, [a, b]);
+  await page.getByTestId('tab-expenses').click();
+  await expect(page.getByTestId('exp-net')).toHaveText(/^210,00\s€$/);
+  await expect(page.getByTestId('exp-net')).toHaveClass(/pos/);
+  const colour = (id: string) => page.getByTestId(id).evaluate((el) => getComputedStyle(el).color);
+  const red = await page.evaluate(() => { const d = document.createElement('i'); d.style.color = 'var(--red)'; document.body.appendChild(d); const c = getComputedStyle(d).color; d.remove(); return c; });
+  expect(await colour('exp-out')).not.toBe(red); // money out is not red
+  // the chart: a column for every day of October, readout on tap
+  await expect(page.getByTestId('flow-chart')).toBeVisible();
+  await expect(page.getByTestId('fc-day-31')).toBeAttached();
+  await expect(page.getByTestId('fc-day-32')).toHaveCount(0);
+  await page.getByTestId('fc-day-5').click({ force: true });
+  await expect(page.getByTestId('fc-readout')).toContainText('250,00');
+  await expect(page.getByTestId('fc-readout')).toContainText('mokėjo: 2');
+  const up = await page.getByTestId('fc-day-5').locator('.fc-up i').boundingBox(), down = await page.getByTestId('fc-day-6').locator('.fc-down i').boundingBox(), base = await page.getByTestId('fc-day-5').locator('.fc-up').boundingBox();
+  expect(up!.y + up!.height).toBeLessThanOrEqual(base!.y + base!.height + 1); // money in grows up from the line
+  expect(down!.y).toBeGreaterThanOrEqual(base!.y + base!.height - 1); // money out hangs below it
+  // the people who paid, largest first, tap opens the client
+  await expect(page.getByTestId('exp-payer-0')).toContainText('200,00');
+  await expect(page.getByTestId('exp-payer-0')).toContainText('Ona');
+  await expect(page.getByTestId('exp-payer-1')).toContainText('50,00');
+  await page.getByTestId('exp-payer-0').click();
+  await expect(page.getByTestId('client-card')).toBeVisible();
+});
+
+test('a month with more going out than coming in shows red only on the total', async ({ page }) => {
+  await openApp(page);
+  await seedOptions(page);
+  await page.evaluate(async () => {
+    const { repo } = (window as any).__vizitai;
+    const [mat] = await repo.listOptions('expense');
+    await repo.createAppointment({ kind: 'expense', title: mat.name, optionId: mat.id, amountCents: 4000, start: '2026-10-06T10:00' });
+  });
+  await page.getByTestId('tab-expenses').click();
+  await expect(page.getByTestId('exp-net')).toHaveClass(/neg/);
+  await expect(page.getByTestId('exp-payers')).toHaveCount(0); // nobody paid
 });

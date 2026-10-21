@@ -348,3 +348,7 @@ This is the direction every feature is measured against. Nothing in this section
 ## Nustatymai layout
 
 Nustatymai is a list of categories like iOS Settings, in three groups: Kalendorius (Paslaugos, Darbo laikas), Pasirinkimai (Asmeniniai, Išlaidų rūšys), Duomenys (Atsarginė kopija with a red dot when one is due, Apie programą with storage, version and build). Each row shows a coloured icon, its name and a short value, and opens its own page that slides in from the right, with a back button named Nustatymai, a large title, and a swipe from the left edge to go back. The build id also shows under the list.
+
+## Išlaidos tab: positive first
+
+Money in leads and money out is calm. The tab opens with the month's balance ("Liko šį mėnesį", green when positive, red only when the month is negative) and a legend with Gauta (green) and Išlaidos (indigo, never red). Below: a chart with one column per day, money in above the line and money out below it (colour is never the only cue), where a finger dragged across reads any day; "Kas sumokėjo", round dots with initials for the clients who paid this month, largest first (a tap opens the client); the expenses per kind as share bars; and every expense. Expense entries in the calendar are indigo/neutral for the same reason.

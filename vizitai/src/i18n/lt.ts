@@ -73,6 +73,7 @@ export const lt = {
   'expense.delete': 'Ištrinti išlaidą', 'expense.deleted': 'Išlaida ištrinta',
   'again.title': 'Užregistruoti dar kartą?', 'again.yes': 'Taip, užregistruoti', 'again.no': 'Ne',
   'settings.about': 'Apie programą', 'settings.group.calendar': 'Kalendorius', 'settings.group.choices': 'Pasirinkimai', 'settings.group.data': 'Duomenys',
+  'expenses.left': 'Liko šį mėnesį', 'expenses.chart': 'Pinigų srautas pagal dienas', 'expenses.paidBy': 'Kas sumokėjo', 'expenses.paidCount': 'mokėjo: {n}',
   'balance.label': 'Balansas', 'balance.in': 'Gauta', 'balance.out': 'Išlaidos',
 } as const;
 

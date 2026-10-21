@@ -42,7 +42,7 @@ export function createRepo(db: VizitaiDB) {
     return list.map((appt) => {
       const service = appt.serviceId ? services.get(appt.serviceId) ?? null : null;
       const label = appt.kind === 'client' ? clients.get(appt.clientId ?? '')?.name ?? '' : appt.title ?? '';
-      return { appt, label, service, minutes: minutesFor(appt, services), color: appt.kind === 'expense' ? 'red' : service?.color ?? 'gray', amountCents: isValidCents(appt.amountCents) ? appt.amountCents : null };
+      return { appt, label, service, minutes: minutesFor(appt, services), color: appt.kind === 'expense' ? 'indigo' : service?.color ?? 'gray', amountCents: isValidCents(appt.amountCents) ? appt.amountCents : null };
     });
   }
   // Same start: the earlier booking first, so side-by-side lanes keep a stable order.
@@ -272,7 +272,20 @@ export function createRepo(db: VizitaiDB) {
       const kinds = new Map<string, number>();
       for (const e of entries) kinds.set(e.label, (kinds.get(e.label) ?? 0) + e.amountCents!);
       const byKind = [...kinds].map(([name, cents]) => ({ name, cents })).sort((a, b) => b.cents - a.cents || ltCollator.compare(a.name, b.name));
-      return { entries, inCents, outCents, byKind };
+      // one column per day for the chart, and who paid (largest first) for the dots
+      const days = Array.from({ length: new Date(Date.UTC(y, m, 0)).getUTCDate() }, (_, i) => ({ date: `${ym}-${String(i + 1).padStart(2, '0')}`, inCents: 0, outCents: 0, paid: 0 }));
+      const who = new Map<string, { clientId: string; name: string; cents: number; count: number }>();
+      for (const e of list) {
+        const d = days[+e.appt.start.slice(8, 10) - 1]!;
+        if (e.appt.kind === 'expense') d.outCents += e.amountCents!;
+        else if (e.appt.kind === 'client' && e.appt.clientId) {
+          d.inCents += e.amountCents!; d.paid += 1;
+          const p = who.get(e.appt.clientId) ?? { clientId: e.appt.clientId, name: e.label, cents: 0, count: 0 };
+          p.cents += e.amountCents!; p.count += 1; who.set(e.appt.clientId, p);
+        }
+      }
+      const payers = [...who.values()].sort((a, b) => b.cents - a.cents || ltCollator.compare(a.name, b.name));
+      return { entries, inCents, outCents, byKind, days, payers };
     },
     async countsByDate(fromDate: string, toDateExclusive: string): Promise<Map<string, number>> {
       const list = await db.appointments.where('start').between(`${fromDate}T00:00`, `${toDateExclusive}T00:00`, true, false).toArray();

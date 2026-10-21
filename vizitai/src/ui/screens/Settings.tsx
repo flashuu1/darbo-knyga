@@ -60,7 +60,7 @@ export function SettingsScreen() {
         <h2 class="section-head">{t('settings.group.choices')}</h2>
         <div class="group">
           <Row id="personal" icon={<PersonIcon />} color="purple" label={t('settings.personal')} value={String(personal.length)} onOpen={open} />
-          <Row id="expenses" icon={<WalletIcon />} color="red" label={t('settings.expenses')} value={String(expenses.length)} onOpen={open} />
+          <Row id="expenses" icon={<WalletIcon />} color="indigo" label={t('settings.expenses')} value={String(expenses.length)} onOpen={open} />
         </div>
 
         <h2 class="section-head">{t('settings.group.data')}</h2>

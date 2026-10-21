@@ -49,7 +49,7 @@ export function EntryBlock({ e, startMin, col, cols, compact, anchor }: {
   const out = e.appt.kind === 'expense' && e.amountCents !== null && e.appt.status === 'booked'; // money out
   return (
     <>
-    {due && !thin && <span class="entry-glow" aria-hidden="true" style={style} />}
+    {due && !thin && <span class="entry-glow" aria-hidden="true" style={style}><i /><i /></span>}
     {bloom && !thin && <span class="entry-bloom" aria-hidden="true" data-testid={`bloom-${e.appt.id}`} style={style}><i /><i /><i /><i /><i /></span>}
     <button ref={ref} class={cls} style={style} data-testid={`entry-${e.appt.id}`} data-entry-id={e.appt.id} data-entry-box={thin ? undefined : ''}
       onClick={() => (thin ? openCancelled(e) : openEntry(e.appt))}>

@@ -366,3 +366,5 @@ Money in leads and money out is calm. The tab opens with the month's balance ("L
 ## Vestuvės is a service (flowers)
 
 Vestuvės is one of the services in Paslaugos (pink, 4 hours to start from, listed before Kita; schema v5 adds it once to an existing install). A service can carry the "Gėlių efektas" switch (Nustatymai > Paslaugos): visits of such a service get flowers drifting up from the entry while the visit is coming up and while it waits for its payment (on top of the orange glow once the time has passed), and none once the amount is in or the visit is cancelled. Vestuvės has the switch on; any service can be given it. Service lengths go in quarter hours up to 2 hours and in half hours after that, up to 14 hours, so a wedding can be as long as it needs to be.
+
+- **The glow and the flowers scale with the entry.** Both are layers exactly the size of the entry, and the ring, blur, sparks and flowers are sized from that layer's own height (container query units), so they follow the pinch live and are there at every zoom (a long visit gets big soft flowers, a quarter-hour sliver gets small ones). They are hidden only with Reduce Motion.

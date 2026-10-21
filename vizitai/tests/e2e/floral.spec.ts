@@ -82,3 +82,35 @@ test('a service can be made long: half-hour steps from two hours, up to fourteen
   await page.getByTestId('svc-plus-1').click(); // short services still go in quarter hours
   await expect(page.getByTestId('svc-minutes-1')).toHaveText('30');
 });
+
+test('the glow and the flowers are there at every zoom and scale with the entry as she pinches in and out', async ({ page }) => {
+  await openApp(page, '2026-10-14T12:00:00');
+  const due = await book(page, '2026-10-14T08:00', 'Vestuvės', 'Rasa'); // four hours, waiting for its payment: glow and flowers
+  const quick = await book(page, '2026-10-14T10:00', 'Kirpimas', 'Ona');
+  await page.evaluate(async () => { const { repo } = (window as any).__vizitai; const s = (await repo.listServices(true)).find((x: any) => x.name === 'Kirpimas'); await repo.updateService(s.id, { floral: true }); });
+  const look = async (id: string) => page.evaluate((x) => {
+    const bloom = document.querySelector(`[data-testid="bloom-${x}"]`) as HTMLElement | null;
+    const glow = [...document.querySelectorAll<HTMLElement>('.entry-glow')];
+    const petal = bloom?.querySelector('i') as HTMLElement | null;
+    return {
+      bloomShown: !!bloom && getComputedStyle(bloom).display !== 'none' && bloom.getBoundingClientRect().height > 0,
+      petalPx: petal ? parseFloat(getComputedStyle(petal).fontSize) : 0,
+      glowShown: glow.length > 0 && glow.every((g) => getComputedStyle(g).display !== 'none' && g.getBoundingClientRect().height > 0),
+      sparksShown: glow.every((g) => [...g.querySelectorAll('i')].every((i) => getComputedStyle(i).display !== 'none')),
+      ringPx: glow[0] ? parseFloat(getComputedStyle(glow[0], '::before').boxShadow.split(' ').find((p) => p.endsWith('px')) ?? '0') : 0,
+    };
+  }, id);
+  const sizes: Record<number, number> = {};
+  for (const z of [1, 0.5, 0.2]) {
+    await page.evaluate((zz) => (window as any).__vizitai.ui.set({ zoom: zz }), z);
+    await expect.poll(async () => (await look(due)).bloomShown).toBe(true);
+    const l = await look(due);
+    expect(l.glowShown).toBe(true);
+    expect(l.sparksShown).toBe(true);
+    sizes[z] = l.petalPx;
+    expect(l.petalPx).toBeGreaterThanOrEqual(9); // never too small to see
+  }
+  expect(sizes[1]).toBeGreaterThan(sizes[0.2]!); // the flowers shrink with the entry
+  // the quarter-hour visit is a sliver at the smallest zoom and still shows its own flowers and glow
+  await expect.poll(async () => (await look(quick)).bloomShown).toBe(true);
+});

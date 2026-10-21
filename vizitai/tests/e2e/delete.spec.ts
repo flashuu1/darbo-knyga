@@ -5,6 +5,7 @@ import { apptState, openApp, seedAppts, openSettings } from './helpers';
 const count = (page: Page, table: 'clients' | 'appointments' | 'services') => page.evaluate((t) => (window as any).__vizitai.db[t].count(), table);
 
 async function swipeLeft(page: Page, testId: string, dx = 130) {
+  await page.getByTestId(testId).scrollIntoViewIfNeeded();
   const b = (await page.getByTestId(testId).boundingBox())!;
   const y = b.y + b.height / 2, x = b.x + b.width - 40;
   await page.mouse.move(x, y);
@@ -66,20 +67,20 @@ test('a service can be deleted by swiping; one that has visits is hidden instead
   const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-20T10:00', service: 0 }]);
   await openSettings(page, 'services');
   await page.getByTestId('svc-add').click();
-  await expect(page.getByTestId('svc-row-6')).toBeVisible();
-  expect(await count(page, 'services')).toBe(7);
-  await swipeLeft(page, 'svc-swipe-6');
-  await page.getByTestId('svc-swipe-6-trash').click();
+  await expect(page.getByTestId('svc-row-7')).toBeVisible();
+  expect(await count(page, 'services')).toBe(8);
+  await swipeLeft(page, 'svc-swipe-7');
+  await page.getByTestId('svc-swipe-7-trash').click();
   await expect(page.getByTestId('action-title')).toContainText('Ištrinti paslaugą');
   await page.getByTestId('action-item-0').click();
-  await expect.poll(() => count(page, 'services')).toBe(6);
+  await expect.poll(() => count(page, 'services')).toBe(7);
   await expect(page.getByTestId('toast')).toContainText('Paslauga ištrinta');
   // the first service has a visit: it is only hidden, so the visit keeps its label
   await swipeLeft(page, 'svc-swipe-0');
   await page.getByTestId('svc-swipe-0-trash').click();
   await page.getByTestId('action-item-0').click();
   await expect(page.getByTestId('toast')).toContainText('tik paslėpta');
-  expect(await count(page, 'services')).toBe(6);
+  expect(await count(page, 'services')).toBe(7);
   expect((await apptState(page, id)).serviceId).not.toBeNull();
 });
 

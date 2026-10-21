@@ -11,7 +11,7 @@ test('app boots, seeds and books without crypto.randomUUID', async ({ page }) =>
   await expect(page.getByTestId('boot-error')).toHaveCount(0);
   expect(await page.evaluate(() => typeof crypto.randomUUID)).toBe('undefined');
   const n = await page.evaluate(async () => (await (window as any).__vizitai.repo.listServices()).length); // eslint-disable-line @typescript-eslint/no-explicit-any
-  expect(n).toBe(6);
+  expect(n).toBe(7);
   await page.getByTestId('slot-2026-10-14T10:30').click();
   await page.getByTestId('field-name').fill('Žydrūnė');
   await page.getByTestId('field-name').press('Enter');

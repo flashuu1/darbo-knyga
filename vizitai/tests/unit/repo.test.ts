@@ -14,12 +14,12 @@ const firstService = async () => (await repo.listServices(true))[0];
 
 describe('seed', () => {
   it('seeds every service with the 15-minute default length', async () => {
-    expect((await repo.listServices()).map((s) => s.minutes)).toEqual([15, 15, 15, 15, 15, 15]);
+    expect((await repo.listServices()).map((s) => s.minutes)).toEqual([15, 15, 15, 15, 15, 240, 15]);
   });
-  it('creates six services and default settings once', async () => {
-    expect((await repo.listServices()).map((s) => s.name)).toEqual(['Kirpimas', 'Dažymas', 'Kirpimas ir dažymas', 'Sruogelės', 'Šukuosena', 'Kita']);
+  it('creates seven services and default settings once', async () => {
+    expect((await repo.listServices()).map((s) => s.name)).toEqual(['Kirpimas', 'Dažymas', 'Kirpimas ir dažymas', 'Sruogelės', 'Šukuosena', 'Vestuvės', 'Kita']);
     await ensureSeed(db);
-    expect(await db.services.count()).toBe(6);
+    expect(await db.services.count()).toBe(7);
     expect((await repo.getSettings()).dayStart).toBe('08:00');
   });
 });
@@ -191,7 +191,7 @@ describe('services', () => {
   it('hides a service without deleting it, and refuses to hide the last active one', async () => {
     const all = await repo.listServices();
     for (const s of all.slice(1)) await repo.setServiceActive(s.id, false);
-    expect(await db.services.count()).toBe(6);
+    expect(await db.services.count()).toBe(7);
     await expect(repo.setServiceActive(all[0].id, false)).rejects.toThrow('last-active');
   });
   it('keeps hidden service labels on old appointments', async () => {

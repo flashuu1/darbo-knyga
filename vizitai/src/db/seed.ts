@@ -16,6 +16,7 @@ export async function ensureSeed(db: VizitaiDB): Promise<void> {
       { name: t('service.default.cutColor'), color: 'purple', minutes: 15 },
       { name: t('service.default.highlights'), color: 'orange', minutes: 15 },
       { name: t('service.default.style'), color: 'green', minutes: 15 },
+      { name: t('service.default.wedding'), color: 'pink', minutes: 240, floral: true },
       { name: t('service.default.other'), color: 'gray', minutes: 15 },
     ];
     await db.services.bulkAdd(defs.map((d, i) => ({ ...d, id: newId(), order: i, active: true })));

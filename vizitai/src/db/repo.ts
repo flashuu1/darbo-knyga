@@ -23,7 +23,7 @@ export interface ClientRow {
 }
 /** How long a cancelled visit stays visible before it is removed. */
 export const CANCELLED_KEEP_DAYS = 7;
-export interface Entry { appt: Appointment; label: string; service: Service | null; /** what it is: the service, or Vestuvės / Asmeninis / Išlaidos */ what: string; minutes: number; color: ServiceColor; amountCents: number | null }
+export interface Entry { appt: Appointment; label: string; service: Service | null; minutes: number; color: ServiceColor; amountCents: number | null }
 const toMin = (hhmm: string) => +hhmm.slice(0, 2) * 60 + +hhmm.slice(3, 5);
 
 export function createRepo(db: VizitaiDB) {
@@ -42,8 +42,7 @@ export function createRepo(db: VizitaiDB) {
     return list.map((appt) => {
       const service = appt.serviceId ? services.get(appt.serviceId) ?? null : null;
       const label = appt.kind === 'client' ? clients.get(appt.clientId ?? '')?.name ?? '' : appt.title ?? '';
-      const what = service?.name ?? (appt.wedding ? t('type.wedding') : appt.kind === 'personal' ? t('type.personal') : appt.kind === 'expense' ? t('type.expense') : '');
-      return { appt, label, service, what, minutes: minutesFor(appt, services), color: appt.kind === 'expense' ? 'indigo' : appt.wedding ? 'pink' : service?.color ?? 'gray', amountCents: isValidCents(appt.amountCents) ? appt.amountCents : null };
+      return { appt, label, service, minutes: minutesFor(appt, services), color: appt.kind === 'expense' ? 'indigo' : service?.color ?? 'gray', amountCents: isValidCents(appt.amountCents) ? appt.amountCents : null };
     });
   }
   // Same start: the earlier booking first, so side-by-side lanes keep a stable order.
@@ -70,7 +69,7 @@ export function createRepo(db: VizitaiDB) {
       await db.services.add(s);
       return s;
     },
-    async updateService(id: string, p: Partial<Pick<Service, 'name' | 'color' | 'minutes'>>) {
+    async updateService(id: string, p: Partial<Pick<Service, 'name' | 'color' | 'minutes' | 'floral'>>) {
       const { name, ...rest } = p;
       const clean = name === undefined ? '' : cleanName(name);
       const patch = clean ? { ...rest, name: clean } : rest; // an empty name is ignored
@@ -168,26 +167,24 @@ export function createRepo(db: VizitaiDB) {
       return list.length ? list[list.length - 1].serviceId : null;
     },
 
-    async createAppointment(i: { kind: 'client' | 'personal' | 'expense'; name?: string; title?: string; serviceId?: string | null; start: string; optionId?: string | null; amountCents?: number; wedding?: boolean; minutes?: number }): Promise<Appointment> {
+    async createAppointment(i: { kind: 'client' | 'personal' | 'expense'; name?: string; title?: string; serviceId?: string | null; start: string; optionId?: string | null; amountCents?: number }): Promise<Appointment> {
       parse(i.start); // throws on a malformed time; any minute is allowed (the time wheel is not limited to a grid)
       const start = i.start;
       let clientId: string | null = null, title: string | null = null;
       if (i.kind === 'client') clientId = (await this.matchOrCreateClient(i.name ?? '')).id;
       else { title = cleanName(i.title ?? ''); if (!title) throw new Error('empty-title'); }
       if (i.kind === 'expense' && !isValidCents(i.amountCents)) throw new Error('bad-amount');
-      if (i.wedding && !(Number.isInteger(i.minutes) && i.minutes! >= 30 && i.minutes! <= 1440)) throw new Error('bad-minutes');
       const ts = now();
       const a: Appointment = {
-        id: uuid(), kind: i.kind, clientId, title, serviceId: i.kind === 'client' && !i.wedding ? i.serviceId ?? null : null, start,
+        id: uuid(), kind: i.kind, clientId, title, serviceId: i.kind === 'client' ? i.serviceId ?? null : null, start,
         status: 'booked', cancelReason: null, cancelledAt: null, moves: [], createdAt: ts, updatedAt: ts,
         ...(i.kind === 'client' ? {} : { optionId: i.optionId ?? null }), ...(i.kind === 'expense' ? { amountCents: i.amountCents } : {}),
-        ...(i.kind === 'client' && i.wedding ? { wedding: true, durationMinutes: i.minutes } : {}),
       };
       await db.appointments.add(a);
       return a;
     },
     getAppointment: (id: string) => db.appointments.get(id),
-    async updateAppointment(id: string, p: Partial<Pick<Appointment, 'serviceId' | 'durationMinutes'>>) { return (await mutate(id, (a) => ({ ...a, ...p }))).after; },
+    async updateAppointment(id: string, p: Partial<Pick<Appointment, 'serviceId'>>) { return (await mutate(id, (a) => ({ ...a, ...p }))).after; },
     moveAppointment(id: string, to: string) {
       parse(to);
       const target = to;
@@ -262,16 +259,16 @@ export function createRepo(db: VizitaiDB) {
       return db.appointments.where('status').equals('cancelled').filter((a) => !!a.cancelledAt && a.cancelledAt < cutoff).delete();
     },
 
-    async findOverlapFor(i: { start: string; kind: 'client' | 'personal' | 'expense'; serviceId: string | null; excludeId?: string; minutes?: number }) {
+    async findOverlapFor(i: { start: string; kind: 'client' | 'personal' | 'expense'; serviceId: string | null; excludeId?: string }) {
       if (i.kind === 'expense') return undefined; // money out can be noted at any time
       const services = await serviceMap();
-      const minutes = i.minutes ?? (i.kind !== 'client' || !i.serviceId ? PERSONAL_MINUTES : services.get(i.serviceId)?.minutes ?? PERSONAL_MINUTES);
+      const minutes = i.kind !== 'client' || !i.serviceId ? PERSONAL_MINUTES : services.get(i.serviceId)?.minutes ?? PERSONAL_MINUTES;
       const lo = addMinutes(i.start, -1440), hi = addMinutes(i.start, 1440);
       const near = await db.appointments.where('start').between(lo, hi, true, true).toArray();
       const hit = findOverlap({ id: i.excludeId ?? '', start: i.start, minutes }, near, services);
       if (!hit) return undefined;
       const [e] = await toEntries([hit]);
-      return { label: e.label, serviceName: e.what || t('type.personal') };
+      return { label: e.label, serviceName: e.service?.name ?? t('type.personal') };
     },
 
     async entriesBetween(fromDate: string, toDateExclusive: string): Promise<Entry[]> {

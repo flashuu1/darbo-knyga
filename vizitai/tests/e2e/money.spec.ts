@@ -5,6 +5,7 @@ import { apptState, openApp, openSettings, seedAppts, seedOptions } from './help
 const count = (page: Page, table: string) => page.evaluate((x) => (window as any).__vizitai.db[x].count(), table);
 
 async function swipeLeft(page: Page, testId: string, dx = 130) {
+  await page.getByTestId(testId).scrollIntoViewIfNeeded();
   const b = (await page.getByTestId(testId).boundingBox())!;
   const y = b.y + b.height / 2, x = b.x + b.width - 40;
   await page.mouse.move(x, y);

@@ -61,7 +61,7 @@ export function ClientCard({ id }: { id: string }) {
         <span class="visit-bar" aria-hidden="true" />
         <span class="visit-text">
           <b>{formatWhen(e.appt.start)}</b>
-          <span>{e.what} · {statusLabel(e.appt)}</span>
+          <span>{e.service?.name ?? ''} · {statusLabel(e.appt)}</span>
         </span>
         <span class="chev"><NextIcon /></span>
       </button>

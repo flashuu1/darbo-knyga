@@ -1,5 +1,6 @@
 import type { Transaction } from 'dexie';
 import { t, type Key } from '../i18n/lt';
+import { newId } from '../logic/id';
 
 export interface SchemaVersion {
   version: number;
@@ -44,5 +45,19 @@ versions.push({
   version: 4,
   stores: {},
   upgrade: (tx) => { const names = TEMPLATE_NAMES(); return tx.table('options').filter((o: { name: string }) => names.has(o.name)).delete(); },
+});
+// v5: the service Vestuvės (long, with flowers while it is coming up or waiting for its payment). Added once, before "Kita".
+versions.push({
+  version: 5,
+  stores: {},
+  upgrade: async (tx) => {
+    const services = tx.table('services');
+    const all = await services.toArray() as { id: string; name: string; order: number }[];
+    if (all.length === 0 || all.some((s) => s.name === t('service.default.wedding'))) return; // a fresh install seeds it itself
+    const kita = all.find((s) => s.name === t('service.default.other'));
+    const order = kita ? kita.order : Math.max(...all.map((s) => s.order)) + 1;
+    if (kita) await services.update(kita.id, { order: kita.order + 1 });
+    await services.add({ id: newId(), name: t('service.default.wedding'), color: 'pink', minutes: 240, order, active: true, floral: true });
+  },
 });
 export const SCHEMA_VERSION = versions[versions.length - 1].version;

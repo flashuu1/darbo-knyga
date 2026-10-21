@@ -11,10 +11,9 @@ import { useLive } from '../hooks';
 import { useKeyboardHeight } from '../keyboard';
 import { Sheet } from './Sheet';
 
-const FLOWERS = ['🌸', '🌷'];
 const BURST_COLORS = ['green', 'yellow', 'orange', 'pink', 'blue', 'teal'];
 /** A short burst of confetti behind the tick: transform and opacity only, over in under a second. */
-function Burst({ flowers }: { flowers?: boolean }) {
+function Burst() {
   const parts = useMemo(() => Array.from({ length: 26 }, (_, i) => {
     const a = (i / 26) * Math.PI * 2 + Math.random() * 0.4, d = 70 + Math.random() * 90;
     return { dx: Math.cos(a) * d, dy: Math.sin(a) * d - 24, rot: Math.round((Math.random() - 0.5) * 540), c: BURST_COLORS[i % BURST_COLORS.length]!, s: 6 + Math.round(Math.random() * 5), delay: Math.round(Math.random() * 50), round: i % 3 !== 0 };
@@ -22,7 +21,7 @@ function Burst({ flowers }: { flowers?: boolean }) {
   return (
     <div class="burst" aria-hidden="true" data-testid="burst">
       {parts.map((p, i) => (
-        <i key={i} class={flowers ? 'petal' : p.round ? 'round' : ''} style={{ '--dx': `${p.dx}px`, '--dy': `${p.dy}px`, '--rot': `${p.rot}deg`, '--c': `var(--c-${p.c})`, '--s': `${p.s}px`, '--d': `${p.delay}ms` } as CSSProperties}>{flowers ? FLOWERS[i % 2] : null}</i>
+        <i key={i} class={p.round ? 'round' : ''} style={{ '--dx': `${p.dx}px`, '--dy': `${p.dy}px`, '--rot': `${p.rot}deg`, '--c': `var(--c-${p.c})`, '--s': `${p.s}px`, '--d': `${p.delay}ms` } as CSSProperties} />
       ))}
     </div>
   );
@@ -92,7 +91,7 @@ export function AmountSheet({ id }: { id: string }) {
           </div>
         )}>
         <div class="yay">
-          <Burst flowers={appt.wedding === true} />
+          <Burst />
           <span class="yay-check" aria-hidden="true">✓</span>
         </div>
         <p class="again-sum" data-testid="again-saved">{t('amount.saved')}: {formatEuro(saved.cents)}</p>

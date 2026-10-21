@@ -10,14 +10,11 @@ export interface Appointment {
   amountCents?: number | null;
   /** Personal and expense entries: which of her own choices (Settings) it was picked from. Unindexed. */
   optionId?: string | null;
-  /** A wedding (Vestuvės): a client entry with a length of its own (hours), no service. Unindexed. */
-  wedding?: boolean;
-  /** The length in minutes when it is not the service's (weddings). */
-  durationMinutes?: number | null;
 }
 /** One of her own choices in Settings: what a personal entry can be, or what a kind of expense is. */
 export type OptionGroup = 'personal' | 'expense';
 export interface Option { id: string; group: OptionGroup; name: string; order: number }
-export interface Service { id: string; name: string; color: ServiceColor; minutes: number; order: number; active: boolean }
+/** `floral`: visits of this service get flowers while they are coming up or waiting for their payment (Vestuvės). Unindexed. */
+export interface Service { id: string; name: string; color: ServiceColor; minutes: number; order: number; active: boolean; floral?: boolean }
 export interface Settings { id: 'settings'; dayStart: string; dayEnd: string; slotMinutes: number; lastBackupAt: string | null; persistGranted: boolean | null }
 export const SERVICE_COLORS: ServiceColor[] = ['blue', 'green', 'indigo', 'orange', 'pink', 'purple', 'red', 'teal', 'yellow', 'gray'];

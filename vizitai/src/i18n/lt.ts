@@ -28,7 +28,7 @@ export const lt = {
   'service.add': 'Pridėti paslaugą', 'service.new': 'Nauja paslauga', 'service.hide': 'Paslėpti', 'service.show': 'Rodyti',
   'service.hidden': 'Paslėpta', 'service.minutes': 'Trukmė (min.)', 'service.lastActive': 'Turi likti bent viena paslauga',
   'service.default.cut': 'Kirpimas', 'service.default.color': 'Dažymas', 'service.default.cutColor': 'Kirpimas ir dažymas',
-  'service.default.highlights': 'Sruogelės', 'service.default.style': 'Šukuosena', 'service.default.other': 'Kita',
+  'service.default.highlights': 'Sruogelės', 'service.default.style': 'Šukuosena', 'service.default.other': 'Kita', 'service.default.wedding': 'Vestuvės', 'service.floral': 'Gėlių efektas',
   'hours.start': 'Pradžia', 'hours.end': 'Pabaiga', 'hours.invalid': 'Pabaiga turi būti vėlesnė už pradžią',
   'backup.export': 'Eksportuoti duomenis', 'backup.import': 'Atkurti iš failo',
   'backup.confirm': 'Pakeisti visus esamus duomenis?', 'backup.replace': 'Pakeisti',
@@ -75,8 +75,6 @@ export const lt = {
   'settings.about': 'Apie programą', 'settings.group.calendar': 'Kalendorius', 'settings.group.choices': 'Pasirinkimai', 'settings.group.data': 'Duomenys',
   'expenses.left': 'Liko šį mėnesį', 'expenses.chart': 'Pinigų srautas pagal dienas', 'expenses.paidBy': 'Kas sumokėjo', 'expenses.paidCount': 'mokėjo: {n}',
   'act.call': 'Skambinti', 'appt.minutes': '{n} min.', 'amount.suggest': 'Dažniausiai', 'amount.saved.yay': 'Suma išsaugota!',
-  'type.wedding': 'Vestuvės', 'dur.h': '{n} val.', 'dur.m': '{n} min.', 'dur.hm': '{h} val. {m} min.',
-  'wedding.length': 'Trukmė', 'wedding.less': 'Trumpiau', 'wedding.more': 'Ilgiau',
   'balance.label': 'Balansas', 'balance.in': 'Gauta', 'balance.out': 'Išlaidos',
 } as const;
 

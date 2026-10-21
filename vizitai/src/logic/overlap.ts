@@ -5,7 +5,6 @@ export const PERSONAL_MINUTES = 15;
 export interface Block { id: string; start: string; minutes: number }
 
 export function minutesFor(a: Appointment, services: Map<string, Service>): number {
-  if (a.kind === 'client' && a.durationMinutes && a.durationMinutes > 0) return a.durationMinutes; // a wedding has its own length
   if (a.kind !== 'client' || !a.serviceId) return PERSONAL_MINUTES;
   return services.get(a.serviceId)?.minutes ?? PERSONAL_MINUTES;
 }

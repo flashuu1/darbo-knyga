@@ -34,7 +34,7 @@ test('hiding a service removes its chip but keeps old appointment labels', async
 test('the last active service cannot be hidden', async ({ page }) => {
   await openApp(page);
   await openSettings(page, 'services');
-  for (let i = 1; i < 6; i++) await page.getByTestId(`svc-toggle-${i}`).click();
+  for (let i = 1; i < 7; i++) await page.getByTestId(`svc-toggle-${i}`).click();
   await page.getByTestId('svc-toggle-0').click();
   await expect(page.getByTestId('toast')).toHaveText(/Turi likti bent viena paslauga/);
   await page.getByTestId('tab-calendar').click();
@@ -60,7 +60,7 @@ test('reorders, recolours, changes length and adds a service', async ({ page }) 
   await page.getByTestId('svc-color-0-teal').click();
   await expect.poll(() => page.evaluate(async () => (await (window as any).__vizitai.repo.listServices())[0])).toMatchObject({ color: 'teal', minutes: 30 }); // eslint-disable-line @typescript-eslint/no-explicit-any
   await page.getByTestId('svc-add').click();
-  await expect(page.getByTestId('svc-row-6')).toBeVisible();
+  await expect(page.getByTestId('svc-row-7')).toBeVisible();
 });
 
 test('working hours change the timeline range and reject an end before the start', async ({ page }) => {
@@ -201,7 +201,7 @@ test('Nustatymai is a list of categories, like iOS, and each opens its own page 
   await openApp(page);
   await page.getByTestId('tab-settings').click();
   for (const id of ['services', 'hours', 'personal', 'expenses', 'backup', 'about']) await expect(page.getByTestId(`settings-row-${id}`)).toBeVisible();
-  await expect(page.getByTestId('settings-value-services')).toHaveText('6'); // a short value on the row
+  await expect(page.getByTestId('settings-value-services')).toHaveText('7'); // a short value on the row
   await expect(page.getByTestId('settings-value-hours')).toHaveText('08:00–20:00');
   await expect(page.getByTestId('svc-row-0')).toHaveCount(0); // the details are not on the list itself
   await page.getByTestId('settings-row-services').click();

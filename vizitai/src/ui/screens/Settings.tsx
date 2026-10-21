@@ -117,6 +117,10 @@ function SubPage({ title, id, leaving, onBack, children }: { title: string; id: 
   );
 }
 
+// Short services go in quarter hours; long ones (a wedding takes hours) in half hours, up to 14 hours.
+const MAX_SERVICE_MIN = 840;
+const stepFor = (minutes: number) => (minutes < 120 ? 15 : 30);
+
 function ServicesPage() {
   const services = useServices(false);
   const [openColor, setOpenColor] = useState<string | null>(null);
@@ -146,11 +150,16 @@ function ServicesPage() {
               <div class="svc-line sub">
                 <span class="sub-label">{t('service.minutes')}</span>
                 <span class="stepper">
-                  <button data-testid={`svc-minus-${i}`} disabled={s.minutes <= 15} onClick={() => void repo.updateService(s.id, { minutes: Math.max(15, s.minutes - 15) })}>−</button>
+                  <button data-testid={`svc-minus-${i}`} disabled={s.minutes <= 15} onClick={() => void repo.updateService(s.id, { minutes: Math.max(15, s.minutes - stepFor(s.minutes - 1)) })}>−</button>
                   <span class="stepper-val" data-testid={`svc-minutes-${i}`}>{s.minutes}</span>
-                  <button data-testid={`svc-plus-${i}`} disabled={s.minutes >= 240} onClick={() => void repo.updateService(s.id, { minutes: Math.min(240, s.minutes + 15) })}>+</button>
+                  <button data-testid={`svc-plus-${i}`} disabled={s.minutes >= MAX_SERVICE_MIN} onClick={() => void repo.updateService(s.id, { minutes: Math.min(MAX_SERVICE_MIN, s.minutes + stepFor(s.minutes)) })}>+</button>
                 </span>
                 <button class="toggle" data-testid={`svc-toggle-${i}`} onClick={() => void toggle(s.id, !s.active)}>{s.active ? t('service.hide') : t('service.show')}</button>
+              </div>
+              <div class="svc-line sub">
+                <span class="sub-label">{t('service.floral')} 🌸</span>
+                <button class={s.floral ? 'switch on' : 'switch'} role="switch" aria-checked={s.floral === true} aria-label={t('service.floral')} data-testid={`svc-floral-${i}`}
+                  onClick={() => void repo.updateService(s.id, { floral: !s.floral })}><span class="knob" /></button>
               </div>
               {openColor === s.id && (
                 <div class="svc-line swatches">

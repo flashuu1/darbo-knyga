@@ -157,3 +157,35 @@ test('pinch runs on a passive scroller: the non-passive touchmove listener only 
   expect(flags[0]).toBe(true); // attached non-passive when two fingers land
   expect(flags.length).toBeGreaterThanOrEqual(2); // and removed when they lift
 });
+
+test('a long visit keeps its name when the calendar is zoomed out, in Diena and in Savaitė', async ({ page }) => {
+  await openApp(page);
+  const ids = await page.evaluate(async () => {
+    const { repo, ui } = (window as any).__vizitai;
+    const svc = await repo.listServices(true);
+    await repo.updateService(svc[0].id, { minutes: 60 });
+    await repo.updateService(svc[1].id, { minutes: 120 });
+    const a = await repo.createAppointment({ kind: 'client', name: 'Ona Petraitė', serviceId: svc[0].id, start: '2026-10-14T10:00' });
+    const b = await repo.createAppointment({ kind: 'client', name: 'Rasa Kazlauskaitė', serviceId: svc[1].id, start: '2026-10-14T13:00' });
+    const c = await repo.createAppointment({ kind: 'client', name: 'Jonas', serviceId: svc[2].id, start: '2026-10-14T16:00' });
+    ui.set({ zoom: 0.2 }); // as far out as it goes
+    return [a.id, b.id, c.id];
+  });
+  const readable = async (id: string) => page.getByTestId(`entry-${id}`).evaluate((el) => {
+    const n = el.querySelector('.entry-name') as HTMLElement | null;
+    if (!n) return { shown: false, fit: el.getAttribute('data-fit') };
+    const r = n.getBoundingClientRect(), e = el.getBoundingClientRect();
+    return { shown: getComputedStyle(n).display !== 'none' && r.height > 6 && r.top >= e.top - 1 && r.bottom <= e.bottom + 1, fit: el.getAttribute('data-fit'), h: Math.round(e.height) };
+  });
+  for (const view of ['day', 'week'] as const) {
+    if (view === 'week') await page.getByTestId('seg-week').click();
+    await expect.poll(async () => (await readable(ids[0]!)).fit).toBe('m'); // an hour: time and name
+    expect((await readable(ids[0]!)).shown).toBe(true);
+    await expect.poll(async () => (await readable(ids[1]!)).fit).toBe('l'); // two hours: the whole card
+    expect((await readable(ids[1]!)).shown).toBe(true);
+    // a quarter of an hour is a sliver at this zoom: it has no room for text, and that is fine
+    await expect.poll(async () => (await readable(ids[2]!)).fit).toMatch(/^(xs|x|s|m)$/);
+  }
+  await page.evaluate(() => (window as any).__vizitai.ui.set({ zoom: 1 }));
+  await expect.poll(async () => (await readable(ids[0]!)).fit).toBe('l');
+});

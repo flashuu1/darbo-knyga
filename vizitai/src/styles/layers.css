@@ -391,12 +391,23 @@ p.link-name { color: var(--label); }
 .empty-overlay { transition: opacity 600ms var(--ease-out); }
 .empty-overlay.gone { opacity: 0; }
 .empty-card { background: color-mix(in srgb, var(--page) 70%, transparent); box-shadow: var(--shadow-1); }
-/* zoomed out: entries drop details so the whole day can be seen at a glance */
-.timeline[data-density='tight'] .entry { padding-top: 0; padding-bottom: 0; }
-.timeline[data-density='tight'] .entry-svc, .timeline[data-density='tight'] .one-svc, .timeline[data-density='tight'] .entry-amount, .timeline[data-density='tight'] .entry-flag { display: none; }
-.timeline[data-density='tight'] .entry-name, .timeline[data-density='tight'] .entry-time { font-size: .68rem; line-height: 1.1; }
-.timeline[data-density='tight'] .entry.one { align-items: center; }
-.timeline[data-density='tiny'] .entry > span, .timeline[data-density='tiny'] .entry .one-wrap { display: none; }
-.timeline[data-density='tiny'] .entry { padding: 0; border-radius: 3px; }
+/* zoomed out, an entry shows what fits in ITS OWN height (data-fit is set from it, see logic/fit.ts): a long visit keeps its name */
+.entry[data-fit='m'], .entry[data-fit='s'], .entry[data-fit='x'], .entry[data-fit='xs'] { padding-top: 0; padding-bottom: 0; flex-direction: row; align-items: center; gap: 6px; }
+.entry[data-fit='m'] .entry-svc, .entry[data-fit='m'] .one-svc, .entry[data-fit='m'] .entry-flag,
+.entry[data-fit='s'] .entry-svc, .entry[data-fit='s'] .one-svc, .entry[data-fit='s'] .entry-flag, .entry[data-fit='s'] .entry-amount, .entry[data-fit='s'] .entry-time, .entry[data-fit='s'] .entry-dot,
+.entry[data-fit='x'] .entry-svc, .entry[data-fit='x'] .one-svc, .entry[data-fit='x'] .entry-flag, .entry[data-fit='x'] .entry-amount, .entry[data-fit='x'] .entry-time, .entry[data-fit='x'] .entry-dot { display: none; }
+.entry[data-fit='m'] .entry-amount { margin: 0 0 0 auto; align-self: center; }
+.entry[data-fit='m'] .entry-name, .entry[data-fit='m'] .entry-time { font-size: .74rem; line-height: 1.1; }
+.entry[data-fit='s'] .entry-name { font-size: .72rem; line-height: 1.1; }
+.entry[data-fit='x'] .entry-name { font-size: .6rem; line-height: 1; }
+.entry[data-fit='x'], .entry[data-fit='xs'] { border-radius: 3px; }
+.entry[data-fit='xs'] { padding: 0; }
+.entry[data-fit='xs'] > span, .entry[data-fit='xs'] .one-wrap { display: none; }
+.entry[data-fit='s'] .one-wrap, .entry[data-fit='x'] .one-wrap { height: auto; line-height: 1.1; flex-wrap: nowrap; }
+.entry[data-fit='s'] .one-main, .entry[data-fit='x'] .one-main { gap: 0; }
+/* Savaitė (narrow columns): the name keeps two short lines while it fits, one line once it does not */
+.entry.compact[data-fit='m'] { flex-direction: column; justify-content: center; gap: 0; }
+.entry.compact[data-fit='m'] .entry-time { display: none; }
+.entry.compact[data-fit='s'] .entry-name, .entry.compact[data-fit='x'] .entry-name { -webkit-line-clamp: 1; line-clamp: 1; }
 .timeline[data-density='tight'] .hour-label, .timeline[data-density='tiny'] .hour-label { font-size: .8rem; }
 .svc-line .inline.left { text-align: left; flex: 1; min-width: 0; color: var(--label); font-size: 1.02rem; padding: 8px 0; }

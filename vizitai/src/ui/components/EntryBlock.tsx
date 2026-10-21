@@ -9,6 +9,7 @@ import { openEntry } from '../amount';
 import { openCancelled } from '../actions';
 import { useNow } from '../clock';
 import { bindEntryDrag } from '../drag';
+import { fitFor } from '../../logic/fit';
 import { ui, useStore } from '../store';
 
 export function EntryBlock({ e, startMin, col, cols, compact, anchor }: {
@@ -22,6 +23,19 @@ export function EntryBlock({ e, startMin, col, cols, compact, anchor }: {
   const latest = useRef(e);
   latest.current = e;
   useEffect(() => (ref.current ? bindEntryDrag(ref.current, () => latest.current) : undefined), []);
+  // What fits depends on this entry's own height (its length in time times the zoom), so a long visit keeps its name when zoomed out.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver((list) => {
+      if (el.classList.contains('thin')) { delete el.dataset.fit; return; }
+      const h = list[0]?.borderBoxSize?.[0]?.blockSize ?? el.offsetHeight;
+      const fit = fitFor(h, el.classList.contains('one'));
+      if (el.dataset.fit !== fit) el.dataset.fit = fit;
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const thin = e.appt.status === 'cancelled';
   const rows = Math.max(1, e.minutes / 15);
   const one = !compact && rows <= 1; // a 15-minute entry: one tidy line

@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'preact';
 import { useRef } from 'preact/hooks';
 import { repo } from '../../db/repo';
-import { formatEuro, formatWhen } from '../../i18n/format';
+import { formatDuration, formatEuro, formatWhen } from '../../i18n/format';
 import { t } from '../../i18n/lt';
 import { canHaveAmount } from '../../logic/amount';
 import { nowLocal } from '../../logic/time';
@@ -39,7 +39,10 @@ export function AppointmentSheet({ id }: { id: string }) {
     closeSheet();
     fn().catch((e) => console.error(e));
   };
-  const sub = [formatWhen(appt.start), service?.name, service && isClient ? t('appt.minutes', { n: service.minutes }) : undefined].filter(Boolean).join(' · ');
+  const wedding = appt.wedding === true;
+  const length = appt.durationMinutes ?? 0;
+  const sub = [formatWhen(appt.start), wedding ? t('type.wedding') : service?.name, wedding ? formatDuration(length) : service && isClient ? t('appt.minutes', { n: service.minutes }) : undefined].filter(Boolean).join(' · ');
+  const setLength = (m: number) => repo.updateAppointment(id, { durationMinutes: m }).catch((e) => console.error(e));
 
   return (
     <Sheet title={label} onClose={closeSheet} right={<button class="strong" data-testid="btn-close" onClick={closeSheet}>{t('btn.close')}</button>}>
@@ -56,7 +59,17 @@ export function AppointmentSheet({ id }: { id: string }) {
         {!expense && <span class={`status-pill status-${kind}`} data-testid="appt-status">{statusLabel(appt, now)}</span>}
       </div>
 
-      {isClient && (
+      {wedding && (
+        <div class="dur-row" data-testid="appt-length">
+          <span class="label">{t('wedding.length')}</span>
+          <span class="dur-value-sm" data-testid="appt-length-value">{formatDuration(length)}</span>
+          <span class="dur-stepper small">
+            <button data-testid="appt-length-minus" aria-label={t('wedding.less')} disabled={length <= 60} onClick={() => setLength(length - 30)}>−</button>
+            <button data-testid="appt-length-plus" aria-label={t('wedding.more')} disabled={length >= 840} onClick={() => setLength(length + 30)}>+</button>
+          </span>
+        </div>
+      )}
+      {isClient && !wedding && (
         <div class="chips">
           {chips.map((s, i) => (
             <button key={s.id} data-testid={`appt-svc-${i}`} class={appt.serviceId === s.id ? 'chip on' : 'chip'} style={{ '--svc': `var(--c-${s.color})` } as CSSProperties}

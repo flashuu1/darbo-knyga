@@ -75,6 +75,8 @@ export const lt = {
   'settings.about': 'Apie programą', 'settings.group.calendar': 'Kalendorius', 'settings.group.choices': 'Pasirinkimai', 'settings.group.data': 'Duomenys',
   'expenses.left': 'Liko šį mėnesį', 'expenses.chart': 'Pinigų srautas pagal dienas', 'expenses.paidBy': 'Kas sumokėjo', 'expenses.paidCount': 'mokėjo: {n}',
   'act.call': 'Skambinti', 'appt.minutes': '{n} min.', 'amount.suggest': 'Dažniausiai', 'amount.saved.yay': 'Suma išsaugota!',
+  'type.wedding': 'Vestuvės', 'dur.h': '{n} val.', 'dur.m': '{n} min.', 'dur.hm': '{h} val. {m} min.',
+  'wedding.length': 'Trukmė', 'wedding.less': 'Trumpiau', 'wedding.more': 'Ilgiau',
   'balance.label': 'Balansas', 'balance.in': 'Gauta', 'balance.out': 'Išlaidos',
 } as const;
 

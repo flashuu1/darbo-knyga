@@ -85,3 +85,29 @@ describe('backup', () => {
     expect(await db.options.count()).toBe(0);
   });
 });
+
+describe('weddings (Vestuvės)', () => {
+  it('are client entries with a length of their own and no service', async () => {
+    const w = await repo.createAppointment({ kind: 'client', name: 'Gintarė', wedding: true, minutes: 240, start: '2026-10-14T10:00' });
+    expect(w).toMatchObject({ kind: 'client', wedding: true, durationMinutes: 240, serviceId: null });
+    const [e] = await repo.entriesBetween('2026-10-14', '2026-10-15');
+    expect(e.minutes).toBe(240);
+    expect(e.what).toBe('Vestuvės');
+    expect(e.color).toBe('pink');
+  });
+  it('need a sensible length', async () => {
+    await expect(repo.createAppointment({ kind: 'client', name: 'G', wedding: true, minutes: 10, start: '2026-10-14T10:00' })).rejects.toThrow('bad-minutes');
+    await expect(repo.createAppointment({ kind: 'client', name: 'G', wedding: true, start: '2026-10-14T10:00' })).rejects.toThrow('bad-minutes');
+  });
+  it('block their whole length, and a changed length is respected', async () => {
+    const w = await repo.createAppointment({ kind: 'client', name: 'Gintarė', wedding: true, minutes: 240, start: '2026-10-14T10:00' });
+    expect(await repo.findOverlapFor({ start: '2026-10-14T13:30', kind: 'client', serviceId: null })).toMatchObject({ label: 'Gintarė', serviceName: 'Vestuvės' });
+    await repo.updateAppointment(w.id, { durationMinutes: 120 });
+    expect(await repo.findOverlapFor({ start: '2026-10-14T13:30', kind: 'client', serviceId: null })).toBeUndefined();
+  });
+  it('count in the balance like any visit with an amount', async () => {
+    const w = await repo.createAppointment({ kind: 'client', name: 'Gintarė', wedding: true, minutes: 240, start: '2026-10-14T10:00' });
+    await repo.setAmount(w.id, 90000);
+    expect((await repo.balance()).inCents).toBe(90000);
+  });
+});

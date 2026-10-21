@@ -2,7 +2,7 @@ import type { CSSProperties } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { repo } from '../../db/repo';
 import type { Client } from '../../db/types';
-import { euroSign, formatWhen, parseAmountInput } from '../../i18n/format';
+import { euroSign, formatDuration, formatWhen, parseAmountInput } from '../../i18n/format';
 import { t } from '../../i18n/lt';
 import { cleanName } from '../../logic/names';
 import { datePart } from '../../logic/time';
@@ -16,7 +16,8 @@ import { Sheet } from './Sheet';
 
 // Enough to find someone as the client list grows, few enough to stay clear of the keyboard.
 const MAX_SUGGESTIONS = 8;
-type Kind = 'client' | 'personal' | 'expense';
+type Kind = 'client' | 'personal' | 'expense' | 'wedding';
+const DEFAULT_WEDDING_MIN = 180; // a wedding takes hours; she sets the length
 type Screen = 0 | 1 | 2; // 0 = client, 1 = service, 2 = time
 
 /**
@@ -24,11 +25,12 @@ type Screen = 0 | 1 | 2; // 0 = client, 1 = service, 2 = time
  *   0 Klientas (name + recents, keyboard)  ->  1 Paslauga (service cards)  ->  2 Laikas (calendar + times)
  * Nothing resizes when the keyboard opens: the name field is at the top and only screen 0 has a keyboard.
  */
-export function NewFlow({ prefill }: { prefill: { start: string; clientId?: string; serviceId?: string; screen?: 'time'; from?: Origin; replaceId?: string } }) {
+export function NewFlow({ prefill }: { prefill: { start: string; clientId?: string; serviceId?: string; screen?: 'time'; from?: Origin; replaceId?: string; wedding?: number } }) {
   const services = useServices(true);
   const kb = useKeyboardHeight();
   const [screen, setScreen] = useState<Screen>(prefill.screen === 'time' ? 2 : 0);
-  const [kind, setKind] = useState<Kind>('client');
+  const [kind, setKind] = useState<Kind>(prefill.wedding ? 'wedding' : 'client');
+  const [minutes, setMinutes] = useState(prefill.wedding ?? DEFAULT_WEDDING_MIN);
   const [optionId, setOptionId] = useState<string | null>(null);
   const [amountText, setAmountText] = useState('');
   const [name, setName] = useState('');
@@ -45,10 +47,11 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
   const sid = services.some((s) => s.id === serviceId) ? serviceId : services[0]?.id ?? null;
   const hasName = cleanName(name).length > 0;
   const options = useOptions(kind === 'expense' ? 'expense' : 'personal');
-  const chosen = kind === 'client' ? null : options.find((o) => o.id === optionId) ?? null;
+  const named = kind === 'client' || kind === 'wedding'; // these two are booked for a client, by name
+  const chosen = named ? null : options.find((o) => o.id === optionId) ?? null;
   const cents = parseAmountInput(amountText);
   // The first screen is done when she has a name (client) or has picked one of her own choices (and an amount for an expense).
-  const canNext = kind === 'client' ? hasName : chosen !== null && (kind !== 'expense' || cents !== null);
+  const canNext = named ? hasName : chosen !== null && (kind !== 'expense' || cents !== null);
   const canSave = canNext && (kind !== 'client' || sid !== null);
 
   // The tap that opened the flow focused the hidden primer (the iOS keyboard is up); hand focus to the field.
@@ -64,7 +67,7 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
 
   const touch = <T,>(set: (v: T) => void) => (v: T) => { set(v); setClash(null); };
   const go = (s: Screen) => { if (s !== 0) input.current?.blur(); setScreen(s); };
-  const next = () => { if (canNext) go(kind === 'client' ? 1 : 2); };
+  const next = () => { if (canNext) go(named ? 1 : 2); };
   // Dragging the list while the keyboard is up puts the keyboard away (like iOS lists), so the whole list can be scrolled and seen.
   const touchY = useRef(0);
   const dismissOnDrag = (e: TouchEvent) => {
@@ -75,7 +78,7 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
   // client card it came from, not through the service and name screens.
   const origin = prefill.screen === 'time' ? prefill.from : undefined;
   const leave = () => { if (origin?.type === 'appt') ui.set({ sheet: { type: 'appt', id: origin.id } }); else closeSheet(); };
-  const back = () => { if (screen === 2 && origin) leave(); else go(screen === 2 ? (kind === 'client' ? 1 : 0) : 0); };
+  const back = () => { if (screen === 2 && origin) leave(); else go(screen === 2 ? (named ? 1 : 0) : 0); };
 
   async function pick(c: Client) {
     typed.current = true;
@@ -96,9 +99,10 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
     if (!canSave || busy.current) return;
     busy.current = true; setSaving(true);
     try {
-      const hit = await repo.findOverlapFor({ start, kind, serviceId: kind === 'client' ? sid : null });
+      const hit = await repo.findOverlapFor({ start, kind: kind === 'wedding' ? 'client' : kind, serviceId: kind === 'client' ? sid : null, minutes: kind === 'wedding' ? minutes : undefined });
       if (hit && clash === null) { setClash(t('warn.overlap', { vardas: hit.label, paslauga: hit.serviceName })); return; }
       const a = await repo.createAppointment(kind === 'client' ? { kind, name, serviceId: sid, start }
+        : kind === 'wedding' ? { kind: 'client', name, wedding: true, minutes, start }
         : kind === 'personal' ? { kind, title: chosen!.name, optionId: chosen!.id, start }
         : { kind, title: chosen!.name, optionId: chosen!.id, amountCents: cents!, start });
       if (prefill.replaceId) await repo.deleteAppointment(prefill.replaceId); // booked in place of a cancelled visit
@@ -125,17 +129,17 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
         {/* 0 Klientas / Asmeninis / Išlaida */}
         <section class="flow-pane" {...pane(0)} onTouchStart={(e) => { touchY.current = e.touches[0]!.clientY; }} onTouchMove={dismissOnDrag}>
           <div class="segmented wide">
-            {(['client', 'personal', 'expense'] as const).map((k) => (
+            {(['client', 'personal', 'expense', 'wedding'] as const).map((k) => (
               <button key={k} data-testid={`type-${k}`} class={kind === k ? 'seg on' : 'seg'}
                 onClick={() => { setKind(k); setOptionId(null); setLinked(null); setClash(null); }}>{t(`type.${k}`)}</button>
             ))}
           </div>
-          {kind === 'client' && (
+          {named && (
             <input ref={input} class="field" data-testid="field-name" value={name} autocomplete="off" autocapitalize="words" enterkeyhint="next" placeholder={t('field.name')}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); next(); } }}
               onInput={(e) => { typed.current = true; setName((e.target as HTMLInputElement).value); setLinked(null); setClash(null); }} />
           )}
-          {kind !== 'client' && (
+          {!named && (
             <>
               <ul class="suggest options" data-testid="option-list">
                 {options.length === 0 && <li class="suggest-head" data-testid="option-none">{t('option.none')}</li>}
@@ -157,7 +161,7 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
               )}
             </>
           )}
-          {kind === 'client' && (
+          {named && (
             <ul class="suggest">
               {!name.trim() && matches.length > 0 && <li class="suggest-head">{t('suggest.recent')}</li>}
               {matches.filter((c) => c.id !== linked?.id).slice(0, MAX_SUGGESTIONS).map((c, i) => (
@@ -170,6 +174,21 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
         {/* 1 Paslauga */}
         <section class="flow-pane" {...pane(1)}>
           <p class="flow-who" data-testid="flow-who">{cleanName(name)}</p>
+          {kind === 'wedding' ? (
+            <div class="dur-pick" data-testid="wedding-duration">
+              <p class="dur-label">{t('wedding.length')}</p>
+              <p class="dur-value" data-testid="wedding-value">{formatDuration(minutes)}</p>
+              <div class="dur-stepper">
+                <button data-testid="wedding-minus" aria-label={t('wedding.less')} disabled={minutes <= 60} onClick={() => touch(setMinutes)(minutes - 30)}>−</button>
+                <button data-testid="wedding-plus" aria-label={t('wedding.more')} disabled={minutes >= 840} onClick={() => touch(setMinutes)(minutes + 30)}>+</button>
+              </div>
+              <div class="amt-chips">
+                {[2, 3, 4, 6, 8].map((h) => (
+                  <button key={h} class={minutes === h * 60 ? 'amt-chip on' : 'amt-chip'} data-testid={`wedding-chip-${h}`} onClick={() => touch(setMinutes)(h * 60)}>{formatDuration(h * 60)}</button>
+                ))}
+              </div>
+            </div>
+          ) : (
           <div class="svc-cards">
             {services.map((s, i) => (
               <button key={s.id} data-testid={`svc-${i}`} class={sid === s.id ? 'svc-card on' : 'svc-card'} style={{ '--svc': `var(--c-${s.color})` } as CSSProperties}
@@ -179,6 +198,7 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
               </button>
             ))}
           </div>
+          )}
           <button class="time-row" data-testid="time-row" onClick={() => go(2)}>
             <span class="label">{t('field.time')}</span>
             <span class="value" data-testid="time-value">{formatWhen(start)}</span>

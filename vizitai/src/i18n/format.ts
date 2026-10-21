@@ -1,4 +1,5 @@
 import { MAX_AMOUNT_CENTS } from '../logic/amount';
+import { t } from './lt';
 const utc = { timeZone: 'UTC' } as const;
 const L = 'lt-LT';
 const long = new Intl.DateTimeFormat(L, { ...utc, month: 'long', day: 'numeric', weekday: 'long' });
@@ -19,6 +20,12 @@ export const formatBuildTime = (iso: string) => {
 };
 export const formatWhen = (start: string) =>
   `${formatDayShort(start)}, ${weekdayShort(start)} · ${start.slice(11, 16)}`;
+
+/** 180 -> "3 val.", 90 -> "1 val. 30 min.", 45 -> "45 min." */
+export const formatDuration = (minutes: number) => {
+  const h = Math.floor(minutes / 60), m = minutes % 60;
+  return h === 0 ? t('dur.m', { n: m }) : m === 0 ? t('dur.h', { n: h }) : t('dur.hm', { h, m });
+};
 
 // --- Amounts (integer euro cents) ---
 const euro = new Intl.NumberFormat(L, { style: 'currency', currency: 'EUR' });

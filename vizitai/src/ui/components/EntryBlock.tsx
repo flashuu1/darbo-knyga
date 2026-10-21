@@ -44,11 +44,13 @@ export function EntryBlock({ e, startMin, col, cols, compact, anchor }: {
   } as CSSProperties;
   const cls = ['entry', thin ? 'thin' : one ? 'one' : 'stack', compact ? 'compact' : '', due ? 'entry--due' : paid ? 'entry--paid' : '', e.appt.status === 'noshow' ? 'noshow' : '',
     highlight === e.appt.id ? 'highlight' : '', anchor ? 'anchor' : ''].filter(Boolean).join(' ');
-  const svc = e.service?.name ?? (e.appt.kind === 'personal' ? t('type.personal') : e.appt.kind === 'expense' ? t('type.expense') : '');
+  const svc = e.what;
+  const bloom = e.appt.wedding === true && e.amountCents !== null && e.appt.status === 'booked'; // a wedding that is done (its amount is in)
   const out = e.appt.kind === 'expense' && e.amountCents !== null && e.appt.status === 'booked'; // money out
   return (
     <>
     {due && !thin && <span class="entry-glow" aria-hidden="true" style={style} />}
+    {bloom && !thin && <span class="entry-bloom" aria-hidden="true" data-testid={`bloom-${e.appt.id}`} style={style}><i /><i /><i /><i /><i /></span>}
     <button ref={ref} class={cls} style={style} data-testid={`entry-${e.appt.id}`} data-entry-id={e.appt.id} data-entry-box={thin ? undefined : ''}
       onClick={() => (thin ? openCancelled(e) : openEntry(e.appt))}>
       {one ? (
@@ -68,7 +70,7 @@ export function EntryBlock({ e, startMin, col, cols, compact, anchor }: {
       {e.appt.status === 'noshow' && <span class="entry-flag">{t('status.noshow')}</span>}
       {due && <span class="entry-amount" data-testid={`due-${e.appt.id}`}>{t('amount.add')}</span>}
       {out && <span class="entry-amount out" data-testid={`amount-${e.appt.id}`}>−{formatEuro(e.amountCents!)}</span>}
-      {paid && <span class="entry-amount paid" data-testid={`amount-${e.appt.id}`}>✓ {formatEuro(e.amountCents!)}</span>}
+      {paid && <span class="entry-amount paid" data-testid={`amount-${e.appt.id}`}>{bloom ? '🌸 ' : ''}✓ {formatEuro(e.amountCents!)}</span>}
     </button>
     </>
   );

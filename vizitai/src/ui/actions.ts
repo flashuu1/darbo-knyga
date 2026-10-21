@@ -58,7 +58,7 @@ export function showOverflow(list: Entry[]) {
       title: t('overflow.title'),
       items: [
         ...list.map((e) => ({
-          label: t('overflow.item', { laikas: timePart(e.appt.start), vardas: e.label, paslauga: e.service?.name ?? t('type.personal') }),
+          label: t('overflow.item', { laikas: timePart(e.appt.start), vardas: e.label, paslauga: e.what || t('type.personal') }),
           onPress: () => openAppt(e.appt.id),
         })),
         { label: t('btn.close'), role: 'cancel' as const, onPress: () => {} },
@@ -151,7 +151,7 @@ export function highlight(id: string) {
 export async function moveWithToast(id: string, to: string) {
   const { before, after } = await repo.moveAppointment(id, to);
   if (before.start === after.start) return;
-  const hit = await repo.findOverlapFor({ start: after.start, kind: after.kind, serviceId: after.serviceId, excludeId: id });
+  const hit = await repo.findOverlapFor({ start: after.start, kind: after.kind, serviceId: after.serviceId, excludeId: id, minutes: after.durationMinutes ?? undefined });
   let text = t('toast.moved', { data: `${formatDayShort(datePart(after.start))}, ${weekdayShort(after.start)}`, laikas: timePart(after.start) });
   if (hit) text += ` — ${t('warn.overlap', { vardas: hit.label, paslauga: hit.serviceName })}`;
   showToast(text, () => repo.putSnapshot(before));
@@ -228,11 +228,11 @@ export async function chooseImport(file: File) {
  * Užregistruoti į priekį: the same client and service, booked through the calendar picker. The flow opens
  * straight on its Laikas screen (no keyboard) with tomorrow at the visit's time of day preselected.
  */
-export function rebook(e: { start: string; clientId: string | null; serviceId: string | null }, from: Origin) {
+export function rebook(e: { start: string; clientId: string | null; serviceId: string | null; wedding?: boolean; durationMinutes?: number | null }, from: Origin) {
   const clientId = e.clientId;
   if (!clientId) return;
   // The appointment sheet / client card stays where it is: "Atgal" returns to it. Saving leaves the card for the calendar (NewFlow).
   ui.set({
-    sheet: { type: 'new', start: `${addDays(todayStr(), 1)}T${timePart(e.start)}`, clientId, serviceId: e.serviceId ?? undefined, screen: 'time', from },
+    sheet: { type: 'new', start: `${addDays(todayStr(), 1)}T${timePart(e.start)}`, clientId, serviceId: e.serviceId ?? undefined, screen: 'time', from, ...(e.wedding && e.durationMinutes ? { wedding: e.durationMinutes } : {}) },
   });
 }

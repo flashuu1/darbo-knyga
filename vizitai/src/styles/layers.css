@@ -315,6 +315,36 @@ p.link-name { color: var(--label); }
 @keyframes burst { 0% { transform: translate(0, 0) scale(.3) rotate(0); opacity: 1; } 65% { opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(1) rotate(var(--rot)); opacity: 0; } }
 .again-sum { margin-top: var(--s2); }
 
+/* Vestuvės: a long visit with its own length, and flowers once it is done */
+.dur-pick { text-align: center; margin: var(--s2) 0 var(--s4); }
+.dur-label { margin: 0; color: var(--label-2); font-size: .85rem; font-weight: 600; text-transform: uppercase; letter-spacing: .02em; }
+.dur-value { margin: var(--s1) 0 var(--s3); font-size: 2.6rem; font-weight: 750; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.dur-stepper { display: inline-flex; gap: var(--s3); margin-bottom: var(--s3); }
+.dur-stepper button { width: 64px; height: 48px; border-radius: 14px; background: var(--fill); font-size: 1.6rem; font-weight: 500; }
+.dur-stepper button:active { transform: scale(.94); }
+.dur-stepper button:disabled { opacity: .35; }
+.dur-stepper.small { margin: 0; }
+.dur-stepper.small button { width: 44px; height: 36px; font-size: 1.3rem; border-radius: 10px; }
+.dur-pick .amt-chips { flex-wrap: wrap; }
+.dur-row { display: flex; align-items: center; gap: var(--s3); min-height: 54px; padding: 0 var(--s4); margin-bottom: var(--s3); border-radius: var(--r-lg); background: var(--sheet-card); }
+.dur-row .label { margin: 0; color: var(--label-2); }
+.dur-value-sm { margin-left: auto; font-weight: 650; font-variant-numeric: tabular-nums; }
+.burst i.petal { width: auto; height: auto; background: none; border-radius: 0; font-size: calc(var(--s) * 2.4); line-height: 1; font-style: normal; }
+.entry-bloom { position: absolute; z-index: 3; pointer-events: none; box-sizing: border-box;
+  top: calc(var(--row) * var(--top) + 1px); height: calc(var(--row) * var(--len) - 2px);
+  left: calc(var(--lpad) + (100% - var(--lpad) - var(--rpad)) * var(--c) / var(--n));
+  width: calc((100% - var(--lpad) - var(--rpad)) / var(--n) - var(--gap)); }
+.entry-bloom i { position: absolute; bottom: 30%; font-style: normal; font-size: 1rem; line-height: 1; opacity: 0; animation: bloom-up 3.4s ease-out both; animation-iteration-count: 3; }
+.entry-bloom i:nth-child(1) { left: 8%; --bx: 10px; --br: 40deg; animation-delay: 0s; }
+.entry-bloom i:nth-child(2) { left: 28%; --bx: -12px; --br: -60deg; animation-delay: .5s; }
+.entry-bloom i:nth-child(3) { left: 50%; --bx: 14px; --br: 80deg; animation-delay: 1s; }
+.entry-bloom i:nth-child(4) { left: 70%; --bx: -8px; --br: -30deg; animation-delay: 1.5s; }
+.entry-bloom i:nth-child(5) { left: 88%; --bx: 10px; --br: 55deg; animation-delay: 2s; }
+.entry-bloom i:nth-child(odd)::before { content: '🌸'; }
+.entry-bloom i:nth-child(even)::before { content: '🌷'; }
+@keyframes bloom-up { 0% { opacity: 0; transform: translate(0, 6px) scale(.5) rotate(0); } 18% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--bx), -42px) scale(1.1) rotate(var(--br)); } }
+@media (prefers-reduced-motion: reduce) { .entry-bloom { display: none; } }
+
 /* Settings: an iOS-style list of categories, each opening its own page */
 .settings-screen { position: relative; overflow: hidden; }
 .set-row { gap: var(--s3); min-height: 54px; text-align: left; }

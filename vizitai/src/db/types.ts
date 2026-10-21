@@ -10,6 +10,10 @@ export interface Appointment {
   amountCents?: number | null;
   /** Personal and expense entries: which of her own choices (Settings) it was picked from. Unindexed. */
   optionId?: string | null;
+  /** A wedding (Vestuvės): a client entry with a length of its own (hours), no service. Unindexed. */
+  wedding?: boolean;
+  /** The length in minutes when it is not the service's (weddings). */
+  durationMinutes?: number | null;
 }
 /** One of her own choices in Settings: what a personal entry can be, or what a kind of expense is. */
 export type OptionGroup = 'personal' | 'expense';

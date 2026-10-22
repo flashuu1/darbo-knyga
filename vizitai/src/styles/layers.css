@@ -220,14 +220,25 @@ p.link-name { color: var(--label); }
 
 /* her own choices (personal entries, expenses) */
 /* iOS-style selection: an empty circle that fills and ticks when pressed */
-.suggest.options li button { justify-content: flex-start; gap: var(--s3); transition: background var(--t-fast); }
-.suggest.options li button.on { background: color-mix(in srgb, var(--accent) 9%, transparent); font-weight: 600; }
+/* her own choices as cards: a picture on its own colour, the name, a circle that fills when picked */
+.opt-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s3); margin-top: var(--s3); }
+.opt-none { grid-column: 1 / -1; margin: 0; padding: var(--s4); text-align: center; color: var(--label-2); }
+.opt-card { position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: var(--s2); min-height: 92px; padding: var(--s3); border-radius: var(--r-lg); text-align: left; overflow: hidden;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--g) 16%, var(--sheet-card)), color-mix(in srgb, var(--g) 5%, var(--sheet-card)));
+  box-shadow: inset 0 0 0 .5px color-mix(in srgb, var(--g) 30%, transparent); transition: transform var(--t-fast) var(--ease-spring), box-shadow var(--t-fast); }
+.opt-card:active { transform: scale(.97); }
+.opt-card.on { box-shadow: inset 0 0 0 2.5px var(--g), 0 4px 14px color-mix(in srgb, var(--g) 28%, transparent); background: linear-gradient(160deg, color-mix(in srgb, var(--g) 26%, var(--sheet-card)), color-mix(in srgb, var(--g) 10%, var(--sheet-card))); }
+.opt-ico { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 12px; font-size: 1.35rem; font-weight: 700; line-height: 1; color: #fff;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--g) 85%, #fff), var(--g)); box-shadow: 0 2px 6px color-mix(in srgb, var(--g) 40%, transparent); }
+.opt-name { font-size: 1rem; font-weight: 600; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.opt-card .radio { position: absolute; top: 10px; right: 10px; width: 24px; height: 24px; background: color-mix(in srgb, var(--sheet) 70%, transparent); }
+.opt-card.on .radio { background: var(--g); border-color: var(--g); }
 .radio { flex: none; display: grid; place-items: center; width: 26px; height: 26px; box-sizing: border-box; border-radius: 50%; border: 2px solid var(--label-3); color: #fff;
   transition: background var(--t-fast), border-color var(--t-fast), transform var(--t-fast) var(--ease-spring); }
 .radio svg { transform: scale(0); transition: transform var(--t-med) var(--ease-spring); }
 .on .radio { background: var(--accent); border-color: var(--accent); }
 .on .radio svg { transform: scale(1); }
-.suggest.options li button:active .radio { transform: scale(.86); }
+.opt-card:active .radio { transform: scale(.86); }
 .entry-amount.out { color: var(--label); background: var(--fill-2); font-variant-numeric: tabular-nums; }
 .amount-row .value.out { color: var(--label); }
 

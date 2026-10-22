@@ -383,3 +383,5 @@ A confirmed amount that is changed leaves a line on the visit (`amountLog`: when
 - **Half an hour by default**, and each choice has its own length (Nustatymai > Asmeniniai, quarter hours up to 2 hours, then half hours); a personal entry takes the length of its choice when it is made (`durationMinutes`). Entries made before this are half an hour too.
 - **Its own colour**: teal, in the calendar and in the entry sheet (grey meant "nothing").
 - **The time wheels are loose.** Snapping stays, but nothing forces a stop at every number (`scroll-snap-stop: normal`), so a fling with speed carries on and settles by itself, and the number under the bar lights up while the wheel still turns.
+
+- **The choices are cards, not rows** (Asmeninis and Išlaidos in the booking flow): two to a row, each with a picture on its own colour (guessed from the word by `logic/glyph.ts`: psichologas a brain, daktaras a stethoscope, dantistas a tooth, nuoma a house ...; a word it does not know gets its first letter on a colour that stays the same), a soft gradient of that colour, and a circle in the corner that fills in the card's colour with a ring around the card when it is picked.

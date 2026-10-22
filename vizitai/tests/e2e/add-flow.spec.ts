@@ -247,7 +247,7 @@ test('a long list of choices in Asmeninis keeps its full height and scrolls, so 
   await page.getByTestId('type-personal').click();
   await page.waitForTimeout(450);
   const g = await page.evaluate(() => { const p = document.querySelector('.flow-pane') as HTMLElement; const ul = document.querySelector('[data-testid="option-list"]') as HTMLElement; return { scroll: p.scrollHeight, client: p.clientHeight, ul: ul.getBoundingClientRect().height }; });
-  expect(g.ul).toBeGreaterThan(12 * 50); // not squeezed: every row has its own height
+  expect(g.ul).toBeGreaterThan(5 * 90); // not squeezed: six rows of cards, each with its own height
   expect(g.scroll).toBeGreaterThan(g.client); // so the pane has something to scroll
   await page.evaluate(() => { const p = document.querySelector('.flow-pane') as HTMLElement; p.scrollTop = p.scrollHeight; });
   await page.waitForTimeout(100);
@@ -256,4 +256,31 @@ test('a long list of choices in Asmeninis keeps its full height and scrolls, so 
   await page.getByTestId('option-11').click();
   await expect(page.getByTestId('option-11')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByTestId('btn-next')).toBeEnabled();
+});
+
+test('the choices are cards, each with its own picture and colour, not a column of identical rows', async ({ page }) => {
+  await openApp(page);
+  await page.getByTestId('slot-2026-10-14T12:00').click();
+  await page.getByTestId('type-personal').click();
+  await page.waitForTimeout(450);
+  const cards = await page.getByTestId('option-list').locator('.opt-card').evaluateAll((els) => els.map((e) => ({
+    ico: e.querySelector('.opt-ico')!.textContent, name: e.querySelector('.opt-name')!.textContent, g: (e as HTMLElement).style.getPropertyValue('--g'), w: Math.round(e.getBoundingClientRect().width),
+  })));
+  expect(cards).toHaveLength(12);
+  expect(cards[0]).toMatchObject({ ico: '🧠', name: 'Psichologas' });
+  expect(new Set(cards.map((c) => c.ico)).size).toBeGreaterThanOrEqual(11); // different pictures
+  expect(new Set(cards.map((c) => c.g)).size).toBeGreaterThanOrEqual(5); // different colours
+  expect(cards[0]!.w).toBeLessThan(250); // two to a row
+  await page.getByTestId('option-3').click();
+  await expect(page.getByTestId('option-3')).toHaveClass(/on/);
+  await expect.poll(() => page.getByTestId('option-3').evaluate((el) => getComputedStyle(el).boxShadow)).toContain('2.5px'); // picked: a ring in its own colour
+});
+
+test('expense kinds are cards as well, and a word she adds herself gets a letter on a colour', async ({ page }) => {
+  await openApp(page);
+  await page.evaluate(async () => { const { repo } = (window as any).__vizitai; await repo.addOption('expense', 'Nuoma'); await repo.addOption('expense', 'Sporto salė'); });
+  await page.getByTestId('slot-2026-10-14T12:00').click();
+  await page.getByTestId('type-expense').click();
+  await expect(page.getByTestId('option-0').locator('.opt-ico')).toHaveText('🏠');
+  await expect(page.getByTestId('option-1').locator('.opt-ico')).toHaveText('S');
 });

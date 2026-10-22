@@ -4,6 +4,7 @@ import { repo } from '../../db/repo';
 import type { Client } from '../../db/types';
 import { euroSign, formatWhen, parseAmountInput } from '../../i18n/format';
 import { t } from '../../i18n/lt';
+import { glyphFor } from '../../logic/glyph';
 import { cleanName } from '../../logic/names';
 import { datePart } from '../../logic/time';
 import { closeSheet, highlight } from '../actions';
@@ -137,16 +138,20 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
           )}
           {kind !== 'client' && (
             <>
-              <ul class="suggest options" data-testid="option-list">
-                {options.length === 0 && <li class="suggest-head" data-testid="option-none">{t('option.none')}</li>}
-                {options.map((o, i) => (
-                  <li key={o.id}>
-                    <button data-testid={`option-${i}`} class={o.id === optionId ? 'on' : ''} aria-pressed={o.id === optionId} onClick={() => { setOptionId(o.id); setClash(null); }}>
-                      <span class="radio" aria-hidden="true"><CheckIcon /></span><span class="opt-name">{o.name}</span>
+              <div class="opt-grid" data-testid="option-list" role="group">
+                {options.length === 0 && <p class="opt-none" data-testid="option-none">{t('option.none')}</p>}
+                {options.map((o, i) => {
+                  const g = glyphFor(o.name);
+                  return (
+                    <button key={o.id} data-testid={`option-${i}`} class={o.id === optionId ? 'opt-card on' : 'opt-card'} aria-pressed={o.id === optionId}
+                      style={{ '--g': `var(--c-${g.color})` } as CSSProperties} onClick={() => { setOptionId(o.id); setClash(null); }}>
+                      <span class="opt-ico" aria-hidden="true">{g.glyph}</span>
+                      <span class="opt-name">{o.name}</span>
+                      <span class="radio" aria-hidden="true"><CheckIcon /></span>
                     </button>
-                  </li>
-                ))}
-              </ul>
+                  );
+                })}
+              </div>
               {kind === 'expense' && (
                 <label class="amount-field">
                   <input data-testid="expense-amount" inputMode="decimal" enterKeyHint="done" autocomplete="off" aria-label={t('expense.amount')} placeholder="0" value={amountText}

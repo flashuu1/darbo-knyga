@@ -96,10 +96,10 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
     if (!canSave || busy.current) return;
     busy.current = true; setSaving(true);
     try {
-      const hit = await repo.findOverlapFor({ start, kind, serviceId: kind === 'client' ? sid : null });
+      const hit = await repo.findOverlapFor({ start, kind, serviceId: kind === 'client' ? sid : null, minutes: kind === 'personal' ? chosen?.minutes ?? 30 : undefined });
       if (hit && clash === null) { setClash(t('warn.overlap', { vardas: hit.label, paslauga: hit.serviceName })); return; }
       const a = await repo.createAppointment(kind === 'client' ? { kind, name, serviceId: sid, start }
-        : kind === 'personal' ? { kind, title: chosen!.name, optionId: chosen!.id, start }
+        : kind === 'personal' ? { kind, title: chosen!.name, optionId: chosen!.id, minutes: chosen!.minutes ?? 30, start }
         : { kind, title: chosen!.name, optionId: chosen!.id, amountCents: cents!, start });
       if (prefill.replaceId) await repo.deleteAppointment(prefill.replaceId); // booked in place of a cancelled visit
       ui.set({ sheet: null, date: datePart(a.start), ...(prefill.from?.type === 'client' ? { client: null, tab: 'calendar' as const, view: 'day' as const } : prefill.from ? { tab: 'calendar' as const } : {}) });

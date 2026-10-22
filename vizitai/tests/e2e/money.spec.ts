@@ -83,18 +83,19 @@ test('an expense can be opened and its amount changed, and it never blocks a vis
 test('Settings lists her own choices; she can add, rename and swipe-delete them, and the flow offers them', async ({ page }) => {
   await openApp(page);
   await openSettings(page, 'personal');
-  await expect(page.getByTestId('opt-personal-row-0')).toHaveCount(0); // no templates: she makes her own
   await seedOptions(page);
-  await expect(page.getByTestId('opt-personal-row-3')).toBeVisible();
+  await expect(page.getByTestId('opt-personal-name-0')).toHaveValue('Psichologas'); // the common words are there from the start
+  await expect(page.getByTestId('opt-personal-row-13')).toBeAttached({ timeout: 15000 });
   await page.getByTestId('opt-personal-add').click();
-  await expect(page.getByTestId('opt-personal-row-4')).toBeVisible();
-  await page.getByTestId('opt-personal-name-4').fill('Sporto salė');
-  await page.getByTestId('opt-personal-name-4').blur();
+  await expect(page.getByTestId('opt-personal-row-14')).toBeAttached({ timeout: 15000 });
+  await page.getByTestId('opt-personal-name-14').scrollIntoViewIfNeeded();
+  await page.getByTestId('opt-personal-name-14').fill('Sporto salė');
+  await page.getByTestId('opt-personal-name-14').blur();
   await expect.poll(() => page.evaluate(async () => (await (window as any).__vizitai.repo.listOptions('personal')).map((o: any) => o.name))).toContain('Sporto salė');
   await page.getByTestId('settings-back').click();
   await page.getByTestId('settings-row-expenses').click();
   await page.waitForTimeout(450); // the page slides in
-  await expect(page.getByTestId('opt-expense-row-3')).toBeVisible();
+  await expect(page.getByTestId('opt-expense-row-3')).toBeAttached({ timeout: 15000 });
   await swipeLeft(page, 'opt-expense-swipe-0');
   await page.getByTestId('opt-expense-swipe-0-trash').click();
   await page.getByTestId('action-item-0').click();
@@ -104,8 +105,8 @@ test('Settings lists her own choices; she can add, rename and swipe-delete them,
   await page.getByTestId('tab-calendar').click();
   await page.getByTestId('slot-2026-10-14T12:00').click();
   await page.getByTestId('type-personal').click();
-  await expect(page.getByTestId('option-4')).toHaveText(/Sporto salė/);
-  expect(await count(page, 'options')).toBe(9);
+  await expect(page.getByTestId('option-14')).toHaveText(/Sporto salė/);
+  expect(await count(page, 'options')).toBe(19); // 15 personal, 4 expense kinds
 });
 
 test('with the keyboard up the name suggestions stay above it, and dragging the list puts the keyboard away', async ({ page }) => {

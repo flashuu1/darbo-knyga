@@ -154,7 +154,7 @@ p.link-name { color: var(--label); }
 .wheel { position: relative; flex: 1; height: 220px; overflow-y: auto; scroll-snap-type: y mandatory; overscroll-behavior: contain; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 .wheel::-webkit-scrollbar { display: none; }
 .wheel-pad { height: 88px; flex: none; }
-.wheel-item { display: block; width: 100%; height: 44px; min-height: 44px; scroll-snap-align: center; scroll-snap-stop: always; font-size: 1.45rem; font-weight: 500; color: var(--label-3);
+.wheel-item { display: block; width: 100%; height: 44px; min-height: 44px; scroll-snap-align: center; scroll-snap-stop: normal; font-size: 1.45rem; font-weight: 500; color: var(--label-3);
   font-variant-numeric: tabular-nums; transition: color var(--t-fast), transform var(--t-fast) var(--ease-out); }
 .wheel-item.on { color: var(--label); font-weight: 650; }
 .wheel-colon { font-size: 1.6rem; font-weight: 650; padding-bottom: 3px; }
@@ -272,6 +272,7 @@ p.link-name { color: var(--label); }
 .appt-hero { display: flex; align-items: center; gap: var(--s3); margin: var(--s1) 0 var(--s3); }
 .hero-av { width: 52px; height: 52px; font-size: 1.1rem; flex: none; }
 .hero-av.alt { background: linear-gradient(180deg, #8f8ff0, #5856d6); }
+.hero-av.teal { background: linear-gradient(180deg, #5bd0e3, #1e90a6); }
 .hero-av svg { width: 24px; height: 24px; }
 .hero-text { flex: 1; min-width: 0; }
 .hero-text .link-name { margin: 0; font-size: 1.25rem; display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

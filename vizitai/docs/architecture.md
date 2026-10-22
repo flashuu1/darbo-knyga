@@ -376,3 +376,10 @@ The calendar header carries one quiet button, "Dienos suvestinė" / "Savaitės s
 ## Changing an amount
 
 A confirmed amount that is changed leaves a line on the visit (`amountLog`: when, from, to), shown newest first as "Sumos pakeitimai" in the entry sheet; Anuliuoti removes the line with the change. Entering 0 (or nothing) on a visit that has an amount asks "Nunulinti sumą?" and explains that the visit becomes "Nepatvirtinta" and waits for its amount again; on agreeing the amount is removed (not stored as 0) and the log says it was nulled. 0 as a first amount is refused (nothing to reset).
+
+## Asmeninis (overhaul)
+
+- **Common words from the start** (hers to rename, add to or delete in Nustatymai > Asmeniniai): Psichologas, Psichiatras / psichiatrė, Neurologas / neurologė, Daktaras, Šeimos gydytojas, Dantistas, Akių gydytojas, Kineziterapeutas, Masažas, Pietūs, Pertrauka, Vaikų reikalai, Autoservisas, Bankas. A fresh install is seeded with them; schema v6 adds them once to an existing install (a word she already has is not doubled, her own stay first). Išlaidų rūšys still starts empty.
+- **Half an hour by default**, and each choice has its own length (Nustatymai > Asmeniniai, quarter hours up to 2 hours, then half hours); a personal entry takes the length of its choice when it is made (`durationMinutes`). Entries made before this are half an hour too.
+- **Its own colour**: teal, in the calendar and in the entry sheet (grey meant "nothing").
+- **The time wheels are loose.** Snapping stays, but nothing forces a stop at every number (`scroll-snap-stop: normal`), so a fling with speed carries on and settles by itself, and the number under the bar lights up while the wheel still turns.

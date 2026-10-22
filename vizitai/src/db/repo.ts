@@ -5,7 +5,7 @@ import type { VizitaiDB } from './db';
 import { DEFAULT_SETTINGS } from './seed';
 import { cleanName, foldName, ltCollator } from '../logic/names';
 import { addDays, addMinutes, datePart, minutesOfDay, nowLocal, parse, scopeRange, type Scope } from '../logic/time';
-import { findOverlap, minutesFor, nextFreeSlot, PERSONAL_MINUTES, type Block } from '../logic/overlap';
+import { findOverlap, minutesFor, nextFreeSlot, PERSONAL_MINUTES, SHORT_MINUTES, type Block } from '../logic/overlap';
 import { t } from '../i18n/lt';
 import { isAmountDue, isValidCents } from '../logic/amount';
 
@@ -42,7 +42,7 @@ export function createRepo(db: VizitaiDB) {
     return list.map((appt) => {
       const service = appt.serviceId ? services.get(appt.serviceId) ?? null : null;
       const label = appt.kind === 'client' ? clients.get(appt.clientId ?? '')?.name ?? '' : appt.title ?? '';
-      return { appt, label, service, minutes: minutesFor(appt, services), color: appt.kind === 'expense' ? 'indigo' : service?.color ?? 'gray', amountCents: isValidCents(appt.amountCents) ? appt.amountCents : null };
+      return { appt, label, service, minutes: minutesFor(appt, services), color: appt.kind === 'expense' ? 'indigo' : appt.kind === 'personal' ? 'teal' : service?.color ?? 'gray', amountCents: isValidCents(appt.amountCents) ? appt.amountCents : null };
     });
   }
   // Same start: the earlier booking first, so side-by-side lanes keep a stable order.
@@ -99,6 +99,7 @@ export function createRepo(db: VizitaiDB) {
       await db.options.add(o);
       return o;
     },
+    async updateOption(id: string, p: { minutes?: number }) { if (p.minutes !== undefined && Number.isInteger(p.minutes) && p.minutes >= 15 && p.minutes <= 720) await db.options.update(id, { minutes: p.minutes }); },
     async renameOption(id: string, name: string) { const n = cleanName(name); if (n) await db.options.update(id, { name: n }); }, // an empty name is ignored
     /** Entries keep the name they were made with, so a choice can always be removed. Undo: restoreOption. */
     async deleteOption(id: string): Promise<Option | null> { const o = await db.options.get(id); if (o) await db.options.delete(id); return o ?? null; },
@@ -167,7 +168,7 @@ export function createRepo(db: VizitaiDB) {
       return list.length ? list[list.length - 1].serviceId : null;
     },
 
-    async createAppointment(i: { kind: 'client' | 'personal' | 'expense'; name?: string; title?: string; serviceId?: string | null; start: string; optionId?: string | null; amountCents?: number }): Promise<Appointment> {
+    async createAppointment(i: { kind: 'client' | 'personal' | 'expense'; name?: string; title?: string; serviceId?: string | null; start: string; optionId?: string | null; amountCents?: number; minutes?: number }): Promise<Appointment> {
       parse(i.start); // throws on a malformed time; any minute is allowed (the time wheel is not limited to a grid)
       const start = i.start;
       let clientId: string | null = null, title: string | null = null;
@@ -179,6 +180,7 @@ export function createRepo(db: VizitaiDB) {
         id: uuid(), kind: i.kind, clientId, title, serviceId: i.kind === 'client' ? i.serviceId ?? null : null, start,
         status: 'booked', cancelReason: null, cancelledAt: null, moves: [], createdAt: ts, updatedAt: ts,
         ...(i.kind === 'client' ? {} : { optionId: i.optionId ?? null }), ...(i.kind === 'expense' ? { amountCents: i.amountCents } : {}),
+        ...(i.kind === 'personal' && i.minutes ? { durationMinutes: i.minutes } : {}),
       };
       await db.appointments.add(a);
       return a;
@@ -294,10 +296,10 @@ export function createRepo(db: VizitaiDB) {
       return db.appointments.where('status').equals('cancelled').filter((a) => !!a.cancelledAt && a.cancelledAt < cutoff).delete();
     },
 
-    async findOverlapFor(i: { start: string; kind: 'client' | 'personal' | 'expense'; serviceId: string | null; excludeId?: string }) {
+    async findOverlapFor(i: { start: string; kind: 'client' | 'personal' | 'expense'; serviceId: string | null; excludeId?: string; minutes?: number }) {
       if (i.kind === 'expense') return undefined; // money out can be noted at any time
       const services = await serviceMap();
-      const minutes = i.kind !== 'client' || !i.serviceId ? PERSONAL_MINUTES : services.get(i.serviceId)?.minutes ?? PERSONAL_MINUTES;
+      const minutes = i.minutes ?? (i.kind === 'personal' ? PERSONAL_MINUTES : i.kind !== 'client' || !i.serviceId ? SHORT_MINUTES : services.get(i.serviceId)?.minutes ?? SHORT_MINUTES);
       const lo = addMinutes(i.start, -1440), hi = addMinutes(i.start, 1440);
       const near = await db.appointments.where('start').between(lo, hi, true, true).toArray();
       const hit = findOverlap({ id: i.excludeId ?? '', start: i.start, minutes }, near, services);

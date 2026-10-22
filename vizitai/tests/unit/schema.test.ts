@@ -64,7 +64,10 @@ describe('v4: the example choices of version 3 are removed', () => {
     old.close();
     const db = new VizitaiDB(name);
     await db.open();
-    expect((await db.options.toArray()).map((o) => o.id)).toEqual(['o3']);
+    const ids = (await db.options.toArray()).map((o) => o.id);
+    expect(ids).toContain('o3'); // her own stays
+    expect(ids).not.toContain('o1'); // the examples go (v6 later adds the new common words under new ids)
+    expect(ids).not.toContain('o2');
     db.close();
   });
 });
@@ -94,5 +97,28 @@ describe('v5: Vestuvės joins the services', () => {
     const empty = await old([]);
     expect(await empty.services.count()).toBe(0);
     empty.close();
+  });
+});
+
+describe('v6: Asmeninis starts with common words', () => {
+  const old = async (rows: { id: string; group: string; name: string; order: number }[]) => {
+    const name = `v6-${crypto.randomUUID()}`;
+    const d = new Dexie(name);
+    for (const v of versions.filter((x) => x.version <= 5)) d.version(v.version).stores(v.stores as Record<string, string>);
+    await d.table('options').bulkAdd(rows);
+    d.close();
+    const db = new VizitaiDB(name);
+    await db.open();
+    return db;
+  };
+  it('are added once, half an hour each, after hers, without doubling a word she has', async () => {
+    const db = await old([{ id: 'm', group: 'personal', name: 'psichologas', order: 0 }, { id: 'e', group: 'expense', name: 'Nuoma', order: 0 }]);
+    const personal = (await db.options.toArray()).filter((o) => o.group === 'personal').sort((a, b) => a.order - b.order);
+    expect(personal[0]!.id).toBe('m');
+    expect(personal.filter((o) => o.name.toLowerCase() === 'psichologas')).toHaveLength(1);
+    expect(personal.map((o) => o.name)).toContain('Neurologas / neurologė');
+    expect(personal.slice(1).every((o) => o.minutes === 30)).toBe(true);
+    expect((await db.options.toArray()).filter((o) => o.group === 'expense')).toHaveLength(1); // expenses are not touched
+    db.close();
   });
 });

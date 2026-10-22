@@ -1,17 +1,19 @@
 import { test, expect, type Page } from '@playwright/test';
-import { openApp, seedAppts, seedOptions, pickTime } from './helpers';
+import { openApp, seedAppts, pickTime } from './helpers';
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 /** Types the name on the first screen and presses return (keyboard "Toliau") to reach Paslauga. */
 async function nameThenEnter(page: Page, name: string) {
   await page.getByTestId('field-name').fill(name);
   await page.getByTestId('field-name').press('Enter');
 }
-const apptCount = (page: Page) => page.evaluate(() => (window as any).__vizitai.db.appointments.count()); // eslint-disable-line @typescript-eslint/no-explicit-any
+const apptCount = (page: Page) => page.evaluate(() => (window as any).__vizitai.db.appointments.count());  
 
 async function expectLinkedToSeeded(page: Page) {
   await expect.poll(() => apptCount(page)).toBe(2);
   const r = await page.evaluate(async () => {
-    const { db } = (window as any).__vizitai; // eslint-disable-line @typescript-eslint/no-explicit-any
+    const { db } = (window as any).__vizitai;  
     const clients = await db.clients.toArray();
     const appts = await db.appointments.toArray();
     return { clients: clients.length, ids: appts.map((a: { clientId: string }) => a.clientId), id: clients[0]?.id };
@@ -23,8 +25,8 @@ async function expectLinkedToSeeded(page: Page) {
 test('booking from an empty slot takes 3 taps plus typing the name', async ({ page }) => {
   await openApp(page);
   await page.evaluate(() => {
-    (window as any).__taps = 0; // eslint-disable-line @typescript-eslint/no-explicit-any
-    document.addEventListener('click', (e) => { if (e.isTrusted) (window as any).__taps++; }, true); // eslint-disable-line @typescript-eslint/no-explicit-any
+    (window as any).__taps = 0;  
+    document.addEventListener('click', (e) => { if (e.isTrusted) (window as any).__taps++; }, true);  
   });
   await page.getByTestId('slot-2026-10-14T10:30').click();               // tap 1
   await expect(page.getByTestId('field-name')).toBeFocused();             // keyboard up without a tap
@@ -32,7 +34,7 @@ test('booking from an empty slot takes 3 taps plus typing the name', async ({ pa
   await expect(page.getByTestId('flow-who')).toHaveText('Žydrūnė');
   await page.getByTestId('svc-1').click();                               // tap 2 (Dažymas card)
   await page.getByTestId('btn-save').click();                            // tap 3
-  expect(await page.evaluate(() => (window as any).__taps)).toBe(3);     // eslint-disable-line @typescript-eslint/no-explicit-any
+  expect(await page.evaluate(() => (window as any).__taps)).toBe(3);      
   await expect(page.getByTestId('sheet')).toHaveCount(0);
   await expect(page.getByTestId('col-2026-10-14')).toContainText('Žydrūnė');
   await expect(page.getByTestId('col-2026-10-14')).toContainText('Dažymas');
@@ -119,17 +121,22 @@ test('an overlap warns on the first Išsaugoti and saves on the second', async (
 
 test('Asmeninis is picked from her own choices (no typing) and skips the services', async ({ page }) => {
   await openApp(page);
-  await seedOptions(page);
   await page.getByTestId('slot-2026-10-14T12:00').click();
   await page.getByTestId('type-personal').click();
+  for (const word of ['Psichologas', 'Psichiatras / psichiatrė', 'Neurologas / neurologė', 'Daktaras']) await expect(page.getByTestId('option-list')).toContainText(word); // common words, ready to pick
   await expect(page.getByTestId('field-name')).toHaveCount(0);
   await expect(page.getByTestId('btn-next')).toBeDisabled();
-  await page.getByTestId('option-0').click(); // Pietūs
+  await page.getByTestId('option-0').click(); // Psichologas
   await page.getByTestId('btn-next').click();
   await expect(page.getByTestId('svc-0')).toBeHidden();
   await expect(page.getByTestId('timewheel')).toBeVisible(); // straight to Laikas
   await page.getByTestId('btn-save-time').click();
-  await expect(page.getByTestId('col-2026-10-14')).toContainText('Pietūs');
+  await expect(page.getByTestId('col-2026-10-14')).toContainText('Psichologas');
+  // half an hour by default, and not the grey of "no colour"
+  const [a] = await page.evaluate(async () => (window as any).__vizitai.db.appointments.toArray());
+  const slot = (await page.getByTestId('slot-2026-10-14T12:00').boundingBox())!, box = (await page.getByTestId(`entry-${a.id}`).boundingBox())!;
+  expect(Math.round(box.height / slot.height)).toBe(2);
+  expect(await page.getByTestId(`entry-${a.id}`).evaluate((el) => (el as HTMLElement).style.getPropertyValue('--svc'))).toBe('var(--c-teal)');
 });
 
 test('the calendar picker books another day and time', async ({ page }) => {
@@ -146,7 +153,7 @@ test('the calendar picker books another day and time', async ({ page }) => {
   await expect(page.getByTestId('time-value')).toHaveText('lapkričio 3 d., an · 14:30');
   await page.getByTestId('btn-save').click();
   await expect(page.getByTestId('sheet')).toHaveCount(0);
-  await expect.poll(() => page.evaluate(async () => (await (window as any).__vizitai.db.appointments.toArray()).map((a: { start: string }) => a.start))).toEqual(['2026-11-03T14:30']); // eslint-disable-line @typescript-eslint/no-explicit-any
+  await expect.poll(() => page.evaluate(async () => (await (window as any).__vizitai.db.appointments.toArray()).map((a: { start: string }) => a.start))).toEqual(['2026-11-03T14:30']);  
 });
 
 test('Atšaukti closes the booking without saving', async ({ page }) => {
@@ -161,13 +168,13 @@ test('Atšaukti closes the booking without saving', async ({ page }) => {
 test('"+" proposes the next free slot today and dayStart on other days', async ({ page }) => {
   await openApp(page, '2026-10-14T09:05:00');
   await page.getByTestId('btn-add').click();
-  await expect.poll(() => page.evaluate(() => (window as any).__vizitai.ui.get().sheet?.start)).toBe('2026-10-14T09:15'); // eslint-disable-line @typescript-eslint/no-explicit-any
+  await expect.poll(() => page.evaluate(() => (window as any).__vizitai.ui.get().sheet?.start)).toBe('2026-10-14T09:15');  
   await expect(page.getByTestId('field-name')).toBeFocused();
   await page.getByTestId('btn-dismiss').click();
   await expect(page.getByTestId('sheet')).toHaveCount(0);
   await page.getByTestId('chip-2026-10-15').click();
   await page.getByTestId('btn-add').click();
-  await expect.poll(() => page.evaluate(() => (window as any).__vizitai.ui.get().sheet?.start)).toBe('2026-10-15T08:00'); // eslint-disable-line @typescript-eslint/no-explicit-any
+  await expect.poll(() => page.evaluate(() => (window as any).__vizitai.ui.get().sheet?.start)).toBe('2026-10-15T08:00');  
 });
 
 test('the time wheels book any minute, not just quarter hours', async ({ page }) => {
@@ -182,7 +189,7 @@ test('the time wheels book any minute, not just quarter hours', async ({ page })
   await expect(page.getByTestId('time-value')).toHaveText('spalio 14 d., tr · 14:37');
   await page.getByTestId('btn-save').click();
   await expect(page.getByTestId('sheet')).toHaveCount(0);
-  await expect.poll(() => page.evaluate(async () => (await (window as any).__vizitai.db.appointments.toArray()).map((a: { start: string }) => a.start))).toEqual(['2026-10-14T14:37']); // eslint-disable-line @typescript-eslint/no-explicit-any
+  await expect.poll(() => page.evaluate(async () => (await (window as any).__vizitai.db.appointments.toArray()).map((a: { start: string }) => a.start))).toEqual(['2026-10-14T14:37']);  
 });
 
 test('the wheels can be scrolled, and the picked row follows the scroll', async ({ page }) => {
@@ -194,7 +201,7 @@ test('the wheels can be scrolled, and the picked row follows the scroll', async 
   await page.getByTestId('wheel-m').evaluate((el) => { el.scrollTop = 17 * 44; });
   await expect(page.getByTestId('wheel-m-17')).toHaveClass(/on/);
   await page.getByTestId('btn-save-time').click();
-  await expect.poll(() => page.evaluate(async () => (await (window as any).__vizitai.db.appointments.toArray()).map((a: { start: string }) => a.start))).toEqual(['2026-10-14T10:17']); // eslint-disable-line @typescript-eslint/no-explicit-any
+  await expect.poll(() => page.evaluate(async () => (await (window as any).__vizitai.db.appointments.toArray()).map((a: { start: string }) => a.start))).toEqual(['2026-10-14T10:17']);  
 });
 
 test('typing two letters suggests matching clients, best match first, and tapping one fills it in', async ({ page }) => {
@@ -213,4 +220,23 @@ test('typing two letters suggests matching clients, best match first, and tappin
   await expect(page.getByTestId('suggest-4')).toHaveCount(0);
   await page.getByTestId('suggest-1').click();
   await expect(page.getByTestId('flow-who')).toHaveText('Jonas Petraitis');
+});
+
+test('the minute wheel is loose: nothing makes it stop at every number, and the number under the bar lights up while it turns', async ({ page }) => {
+  await openApp(page);
+  await page.getByTestId('slot-2026-10-14T10:30').click();
+  await page.getByTestId('field-name').fill('Ona');
+  await page.getByTestId('btn-next').click();
+  await page.getByTestId('time-row').click();
+  await page.waitForTimeout(450);
+  // snapping is on, but it never forces a stop at each number (that is what made a fling die after one or two rows)
+  const css = await page.getByTestId('wheel-m-07').evaluate((el) => ({ stop: getComputedStyle(el).scrollSnapStop, type: getComputedStyle(el.parentElement!).scrollSnapType }));
+  expect(css.stop).toBe('normal');
+  expect(css.type).toContain('mandatory');
+  // turning the wheel moves the highlight at once, before the value is settled
+  await page.getByTestId('wheel-m').evaluate((el) => { el.scrollTop = 47 * 44; });
+  await expect(page.getByTestId('wheel-m-47')).toHaveClass(/on/);
+  await expect(page.getByTestId('wheel-m-30')).not.toHaveClass(/on/);
+  await page.getByTestId('btn-save-time').click();
+  await expect.poll(async () => (await page.evaluate(async () => (window as any).__vizitai.db.appointments.toArray()))[0]?.start).toBe('2026-10-14T10:47');
 });

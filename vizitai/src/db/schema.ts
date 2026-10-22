@@ -1,5 +1,5 @@
 import type { Transaction } from 'dexie';
-import { t, type Key } from '../i18n/lt';
+import { defaultPersonalNames, t, type Key } from '../i18n/lt';
 import { newId } from '../logic/id';
 
 export interface SchemaVersion {
@@ -34,6 +34,8 @@ versions.push({
     return tx.table('services').toCollection().modify((s: { name: string; minutes: number }) => { if (old.get(s.name) === s.minutes) s.minutes = 15; });
   },
 });
+export const defaultPersonalOptions = () => defaultPersonalNames.map((name, order) => ({ id: newId(), group: 'personal' as const, name, order, minutes: 30 }));
+
 // v3: her own choices for personal entries and for expenses (money out). They start empty: she creates them in Settings.
 versions.push({ version: 3, stores: { options: 'id, group, order' } });
 // v4: version 3 first shipped with example choices; those templates are removed (a name she changed is hers and stays).
@@ -58,6 +60,19 @@ versions.push({
     const order = kita ? kita.order : Math.max(...all.map((s) => s.order)) + 1;
     if (kita) await services.update(kita.id, { order: kita.order + 1 });
     await services.add({ id: newId(), name: t('service.default.wedding'), color: 'pink', minutes: 240, order, active: true, floral: true });
+  },
+});
+// v6: Asmeninis starts with common words (psichologas, daktaras, ...), added once; hers to change. Words she already has are not doubled.
+versions.push({
+  version: 6,
+  stores: {},
+  upgrade: async (tx) => {
+    const options = tx.table('options');
+    const mine = (await options.toArray() as { group: string; name: string; order: number }[]).filter((o) => o.group === 'personal');
+    const have = new Set(mine.map((o) => o.name.trim().toLocaleLowerCase('lt')));
+    const next = mine.length ? Math.max(...mine.map((o) => o.order)) + 1 : 0;
+    const add = defaultPersonalOptions().filter((o) => !have.has(o.name.toLocaleLowerCase('lt'))).map((o, i) => ({ ...o, order: next + i }));
+    if (add.length) await options.bulkAdd(add);
   },
 });
 export const SCHEMA_VERSION = versions[versions.length - 1].version;

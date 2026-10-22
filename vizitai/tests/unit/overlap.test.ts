@@ -30,9 +30,12 @@ describe('overlap', () => {
   it('gives personal entries the default length', () => {
     const p = appt('p', '2026-10-14T12:00', { kind: 'personal', serviceId: null, clientId: null, title: 'Pietūs' });
     expect(minutesFor(p, services)).toBe(PERSONAL_MINUTES);
-    expect(PERSONAL_MINUTES).toBe(15);
+    expect(PERSONAL_MINUTES).toBe(30);
     expect(findOverlap({ id: 'n', start: '2026-10-14T11:45', minutes: 30 }, [p], services)?.id).toBe('p');
-    expect(findOverlap({ id: 'n', start: '2026-10-14T12:15', minutes: 15 }, [p], services)).toBeUndefined();
+    expect(findOverlap({ id: 'n', start: '2026-10-14T12:15', minutes: 15 }, [p], services)?.id).toBe('p'); // half an hour: still busy at 12:15
+    expect(findOverlap({ id: 'n', start: '2026-10-14T12:30', minutes: 15 }, [p], services)).toBeUndefined();
+    expect(minutesFor({ ...p, durationMinutes: 60 }, services)).toBe(60); // a longer choice
+    expect(minutesFor({ ...p, kind: 'expense' }, services)).toBe(15); // money out stays a quarter of an hour
   });
   it('finds the next free slot after now', () => {
     const blocks = [{ id: 'a', start: '2026-10-14T10:00', minutes: 60 }];

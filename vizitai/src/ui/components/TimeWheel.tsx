@@ -9,6 +9,7 @@ function Wheel({ kind, count, value, label, onPick }: { kind: 'h' | 'm'; count: 
   const box = useRef<HTMLDivElement>(null);
   const lastUser = useRef(0);
   const timer = useRef(0);
+  const live = useRef(value); // the row in the middle right now (moves with the scroll, before the value is settled)
 
   // Follow the value when it changes from outside (but never fight a finger that is scrolling).
   useEffect(() => {
@@ -16,9 +17,21 @@ function Wheel({ kind, count, value, label, onPick }: { kind: 'h' | 'm'; count: 
     if (!el || performance.now() - lastUser.current < 250) return;
     if (Math.abs(el.scrollTop - value * ITEM) > 1) el.scrollTop = value * ITEM;
   }, [value]);
+  useEffect(() => { live.current = value; }, [value]);
 
   const onScroll = () => {
     lastUser.current = performance.now();
+    // light up the number under the bar while the wheel is still turning, like the iOS wheel
+    const el0 = box.current;
+    if (el0) {
+      const i = Math.max(0, Math.min(count - 1, Math.round(el0.scrollTop / ITEM)));
+      if (i !== live.current) {
+        const items = el0.querySelectorAll<HTMLElement>('.wheel-item');
+        items[live.current]?.classList.remove('on');
+        items[i]?.classList.add('on');
+        live.current = i;
+      }
+    }
     clearTimeout(timer.current);
     timer.current = window.setTimeout(() => { // settled: read the row that sits in the middle
       const el = box.current;

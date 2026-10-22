@@ -1,12 +1,15 @@
 import type { Appointment, Service } from '../db/types';
 import { addMinutes, format, minutesOfDay, parse, snap } from './time';
 
-export const PERSONAL_MINUTES = 15;
+/** An entry of her own (Asmeninis) is half an hour unless she says otherwise; anything else without a length is a quarter of an hour. */
+export const PERSONAL_MINUTES = 30;
+export const SHORT_MINUTES = 15;
 export interface Block { id: string; start: string; minutes: number }
 
 export function minutesFor(a: Appointment, services: Map<string, Service>): number {
-  if (a.kind !== 'client' || !a.serviceId) return PERSONAL_MINUTES;
-  return services.get(a.serviceId)?.minutes ?? PERSONAL_MINUTES;
+  if (a.kind === 'personal') return a.durationMinutes && a.durationMinutes > 0 ? a.durationMinutes : PERSONAL_MINUTES;
+  if (a.kind !== 'client' || !a.serviceId) return SHORT_MINUTES;
+  return services.get(a.serviceId)?.minutes ?? SHORT_MINUTES;
 }
 export function blocksOverlap(a: Block, b: Block): boolean {
   const as = parse(a.start), bs = parse(b.start);

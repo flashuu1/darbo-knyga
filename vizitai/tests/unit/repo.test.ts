@@ -136,7 +136,7 @@ describe('queries', () => {
     const e = await repo.entriesBetween('2026-10-14', '2026-10-15');
     expect(e.map((x) => x.label)).toEqual(['Ona', 'Pietūs']);
     expect(e[0]).toMatchObject({ minutes: 15, color: 'blue' });
-    expect(e[1].minutes).toBe(15);
+    expect(e[1].minutes).toBe(30); // Asmeninis: half an hour
   });
   it('counts booked entries per date', async () => {
     const s = await firstService();

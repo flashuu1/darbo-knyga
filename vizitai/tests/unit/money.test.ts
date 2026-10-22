@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { VizitaiDB } from '../../src/db/db';
 import { createRepo } from '../../src/db/repo';
 import { ensureSeed } from '../../src/db/seed';
+import { defaultPersonalNames } from '../../src/i18n/lt';
 import { exportData, importData, parseBackup } from '../../src/logic/backup';
 
 let db: VizitaiDB;
@@ -15,13 +16,17 @@ beforeEach(async () => {
 });
 
 describe('her own choices', () => {
-  it('start empty: no templates, she creates them in Settings', async () => {
-    // (the setup above added four of her own; a fresh install has none)
+  it('Asmeninis starts with common words (half an hour each); expenses start empty and she creates them', async () => {
+    // (the setup above added four of her own on top; a fresh install has just the words)
     const fresh = new VizitaiDB(`t-${crypto.randomUUID()}`);
     await ensureSeed(fresh);
-    expect(await fresh.options.count()).toBe(0);
-    await ensureSeed(db);
-    expect(await db.options.count()).toBe(4);
+    const personal = (await fresh.options.toArray()).filter((o) => o.group === 'personal').sort((a, b) => a.order - b.order);
+    expect(personal.map((o) => o.name)).toEqual(defaultPersonalNames);
+    expect(personal.map((o) => o.name)).toEqual(expect.arrayContaining(['Psichologas', 'Psichiatras / psichiatrė', 'Neurologas / neurologė', 'Daktaras']));
+    expect(personal.every((o) => o.minutes === 30)).toBe(true);
+    expect((await fresh.options.toArray()).filter((o) => o.group === 'expense')).toHaveLength(0);
+    await ensureSeed(fresh);
+    expect(await fresh.options.count()).toBe(defaultPersonalNames.length); // seeded once
   });
   it('can be added, renamed (a blank name is ignored), deleted and restored', async () => {
     const o = await repo.addOption('expense', '  Kava  ');
@@ -77,9 +82,10 @@ describe('backup', () => {
   it('keeps her choices, and an older file without them has none', async () => {
     await repo.addOption('personal', 'Sporto salė');
     const file = await exportData(db);
-    expect(file.options).toHaveLength(5);
+    const n = await db.options.count();
+    expect(file.options).toHaveLength(n);
     await importData(db, parseBackup(JSON.stringify(file)));
-    expect(await db.options.count()).toBe(5);
+    expect(await db.options.count()).toBe(n);
     const old = { ...file }; delete old.options;
     await importData(db, parseBackup(JSON.stringify(old)));
     expect(await db.options.count()).toBe(0);
@@ -124,5 +130,25 @@ describe('summary of a day, week and month', () => {
     expect((await repo.summary('day', '2026-10-18', now)).inCents).toBe(400);
     expect((await repo.summary('week', '2026-10-14', now)).inCents).toBe(600);
     expect((await repo.summary('month', '2026-10-14', now)).inCents).toBe(100 + 200 + 400 + 800);
+  });
+});
+
+describe('Asmeninis: half an hour, with a colour of its own', () => {
+  it('takes the length of its choice and is teal, not grey', async () => {
+    const [p] = await repo.listOptions('personal');
+    await repo.updateOption(p.id, { minutes: 90 });
+    const a = await repo.createAppointment({ kind: 'personal', title: p.name, optionId: p.id, minutes: 90, start: '2026-10-14T10:00' });
+    const b = await repo.createAppointment({ kind: 'personal', title: 'Kita', start: '2026-10-14T13:00' });
+    const [e1, e2] = await repo.entriesBetween('2026-10-14', '2026-10-15');
+    expect(e1.appt.id).toBe(a.id);
+    expect(e1.minutes).toBe(90);
+    expect(e2.appt.id).toBe(b.id);
+    expect(e2.minutes).toBe(30); // no length given: the default
+    expect(e1.color).toBe('teal');
+  });
+  it('blocks its whole length', async () => {
+    await repo.createAppointment({ kind: 'personal', title: 'Daktaras', minutes: 60, start: '2026-10-14T10:00' });
+    expect(await repo.findOverlapFor({ start: '2026-10-14T10:45', kind: 'personal', serviceId: null })).toMatchObject({ label: 'Daktaras' });
+    expect(await repo.findOverlapFor({ start: '2026-10-14T11:00', kind: 'personal', serviceId: null })).toBeUndefined();
   });
 });

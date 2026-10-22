@@ -1,6 +1,7 @@
 import { newId } from '../logic/id';
 import { t } from '../i18n/lt';
 import type { Service, Settings } from './types';
+import { defaultPersonalOptions } from './schema';
 import type { VizitaiDB } from './db';
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -20,6 +21,7 @@ export async function ensureSeed(db: VizitaiDB): Promise<void> {
       { name: t('service.default.other'), color: 'gray', minutes: 15 },
     ];
     await db.services.bulkAdd(defs.map((d, i) => ({ ...d, id: newId(), order: i, active: true })));
+    if ((await db.options.count()) === 0) await db.options.bulkAdd(defaultPersonalOptions());
     await db.settings.add({ ...DEFAULT_SETTINGS });
   });
 }

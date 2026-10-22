@@ -24,11 +24,10 @@ export async function openSettings(page: Page, section: 'services' | 'hours' | '
   await expect(page.getByTestId(`settings-page-${section}`)).toBeVisible();
   await page.waitForTimeout(450); // the page has slid in
 }
-/** Gives the lists of her own choices some entries (the app starts with none). */
+/** Gives the list of expense kinds some entries (it starts empty; Asmeninis already has its common words). */
 export async function seedOptions(page: Page) {
   await page.evaluate(async () => {
     const { repo } = (window as any).__vizitai; // eslint-disable-line @typescript-eslint/no-explicit-any
-    for (const n of ['Pietūs', 'Pertrauka', 'Gydytojas', 'Asmeniniai reikalai']) await repo.addOption('personal', n);
     for (const n of ['Medžiagos', 'Nuoma', 'Mokesčiai', 'Kita']) await repo.addOption('expense', n);
   });
 }

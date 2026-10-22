@@ -79,8 +79,15 @@ export const lt = {
   'eod.alldone': 'Viskas suvesta!', 'eod.progress': 'Sumokėta {a} iš {b}', 'eod.upcoming': 'Dar laukia vizitų: {n}', 'eod.empty': 'Vizitų nebuvo',
   'amount.zero.title': 'Nunulinti sumą? Vizitas vėl taps „Nepatvirtinta“ ir lauks sumos.', 'amount.zero.confirm': 'Nunulinti', 'amount.positive': 'Įveskite sumą didesnę už 0',
   'amount.log.title': 'Sumos pakeitimai', 'amount.log.cleared': 'nunulinta',
+  'option.minutes': 'Trukmė (min.)',
   'balance.label': 'Balansas', 'balance.in': 'Gauta', 'balance.out': 'Išlaidos',
 } as const;
+
+/** The words Asmeninis starts with (hers to rename, add to and delete in Nustatymai): appointments of her own. */
+export const defaultPersonalNames = [
+  'Psichologas', 'Psichiatras / psichiatrė', 'Neurologas / neurologė', 'Daktaras', 'Šeimos gydytojas', 'Dantistas', 'Akių gydytojas',
+  'Kineziterapeutas', 'Masažas', 'Pietūs', 'Pertrauka', 'Vaikų reikalai', 'Autoservisas', 'Bankas',
+];
 
 export type Key = keyof typeof lt;
 

@@ -474,3 +474,5 @@ p.link-name { color: var(--label); }
 .entry.compact[data-fit='s'] .entry-name, .entry.compact[data-fit='x'] .entry-name { -webkit-line-clamp: 1; line-clamp: 1; }
 .timeline[data-density='tight'] .hour-label, .timeline[data-density='tiny'] .hour-label { font-size: .8rem; }
 .svc-line .inline.left { text-align: left; flex: 1; min-width: 0; color: var(--label); font-size: 1.02rem; padding: 8px 0; }
+/* A long list (many choices, many name suggestions) must keep its full height inside the pane and scroll with it; a flex column would squeeze and clip it */
+.flow-pane > * { flex-shrink: 0; }

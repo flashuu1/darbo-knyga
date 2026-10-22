@@ -247,13 +247,13 @@ test('a long list of choices in Asmeninis keeps its full height and scrolls, so 
   await page.getByTestId('type-personal').click();
   await page.waitForTimeout(450);
   const g = await page.evaluate(() => { const p = document.querySelector('.flow-pane') as HTMLElement; const ul = document.querySelector('[data-testid="option-list"]') as HTMLElement; return { scroll: p.scrollHeight, client: p.clientHeight, ul: ul.getBoundingClientRect().height }; });
-  expect(g.ul).toBeGreaterThan(14 * 50); // not squeezed: every row has its own height
+  expect(g.ul).toBeGreaterThan(12 * 50); // not squeezed: every row has its own height
   expect(g.scroll).toBeGreaterThan(g.client); // so the pane has something to scroll
   await page.evaluate(() => { const p = document.querySelector('.flow-pane') as HTMLElement; p.scrollTop = p.scrollHeight; });
   await page.waitForTimeout(100);
-  const pane = (await page.locator('.flow-pane').first().boundingBox())!, last = (await page.getByTestId('option-13').boundingBox())!;
+  const pane = (await page.locator('.flow-pane').first().boundingBox())!, last = (await page.getByTestId('option-11').boundingBox())!;
   expect(last.y + last.height).toBeLessThanOrEqual(pane.y + pane.height + 1); // the last one is on screen
-  await page.getByTestId('option-13').click();
-  await expect(page.getByTestId('option-13')).toHaveAttribute('aria-pressed', 'true');
+  await page.getByTestId('option-11').click();
+  await expect(page.getByTestId('option-11')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByTestId('btn-next')).toBeEnabled();
 });

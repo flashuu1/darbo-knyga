@@ -122,3 +122,21 @@ describe('v6: Asmeninis starts with common words', () => {
     db.close();
   });
 });
+
+describe('v7: Pertrauka and Vaikų reikalai are removed from the personal words', () => {
+  it('deletes exactly those two among the personal choices and leaves everything else', async () => {
+    const name = `v7-${crypto.randomUUID()}`;
+    const d = new Dexie(name);
+    for (const v of versions.filter((x) => x.version <= 6)) d.version(v.version).stores(v.stores as Record<string, string>);
+    await d.table('options').bulkAdd([
+      { id: 'a', group: 'personal', name: 'Pertrauka', order: 0 }, { id: 'b', group: 'personal', name: 'Vaikų reikalai', order: 1 },
+      { id: 'c', group: 'personal', name: 'Daktaras', order: 2 }, { id: 'd', group: 'expense', name: 'Pertrauka', order: 0 },
+    ]);
+    d.close();
+    const db = new VizitaiDB(name);
+    await db.open();
+    const ids = (await db.options.toArray()).map((o) => o.id).sort();
+    expect(ids).toEqual(['c', 'd']);
+    db.close();
+  });
+});

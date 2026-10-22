@@ -75,4 +75,10 @@ versions.push({
     if (add.length) await options.bulkAdd(add);
   },
 });
+// v7: "Pertrauka" and "Vaikų reikalai" were not wanted among the common words; they go (only the personal choices carrying exactly those names).
+versions.push({
+  version: 7,
+  stores: {},
+  upgrade: (tx) => tx.table('options').filter((o: { group: string; name: string }) => o.group === 'personal' && (o.name === 'Pertrauka' || o.name === 'Vaikų reikalai')).delete(),
+});
 export const SCHEMA_VERSION = versions[versions.length - 1].version;

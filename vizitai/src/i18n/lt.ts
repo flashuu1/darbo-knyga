@@ -86,7 +86,7 @@ export const lt = {
 /** The words Asmeninis starts with (hers to rename, add to and delete in Nustatymai): appointments of her own. */
 export const defaultPersonalNames = [
   'Psichologas', 'Psichiatras / psichiatrė', 'Neurologas / neurologė', 'Daktaras', 'Šeimos gydytojas', 'Dantistas', 'Akių gydytojas',
-  'Kineziterapeutas', 'Masažas', 'Pietūs', 'Pertrauka', 'Vaikų reikalai', 'Autoservisas', 'Bankas',
+  'Kineziterapeutas', 'Masažas', 'Pietūs', 'Autoservisas', 'Bankas',
 ];
 
 export type Key = keyof typeof lt;

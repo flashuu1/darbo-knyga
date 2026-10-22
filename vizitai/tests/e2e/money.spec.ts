@@ -85,12 +85,12 @@ test('Settings lists her own choices; she can add, rename and swipe-delete them,
   await openSettings(page, 'personal');
   await seedOptions(page);
   await expect(page.getByTestId('opt-personal-name-0')).toHaveValue('Psichologas'); // the common words are there from the start
-  await expect(page.getByTestId('opt-personal-row-13')).toBeAttached({ timeout: 15000 });
+  await expect(page.getByTestId('opt-personal-row-11')).toBeAttached({ timeout: 15000 });
   await page.getByTestId('opt-personal-add').click();
-  await expect(page.getByTestId('opt-personal-row-14')).toBeAttached({ timeout: 15000 });
-  await page.getByTestId('opt-personal-name-14').scrollIntoViewIfNeeded();
-  await page.getByTestId('opt-personal-name-14').fill('Sporto salė');
-  await page.getByTestId('opt-personal-name-14').blur();
+  await expect(page.getByTestId('opt-personal-row-12')).toBeAttached({ timeout: 15000 });
+  await page.getByTestId('opt-personal-name-12').scrollIntoViewIfNeeded();
+  await page.getByTestId('opt-personal-name-12').fill('Sporto salė');
+  await page.getByTestId('opt-personal-name-12').blur();
   await expect.poll(() => page.evaluate(async () => (await (window as any).__vizitai.repo.listOptions('personal')).map((o: any) => o.name))).toContain('Sporto salė');
   await page.getByTestId('settings-back').click();
   await page.getByTestId('settings-row-expenses').click();
@@ -105,8 +105,8 @@ test('Settings lists her own choices; she can add, rename and swipe-delete them,
   await page.getByTestId('tab-calendar').click();
   await page.getByTestId('slot-2026-10-14T12:00').click();
   await page.getByTestId('type-personal').click();
-  await expect(page.getByTestId('option-14')).toHaveText(/Sporto salė/);
-  expect(await count(page, 'options')).toBe(19); // 15 personal, 4 expense kinds
+  await expect(page.getByTestId('option-12')).toHaveText(/Sporto salė/);
+  expect(await count(page, 'options')).toBe(17); // 13 personal, 4 expense kinds
 });
 
 test('with the keyboard up the name suggestions stay above it, and dragging the list puts the keyboard away', async ({ page }) => {

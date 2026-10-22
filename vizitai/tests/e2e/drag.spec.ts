@@ -302,3 +302,23 @@ test('letting go while the week is still turning is safe: the entry stays a sing
   expect(await page.evaluate(async () => (await (window as any).__vizitai.db.appointments.toArray()).length)).toBe(1); // eslint-disable-line @typescript-eslint/no-explicit-any
   expect((await apptState(page, id)).moves.length).toBeLessThanOrEqual(1);
 });
+
+test('turning back onto the current week says "Ši savaitė", not "Ankstesnė savaitė"', async ({ page }) => {
+  await openApp(page);
+  const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T10:00' }]);
+  await page.getByTestId('seg-week').click();
+  await expect.poll(() => page.getByTestId('timeline').evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+  const { y } = await lift(page, id);
+  const width = page.viewportSize()!.width;
+  await page.mouse.move(width - 3, y, { steps: 6 });
+  await expect.poll(() => page.evaluate(() => (window as any).__vizitai.ui.get().date)).toBe('2026-10-21'); // eslint-disable-line @typescript-eslint/no-explicit-any
+  await expect(page.getByTestId('turn-note')).toContainText('Kita savaitė');
+  await page.mouse.move(200, y, { steps: 4 }); // out of the edge: it stops turning
+  await page.mouse.move(3, y, { steps: 6 }); // and back the other way
+  await expect.poll(() => page.evaluate(() => (window as any).__vizitai.ui.get().date)).toBe('2026-10-14'); // eslint-disable-line @typescript-eslint/no-explicit-any
+  await expect(page.getByTestId('turn-note')).toContainText('Ši savaitė');
+  await expect(page.getByTestId('turn-note')).not.toContainText('Ankstesnė');
+  await expect(page.getByTestId('turn-note')).toContainText('spalio 12'); // with its dates
+  await page.mouse.move(200, y, { steps: 4 });
+  await page.mouse.up();
+});

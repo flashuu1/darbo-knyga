@@ -135,7 +135,9 @@ export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; com
     const dragging = ui.get().drag;
     if (dragging && moved && !switched) { // a drag held at the edge turned the day or week: say so, and slide it in clearly
       const label = dates.length > 1 ? `${formatDayShort(first)} – ${formatDayShort(last)}` : formatDayShort(first);
-      const text = dates.length > 1 ? t(dir > 0 ? 'drag.nextWeek' : 'drag.prevWeek') : t(dir > 0 ? 'drag.nextDay' : 'drag.prevDay');
+      // back on today's week (or day) it says so; anywhere else it says which way she turned
+      const here = dates.includes(today);
+      const text = dates.length > 1 ? t(here ? 'drag.thisWeek' : dir > 0 ? 'drag.nextWeek' : 'drag.prevWeek') : t(here ? 'drag.today' : dir > 0 ? 'drag.nextDay' : 'drag.prevDay');
       setNote({ text: `${text} · ${label}`, key: performance.now() });
       window.clearTimeout(noteTimer.current);
       noteTimer.current = window.setTimeout(() => setNote(null), 1300);

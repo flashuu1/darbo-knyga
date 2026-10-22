@@ -25,7 +25,7 @@ export interface Origin { type: 'appt' | 'client'; id: string }
 export type Sheet = { type: 'new'; start: string; clientId?: string; serviceId?: string; screen?: 'time'; from?: Origin; replaceId?: string } | { type: 'appt'; id: string }
   | { type: 'amount'; id: string } | { type: 'move'; id: string } | { type: 'summary'; scope: 'day' | 'week' | 'month'; date: string };
 export interface ToastState { id: number; text: string; undo?: () => Promise<void> }
-export interface DragState { entry: Entry; label: string; x: number; y: number; grabDY: number; grabDX: number; left: number; width: number; over: { date: string; start: string } | null }
+export interface DragState { entry: Entry; label: string; x: number; y: number; grabDY: number; grabDX: number; left: number; width: number; over: { date: string; start: string } | null; /** Held at the left (-1) or right (1) edge: the calendar is about to turn to the previous / next day or week. */ edge?: -1 | 0 | 1 }
 export interface ActionItem { label: string; role?: 'destructive' | 'cancel'; onPress: () => void }
 export interface UiState {
   tab: Tab; view: 'day' | 'week' | 'month'; date: string;

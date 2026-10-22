@@ -80,6 +80,7 @@ export const lt = {
   'amount.zero.title': 'Nunulinti sumą? Vizitas vėl taps „Nepatvirtinta“ ir lauks sumos.', 'amount.zero.confirm': 'Nunulinti', 'amount.positive': 'Įveskite sumą didesnę už 0',
   'amount.log.title': 'Sumos pakeitimai', 'amount.log.cleared': 'nunulinta',
   'option.minutes': 'Trukmė (min.)',
+  'drag.nextWeek': 'Kita savaitė', 'drag.prevWeek': 'Ankstesnė savaitė', 'drag.nextDay': 'Kita diena', 'drag.prevDay': 'Ankstesnė diena',
   'balance.label': 'Balansas', 'balance.in': 'Gauta', 'balance.out': 'Išlaidos',
 } as const;
 

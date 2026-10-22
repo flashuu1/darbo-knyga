@@ -10,7 +10,10 @@ export const DROP_STEP_MIN = 5; // dropped times land on whole 5 minutes
 export const AUTOSCROLL_ZONE_PX = 40;
 
 export const exceedsThreshold = (dx: number, dy: number) => Math.hypot(dx, dy) > MOVE_THRESHOLD_PX;
-export const edgeSide = (x: number, width: number): -1 | 0 | 1 => (x < EDGE_ZONE_PX ? -1 : x > width - EDGE_ZONE_PX ? 1 : 0);
+export const WEEK_EDGE_ZONE_PX = 36; // Savaitė has narrow columns: a wider edge to hold at
+export const WEEK_EDGE_HOLD_MS = 450; // hold at the edge of Savaitė: the first flip to the next week
+export const WEEK_EDGE_REPEAT_MS = 800; // ...and one more week every this long
+export const edgeSide = (x: number, width: number, zone = EDGE_ZONE_PX): -1 | 0 | 1 => (x < zone ? -1 : x > width - zone ? 1 : 0);
 
 /** The start (on a 5-minute step)  for an entry whose top edge is dropped at `y - grabDY`, clamped to the visible rows. */
 export function startFromY(o: { date: string; rangeStartMin: number; rows: number; colTop: number; colHeight: number; y: number; grabDY: number }): string {

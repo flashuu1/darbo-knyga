@@ -245,3 +245,60 @@ test('holding over the last day of the strip pages to the next week, so any date
   await page.mouse.up();
   await expect.poll(async () => (await apptState(page, id)).start).toBe('2026-10-22T10:00');
 });
+
+test('in Savaitė, holding a lifted entry at the right edge turns to the next week, says so, and the drop lands there', async ({ page }) => {
+  await openApp(page);
+  const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T10:00' }]);
+  await page.getByTestId('seg-week').click();
+  await expect.poll(() => page.getByTestId('timeline').evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+  const { y } = await lift(page, id);
+  const width = page.viewportSize()!.width;
+  await page.mouse.move(width - 3, y, { steps: 8 });
+  await expect(page.getByTestId('edge-hint')).toBeVisible(); // the edge lights up while she holds there
+  await expect.poll(() => page.evaluate(() => (window as any).__vizitai.ui.get().date)).toBe('2026-10-21'); // eslint-disable-line @typescript-eslint/no-explicit-any
+  await expect(page.getByTestId('turn-note')).toContainText('Kita savaitė');
+  await expect(page.getByTestId('turn-note')).toContainText('spalio 19');
+  await expect(page.getByTestId('col-2026-10-22')).toBeVisible(); // the next week is on screen, the ghost is still in her hand
+  await expect(page.getByTestId('drag-ghost')).toBeVisible();
+  await page.mouse.move(width - 3, y, { steps: 1 });
+  await page.mouse.move(60, y, { steps: 4 }); // leave the edge: it stops turning
+  await page.waitForTimeout(900);
+  expect(await page.evaluate(() => (window as any).__vizitai.ui.get().date)).toBe('2026-10-21'); // eslint-disable-line @typescript-eslint/no-explicit-any
+  const target = (await page.getByTestId('col-2026-10-22').boundingBox())!;
+  await page.mouse.move(target.x + target.width / 2, y, { steps: 6 });
+  await page.mouse.up();
+  await expect.poll(async () => (await start(page, id)()).slice(0, 10)).toBe('2026-10-22');
+  await expect(page.getByTestId('toast')).toContainText('Perkelta');
+});
+
+test('in Savaitė, the left edge goes back a week, and the page does not turn when she is not at an edge', async ({ page }) => {
+  await openApp(page);
+  const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T10:00' }]);
+  await page.getByTestId('seg-week').click();
+  await expect.poll(() => page.getByTestId('timeline').evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+  const { y } = await lift(page, id);
+  await page.mouse.move(200, y, { steps: 4 });
+  await page.waitForTimeout(1000);
+  expect(await page.evaluate(() => (window as any).__vizitai.ui.get().date)).toBe('2026-10-14'); // eslint-disable-line @typescript-eslint/no-explicit-any
+  await expect(page.getByTestId('edge-hint')).toHaveCount(0);
+  await page.mouse.move(3, y, { steps: 6 });
+  await expect.poll(() => page.evaluate(() => (window as any).__vizitai.ui.get().date)).toBe('2026-10-07'); // eslint-disable-line @typescript-eslint/no-explicit-any
+  await expect(page.getByTestId('turn-note')).toContainText('Ankstesnė savaitė');
+  await page.mouse.move(200, y, { steps: 5 });
+  await page.mouse.up();
+  await expect.poll(async () => (await start(page, id)()).slice(0, 10)).toMatch(/^2026-10-(0[6-9]|1[01])$/); // dropped in the previous week
+});
+
+test('letting go while the week is still turning is safe: the entry stays a single entry', async ({ page }) => {
+  await openApp(page);
+  const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T10:00' }]);
+  await page.getByTestId('seg-week').click();
+  await expect.poll(() => page.getByTestId('timeline').evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+  const { y } = await lift(page, id);
+  await page.mouse.move(page.viewportSize()!.width - 3, y, { steps: 6 });
+  await expect.poll(() => page.evaluate(() => (window as any).__vizitai.ui.get().date)).toBe('2026-10-21'); // eslint-disable-line @typescript-eslint/no-explicit-any
+  await page.mouse.up(); // released right at the edge, over no column: nothing is moved
+  await expect(page.getByTestId('drag-ghost')).toHaveCount(0);
+  expect(await page.evaluate(async () => (await (window as any).__vizitai.db.appointments.toArray()).length)).toBe(1); // eslint-disable-line @typescript-eslint/no-explicit-any
+  expect((await apptState(page, id)).moves.length).toBeLessThanOrEqual(1);
+});

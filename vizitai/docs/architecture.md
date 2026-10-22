@@ -385,3 +385,7 @@ A confirmed amount that is changed leaves a line on the visit (`amountLog`: when
 - **The time wheels are loose.** Snapping stays, but nothing forces a stop at every number (`scroll-snap-stop: normal`), so a fling with speed carries on and settles by itself, and the number under the bar lights up while the wheel still turns.
 
 - **The choices are cards, not rows** (Asmeninis and Išlaidos in the booking flow): two to a row, each with a picture on its own colour (guessed from the word by `logic/glyph.ts`: psichologas a brain, daktaras a stethoscope, dantistas a tooth, nuoma a house ...; a word it does not know gets its first letter on a colour that stays the same), a soft gradient of that colour, and a circle in the corner that fills in the card's colour with a ring around the card when it is picked.
+
+## Dragging across weeks
+
+In Savaitė, holding a lifted entry at the left or right edge of the screen (36 px) turns the calendar to the previous / next week (after 0.45 s, then every 0.8 s while she stays). While she holds there the edge glows with an arrow; when the week turns the new week slides in from that side and a pill says "Kita savaitė · spalio 19 – 25" (or "Ankstesnė savaitė"), and the strip of weekdays changes with it. The ghost stays in her hand and the drop lands in the week she is over (the weekday columns stay mounted when the week turns, with a hidden copy of the entry in its own weekday column, so the gesture survives). Diena does the same with days (edge zone 24 px).

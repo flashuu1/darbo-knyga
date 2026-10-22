@@ -1,5 +1,5 @@
 import type { Entry } from '../db/repo';
-import { AUTOSCROLL_ZONE_PX, CHIP_DWELL_MS, EDGE_HOLD_MS, EDGE_REPEAT_MS, edgeSide, exceedsThreshold, HOLD_MS, startFromY } from '../logic/drag';
+import { AUTOSCROLL_ZONE_PX, CHIP_DWELL_MS, EDGE_HOLD_MS, EDGE_REPEAT_MS, edgeSide, exceedsThreshold, HOLD_MS, startFromY, WEEK_EDGE_HOLD_MS, WEEK_EDGE_REPEAT_MS, WEEK_EDGE_ZONE_PX } from '../logic/drag';
 import { addDays, timePart, weekStart } from '../logic/time';
 import { moveWithToast } from './actions';
 import { ui } from './store';
@@ -51,18 +51,23 @@ export function bindEntryDrag(el: HTMLElement, getEntry: () => Entry): () => voi
     };
     dwellTimer = window.setTimeout(page, CHIP_DWELL_MS);
   }
+  /** Held at the left or right edge: Diena turns to the previous / next day, Savaitė to the previous / next week. */
   function armEdge() {
-    const s = ui.get().view === 'day' ? edgeSide(lx, window.innerWidth) : 0;
+    const view = ui.get().view;
+    const week = view === 'week';
+    const s = view === 'day' ? edgeSide(lx, window.innerWidth) : week ? edgeSide(lx, window.innerWidth, WEEK_EDGE_ZONE_PX) : 0;
     if (s === side) return;
     clearTimeout(edgeTimer);
     side = s;
+    const d = ui.get().drag;
+    if (d && (d.edge ?? 0) !== s) ui.set({ drag: { ...d, edge: s } }); // lets the calendar show that it is about to turn
     if (!s) return;
     const flip = () => {
-      ui.set({ date: addDays(ui.get().date, s) });
+      ui.set({ date: addDays(ui.get().date, s * (week ? 7 : 1)) });
       dirty = true;
-      edgeTimer = window.setTimeout(flip, EDGE_REPEAT_MS);
+      edgeTimer = window.setTimeout(flip, week ? WEEK_EDGE_REPEAT_MS : EDGE_REPEAT_MS);
     };
-    edgeTimer = window.setTimeout(flip, EDGE_HOLD_MS);
+    edgeTimer = window.setTimeout(flip, week ? WEEK_EDGE_HOLD_MS : EDGE_HOLD_MS);
   }
   function loop() {
     const sc = el.closest<HTMLElement>('.grid-scroll');

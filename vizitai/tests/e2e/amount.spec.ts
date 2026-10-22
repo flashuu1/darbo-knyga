@@ -67,8 +67,9 @@ test('the amount can be edited and cleared from the appointment sheet; clearing 
   await page.getByTestId(`entry-${id}`).click();
   await page.getByTestId('appt-amount').click();
   await page.getByTestId('amount-input').fill('');
-  await expect(page.getByTestId('amount-confirm')).toBeEnabled(); // empty + confirm clears
+  await expect(page.getByTestId('amount-confirm')).toBeEnabled(); // empty + confirm asks, then clears
   await page.getByTestId('amount-confirm').click();
+  await page.getByTestId('action-item-0').click(); // Nunulinti
   await expect.poll(() => amountOf(page, id)).toBeFalsy();
   await expect(page.getByTestId(`entry-${id}`)).toHaveClass(/entry--due/);
 });
@@ -282,4 +283,64 @@ test('the amounts she took from this client before are one tap away', async ({ p
   await page.getByTestId('amount-confirm').click();
   await page.getByTestId('again-no').click();
   await expect.poll(() => amountOf(page, id)).toBe(4500);
+});
+
+test('every change of a confirmed amount leaves a line on the visit: when, from what to what', async ({ page }) => {
+  await openApp(page);
+  const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T08:00' }]);
+  await page.evaluate(async (x) => (window as any).__vizitai.repo.setAmount(x, 4000), id); // the first amount is not a change
+  expect((await apptState(page, id)).amountLog ?? []).toHaveLength(0);
+  await page.getByTestId(`entry-${id}`).click();
+  await expect(page.getByTestId('amount-log')).toHaveCount(0);
+  await page.getByTestId('appt-amount').click();
+  await page.getByTestId('amount-input').fill('50');
+  await page.getByTestId('amount-confirm').click();
+  await expect.poll(() => amountOf(page, id)).toBe(5000);
+  await page.getByTestId(`entry-${id}`).click();
+  await expect(page.getByTestId('amount-log-0')).toContainText('40,00');
+  await expect(page.getByTestId('amount-log-0')).toContainText('50,00');
+  await expect(page.getByTestId('amount-log-0')).toContainText('→');
+  await page.getByTestId('appt-amount').click();
+  await page.getByTestId('amount-input').fill('55');
+  await page.getByTestId('amount-confirm').click();
+  await page.getByTestId(`entry-${id}`).click();
+  await expect(page.getByTestId('amount-log-0')).toContainText('55,00'); // newest first
+  await expect(page.getByTestId('amount-log-1')).toContainText('50,00');
+  const log = (await apptState(page, id)).amountLog;
+  expect(log.map((l: any) => [l.from, l.to])).toEqual([[4000, 5000], [5000, 5500]]);
+});
+
+test('0 on a confirmed amount asks first, then nulls it: the visit waits for its amount again, and the log says so', async ({ page }) => {
+  await openApp(page);
+  const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T08:00' }]);
+  await page.evaluate(async (x) => (window as any).__vizitai.repo.setAmount(x, 4000), id);
+  await page.getByTestId(`entry-${id}`).click();
+  await page.getByTestId('appt-amount').click();
+  await page.getByTestId('amount-input').fill('0');
+  await expect(page.getByTestId('amount-invalid')).toHaveCount(0); // 0 here is a request to reset, not a mistake
+  await page.getByTestId('amount-confirm').click();
+  await expect(page.getByTestId('action-title')).toContainText('Nunulinti sumą');
+  await expect(page.getByTestId('action-title')).toContainText('Nepatvirtinta');
+  expect(await amountOf(page, id)).toBe(4000); // nothing changes before she agrees
+  await page.getByTestId('action-item-1').click(); // Palikti
+  expect(await amountOf(page, id)).toBe(4000);
+  await page.getByTestId('amount-confirm').click();
+  await page.getByTestId('action-item-0').click(); // Nunulinti
+  await expect.poll(() => amountOf(page, id)).toBeFalsy();
+  await expect(page.getByTestId(`entry-${id}`)).toHaveClass(/entry--due/); // orange again
+  const log = (await apptState(page, id)).amountLog;
+  expect(log).toHaveLength(1);
+  expect(log[0]).toMatchObject({ from: 4000, to: null });
+  await page.getByTestId('toast-undo').click(); // and Anuliuoti brings the amount back, the log line with it
+  await expect.poll(() => amountOf(page, id)).toBe(4000);
+  expect((await apptState(page, id)).amountLog ?? []).toHaveLength(0);
+});
+
+test('0 as a first amount is refused: there is nothing to reset', async ({ page }) => {
+  await openApp(page);
+  const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T08:00' }]);
+  await page.getByTestId(`entry-${id}`).click();
+  await page.getByTestId('amount-input').fill('0');
+  await expect(page.getByTestId('amount-invalid')).toContainText('didesnę už 0');
+  await expect(page.getByTestId('amount-confirm')).toBeDisabled();
 });

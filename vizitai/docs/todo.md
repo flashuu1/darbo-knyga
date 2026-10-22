@@ -4,7 +4,7 @@ The order below is a suggestion; the owner decides after testing what is built. 
 
 ## Next, in the order agreed
 
-- [x] **1. End-of-day screen ("Dienos suvestinė").** One page for the day: what waits for its amount with one-tap chips of the client's usual amounts, what is in, the day's money, a small celebration when the day is settled. Opens from the balance line in the calendar; the badge counts what waits.
+- [x] **1. End-of-day screen ("Dienos suvestinė").** One page for the books of what is on screen: day, week or month (the button in the calendar follows the view), with one-tap chips of the usual amounts, the money, a small celebration. Amount changes are logged on the visit and 0 resets after a confirmation.
 - [ ] **2. Prices per service.** A default price on each service, so the amount sheet and the end-of-day chips open pre-filled and a payment is one tap; later: earnings per service.
 - [ ] **3. Client reminders in one tap.** A "Rytojaus klientai" list with a button that opens a ready-made SMS or WhatsApp message (no backend: the phone sends it).
 - [ ] **4. "Kas turėtų grįžti".** Learn each client's rhythm (for example every 6 weeks), list who is overdue, rebook in one tap. First real assistant step.

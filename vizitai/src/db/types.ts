@@ -10,6 +10,8 @@ export interface Appointment {
   amountCents?: number | null;
   /** Personal and expense entries: which of her own choices (Settings) it was picked from. Unindexed. */
   optionId?: string | null;
+  /** Every time a confirmed amount was changed (or nulled, `to: null`): when, from what, to what. Unindexed. */
+  amountLog?: { at: string; from: number; to: number | null }[];
 }
 /** One of her own choices in Settings: what a personal entry can be, or what a kind of expense is. */
 export type OptionGroup = 'personal' | 'expense';

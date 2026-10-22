@@ -14,24 +14,26 @@ async function swipeLeft(page: Page, testId: string, dx = 130) {
   await page.mouse.up();
 }
 
-test('the balance sits under the calendar title and is money in minus money out', async ({ page }) => {
+test('the money is in the summary: money in minus money out, for the day, the week and the month', async ({ page }) => {
   await openApp(page, '2026-10-14T12:00:00');
   await seedOptions(page);
-  await expect(page.getByTestId('balance-value')).toHaveText(/^0,00\s€$/);
   const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T09:00' }]);
   await page.evaluate(async (x) => (window as any).__vizitai.repo.setAmount(x, 10000), id);
-  await expect(page.getByTestId('balance-value')).toHaveText(/^100,00\s€$/);
   await page.evaluate(async () => {
     const { repo } = (window as any).__vizitai;
     const [o] = await repo.listOptions('expense');
     await repo.createAppointment({ kind: 'expense', title: o.name, optionId: o.id, amountCents: 3050, start: '2026-10-14T10:00' });
   });
-  await expect(page.getByTestId('balance-value')).toHaveText(/^69,50\s€$/);
-  await expect(page.getByTestId('balance-split')).toContainText('Gauta');
-  const title = (await page.getByTestId('title').boundingBox())!, bal = (await page.getByTestId('balance').boundingBox())!;
-  expect(bal.y).toBeGreaterThanOrEqual(title.y + title.height - 2);
+  // the calendar header is quiet: no balance, no Gauta / Išlaidos
+  await expect(page.getByTestId('balance-value')).toHaveCount(0);
+  await page.getByTestId('summary-btn').click();
+  await expect(page.getByTestId('eod-net')).toHaveText(/^69,50\s€$/);
+  await expect(page.getByTestId('eod-in')).toContainText('100,00');
+  await expect(page.getByTestId('eod-out')).toContainText('30,50');
+  await page.getByTestId('btn-close').click();
   await page.getByTestId('seg-week').click();
-  await expect(page.getByTestId('balance-value')).toBeVisible(); // on every calendar view
+  await page.getByTestId('summary-btn').click();
+  await expect(page.getByTestId('eod-net')).toHaveText(/^69,50\s€$/);
 });
 
 test('an expense is added from her own choices with an amount, shows in the calendar and lowers the balance', async ({ page }) => {
@@ -48,13 +50,15 @@ test('an expense is added from her own choices with an amount, shows in the cale
   await page.getByTestId('btn-save-time').click();
   await expect(page.getByTestId('col-2026-10-14')).toContainText('Nuoma');
   await expect(page.getByTestId('col-2026-10-14')).toContainText('−12,50');
-  await expect(page.getByTestId('balance-value')).toHaveText(/^[-−]12,50\s€$/);
+  await page.getByTestId('summary-btn').click();
+  await expect(page.getByTestId('eod-net')).toHaveText(/^[-−]12,50\s€$/);
+  await expect(page.getByTestId('eod-net')).toHaveClass(/neg/);
+  await page.getByTestId('btn-close').click();
   // money out is red and never the green "paid" look of a visit
   const entry = page.getByTestId('col-2026-10-14').locator('.entry', { hasText: 'Nuoma' });
   await expect(entry).not.toHaveClass(/entry--paid/);
   await expect(entry.locator('.entry-amount.paid')).toHaveCount(0);
   await expect(entry.locator('.entry-amount.out')).toHaveCount(1);
-  expect(await page.getByTestId('balance-value').getAttribute('class')).toContain('neg');
 });
 
 test('an expense can be opened and its amount changed, and it never blocks a visit at the same time', async ({ page }) => {

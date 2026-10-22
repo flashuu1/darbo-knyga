@@ -4,7 +4,7 @@ import type { Appointment, CancelReason, Client, Option, OptionGroup, Service, S
 import type { VizitaiDB } from './db';
 import { DEFAULT_SETTINGS } from './seed';
 import { cleanName, foldName, ltCollator } from '../logic/names';
-import { addDays, addMinutes, datePart, minutesOfDay, nowLocal, parse } from '../logic/time';
+import { addDays, addMinutes, datePart, minutesOfDay, nowLocal, parse, scopeRange, type Scope } from '../logic/time';
 import { findOverlap, minutesFor, nextFreeSlot, PERSONAL_MINUTES, type Block } from '../logic/overlap';
 import { t } from '../i18n/lt';
 import { isAmountDue, isValidCents } from '../logic/amount';
@@ -198,7 +198,12 @@ export function createRepo(db: VizitaiDB) {
     /** Stores what she took for the visit (integer cents), or clears it with null. Undo: putSnapshot(before). */
     setAmount(id: string, cents: number | null) {
       if (cents !== null && !isValidCents(cents)) return Promise.reject(new Error('bad-amount'));
-      return mutate(id, (a) => ({ ...a, amountCents: cents }));
+      return mutate(id, (a) => {
+        const prev = isValidCents(a.amountCents) ? a.amountCents : null;
+        // a confirmed amount that changes leaves a trail on the visit
+        const log = prev !== null && prev !== cents ? [...(a.amountLog ?? []), { at: now(), from: prev, to: cents }] : a.amountLog;
+        return { ...a, amountCents: cents, ...(log ? { amountLog: log } : {}) };
+      });
     },
     async putSnapshot(a: Appointment) { await db.appointments.put(a); },
     deleteAppointment: (id: string) => db.appointments.delete(id),
@@ -243,25 +248,27 @@ export function createRepo(db: VizitaiDB) {
       return (await db.appointments.toArray()).filter((a) => isAmountDue(a, now_)).length;
     },
     /**
-     * The end of a day: its client visits that wait for their amount (with the amounts this client paid before as
-     * suggestions), earlier visits still waiting (only when the day is today), the ones already settled, the day's money.
+     * The books of a day, a week or a month: its client visits that wait for their amount (with the amounts this client
+     * paid before as suggestions), earlier visits still waiting (only when the range contains today), the ones already
+     * settled, and the money.
      */
-    async daySummary(date: string, now_: string = nowLocal()) {
-      const list = await this.entriesBetween(date, addDays(date, 1));
+    async summary(scope: Scope, date: string, now_: string = nowLocal()) {
+      const { from, to } = scopeRange(scope, date);
+      const list = await this.entriesBetween(from, to);
       const visits = list.filter((e) => e.appt.kind === 'client' && e.appt.status === 'booked');
       const due = visits.filter((e) => e.appt.start <= now_ && e.amountCents === null);
       const paid = visits.filter((e) => e.amountCents !== null);
       const upcoming = visits.filter((e) => e.appt.start > now_).length;
       const expenses = list.filter((e) => e.appt.kind === 'expense' && e.appt.status === 'booked' && e.amountCents !== null);
       let older: Entry[] = [];
-      if (date === datePart(now_)) {
-        const before = await db.appointments.where('start').below(`${date}T00:00`).toArray();
+      if (from <= datePart(now_) && datePart(now_) < to) {
+        const before = await db.appointments.where('start').below(`${from}T00:00`).toArray();
         older = await toEntries(before.filter((a) => isAmountDue(a, now_)).sort(byStart));
       }
       const suggest: Record<string, number[]> = {};
       for (const e of [...due, ...older]) if (e.appt.clientId) suggest[e.appt.id] = await this.amountSuggestions(e.appt.clientId, e.appt.serviceId);
       return {
-        date, due, older, paid, upcoming, suggest,
+        scope, date, from, to, due, older, paid, upcoming, suggest,
         inCents: paid.reduce((n, e) => n + e.amountCents!, 0),
         outCents: expenses.reduce((n, e) => n + e.amountCents!, 0),
       };

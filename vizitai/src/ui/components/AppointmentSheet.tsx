@@ -86,6 +86,20 @@ export function AppointmentSheet({ id }: { id: string }) {
         </button>
       )}
 
+      {(appt.amountLog?.length ?? 0) > 0 && (
+        <div class="amount-log" data-testid="amount-log">
+          <p class="log-title">{t('amount.log.title')}</p>
+          <ul>
+            {[...appt.amountLog!].reverse().map((l, i) => (
+              <li key={l.at} data-testid={`amount-log-${i}`}>
+                <span class="log-when">{formatWhen(nowLocal(new Date(l.at)))}</span>
+                <span class="log-change">{formatEuro(l.from)} → {l.to === null ? t('amount.log.cleared') : formatEuro(l.to)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div class="act-group">
         {appt.status === 'booked' && (
           <button class="act-row" data-testid="act-move" onClick={() => ui.set({ sheet: { type: 'move', id } })}>

@@ -66,16 +66,16 @@ export function showOverflow(list: Entry[]) {
     },
   });
 }
-export const sheetKey = (s: Sheet) => (s.type === 'new' ? 'new' : s.type === 'day' ? 'day' : `${s.type}${s.id}`);
+export const sheetKey = (s: Sheet) => (s.type === 'new' ? 'new' : s.type === 'summary' ? 'summary' : `${s.type}${s.id}`);
 export function closeSheet() {
   const { back, sheet } = ui.get();
   if (back && sheet && sheetKey(sheet) === back.for) ui.set({ sheet: back.sheet, back: null }); // e.g. Suma opened from the day summary
   else ui.set({ sheet: null, back: null });
 }
-/** The day summary (end of the day) for a date, never in the future. */
-export function openDay(date?: string) {
-  const d = date ?? ui.get().date;
-  ui.set({ sheet: { type: 'day', date: d > todayStr() ? todayStr() : d } });
+/** The summary (the books) of the day, week or month on screen; a day is never in the future. */
+export function openSummary(scope: 'day' | 'week' | 'month') {
+  const d = ui.get().date;
+  ui.set({ sheet: { type: 'summary', scope, date: scope === 'day' && d > todayStr() ? todayStr() : d } });
 }
 async function deleteCancelled(a: Appointment) {
   await repo.deleteAppointment(a.id);

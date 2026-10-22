@@ -1,8 +1,8 @@
 import { repo } from '../../db/repo';
-import { formatDayLong, formatDayShort, formatEuro, monthName, weekdayShort } from '../../i18n/format';
+import { formatDayLong, formatDayShort, monthName, weekdayShort } from '../../i18n/format';
 import { t } from '../../i18n/lt';
 import { addDays, datePart, todayStr, weekStart } from '../../logic/time';
-import { openDay, openNewToday, runBackup } from '../actions';
+import { openNewToday, openSummary, runBackup } from '../actions';
 import { useNow } from '../clock';
 import { useLive, useNeedsBackup } from '../hooks';
 import { BackIcon, BackupIcon, ChevronIcon, NextIcon, PlusIcon } from '../icons';
@@ -20,7 +20,6 @@ function titleFor(view: UiState['view'], date: string) {
 export function CalendarScreen() {
   const { view, date } = useStore(ui);
   const stale = useNeedsBackup();
-  const bal = useLive(() => repo.balance(), [], { inCents: 0, outCents: 0, balanceCents: 0 });
   const waiting = useLive(() => repo.dueCount(), [], 0);
   const today = datePart(useNow());
   const step = (dir: -1 | 1) => {
@@ -47,10 +46,8 @@ export function CalendarScreen() {
           </div>
         </div>
         <h1 key={title} class="large-title title-in" data-testid="title">{title}</h1>
-        <button class="balance" data-testid="balance" aria-label={t('eod.open')} onClick={() => openDay()}>
-          <span class="b-label">{t('balance.label')}</span>
-          <b class={bal.balanceCents < 0 ? 'neg' : ''} data-testid="balance-value">{formatEuro(bal.balanceCents)}</b>
-          <span class="b-split" data-testid="balance-split">{t('balance.in')} {formatEuro(bal.inCents)} · {t('balance.out')} {formatEuro(bal.outCents)}</span>
+        <button class="summary-btn" data-testid="summary-btn" onClick={() => openSummary(view)}>
+          <span class="sb-label" data-testid="summary-label">{t(`eod.title.${view}`)}</span>
           {waiting > 0 && <span class="due-badge" data-testid="due-badge" aria-hidden="true">{waiting}</span>}
           <span class="b-chev" aria-hidden="true"><NextIcon /></span>
         </button>

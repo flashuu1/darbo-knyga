@@ -85,3 +85,44 @@ describe('backup', () => {
     expect(await db.options.count()).toBe(0);
   });
 });
+
+describe('changing an amount leaves a trail', () => {
+  it('logs a change of a confirmed amount, newest last, and not the first amount', async () => {
+    const [svc] = await repo.listServices(true);
+    const v = await repo.createAppointment({ kind: 'client', name: 'Ona', serviceId: svc.id, start: '2026-10-14T09:00' });
+    await repo.setAmount(v.id, 4000);
+    expect((await repo.getAppointment(v.id))!.amountLog).toBeUndefined();
+    await repo.setAmount(v.id, 4000); // the same amount: nothing to log
+    await repo.setAmount(v.id, 5000);
+    await repo.setAmount(v.id, null);
+    const log = (await repo.getAppointment(v.id))!.amountLog!;
+    expect(log.map((l) => [l.from, l.to])).toEqual([[4000, 5000], [5000, null]]);
+    expect(Date.parse(log[0].at)).toBeLessThan(Date.parse(log[1].at));
+  });
+  it('an undo (the snapshot from before) takes the log line with it', async () => {
+    const [svc] = await repo.listServices(true);
+    const v = await repo.createAppointment({ kind: 'client', name: 'Ona', serviceId: svc.id, start: '2026-10-14T09:00' });
+    await repo.setAmount(v.id, 4000);
+    const { before } = await repo.setAmount(v.id, null);
+    await repo.putSnapshot(before);
+    const back = (await repo.getAppointment(v.id))!;
+    expect(back.amountCents).toBe(4000);
+    expect(back.amountLog).toBeUndefined();
+  });
+});
+
+describe('summary of a day, week and month', () => {
+  it('covers exactly its dates: a week starts on Monday, a month is the calendar month', async () => {
+    const [svc] = await repo.listServices(true);
+    const mk = async (start: string, cents: number) => { const a = await repo.createAppointment({ kind: 'client', name: 'Ona', serviceId: svc.id, start }); await repo.setAmount(a.id, cents); };
+    await mk('2026-10-11T09:00', 100); // Sunday before the week
+    await mk('2026-10-12T09:00', 200); // Monday
+    await mk('2026-10-18T09:00', 400); // Sunday
+    await mk('2026-10-19T09:00', 800); // next Monday
+    await mk('2026-11-01T09:00', 1600);
+    const now = '2026-10-20T12:00';
+    expect((await repo.summary('day', '2026-10-18', now)).inCents).toBe(400);
+    expect((await repo.summary('week', '2026-10-14', now)).inCents).toBe(600);
+    expect((await repo.summary('month', '2026-10-14', now)).inCents).toBe(100 + 200 + 400 + 800);
+  });
+});

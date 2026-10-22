@@ -9,6 +9,7 @@ import { closeSheet, openAppt, primeKeyboard, rebook, showToast } from '../actio
 import { saveAmountWithToast } from '../amount';
 import { useLive } from '../hooks';
 import { useKeyboardHeight } from '../keyboard';
+import { ui } from '../store';
 import { Burst } from './Burst';
 import { Sheet } from './Sheet';
 
@@ -36,13 +37,21 @@ export function AmountSheet({ id }: { id: string }) {
   const stored = typeof appt.amountCents === 'number' ? appt.amountCents : null;
   const value = text ?? (stored !== null ? formatAmountInput(stored) : '');
   const cents = parseAmountInput(value);
-  const clearing = value.trim() === '' && stored !== null;
-  const valid = cents !== null || clearing;
-  const bad = value.trim() !== '' && cents === null;
+  // 0 (or nothing) on a visit that has an amount means "undo the amount": she is asked first, and the visit waits for its amount again
+  const clearing = stored !== null && appt.kind === 'client' && (value.trim() === '' || cents === 0);
+  const valid = (cents !== null && cents > 0) || clearing;
+  const bad = value.trim() !== '' && (cents === null || (cents === 0 && !clearing));
   const name = client?.name ?? appt.title ?? '';
 
   const confirm = () => {
     if (!valid || busy.current) return;
+    if (clearing) {
+      ui.set({ action: { title: t('amount.zero.title'), items: [
+        { label: t('amount.zero.confirm'), role: 'destructive', onPress: () => { void saveAmountWithToast(id, null).catch((e) => console.error(e)); } },
+        { label: t('btn.keep'), role: 'cancel', onPress: () => {} },
+      ] } });
+      return;
+    }
     busy.current = true;
     const first = appt.kind === 'client' && stored === null && cents !== null && !clearing;
     const run = first
@@ -109,8 +118,8 @@ export function AmountSheet({ id }: { id: string }) {
           ))}
         </div>
       )}
-      {bad && <p class="warn center" role="alert" data-testid="amount-invalid">{t('amount.invalid')}</p>}
-      {stored !== null && !bad && <p class="hint center">{t('amount.clearHint')}</p>}
+      {bad && <p class="warn center" role="alert" data-testid="amount-invalid">{cents === 0 ? t('amount.positive') : t('amount.invalid')}</p>}
+      {stored !== null && !bad && appt.kind === 'client' && <p class="hint center" data-testid="amount-hint">{t('amount.clearHint')}</p>}
       <button class="link-btn" data-testid="amount-open-appt" onClick={() => openAppt(id)}>{t('amount.openAppt')}</button>
     </Sheet>
   );

@@ -60,7 +60,7 @@ export const lt = {
   'amount.title': 'Suma', 'amount.add': 'Pridėti sumą', 'amount.edit': 'Keisti sumą',
   'amount.confirm': 'Patvirtinti', 'amount.openAppt': 'Atidaryti vizitą',
   'amount.field': 'Suma eurais', 'amount.invalid': 'Įveskite sumą, pvz., 45 arba 45,50',
-  'amount.clearHint': 'Palikite tuščią ir patvirtinkite, kad suma būtų ištrinta',
+  'amount.clearHint': 'Įveskite 0 arba palikite tuščią, kad suma būtų nunulinta',
   'amount.saved': 'Suma išsaugota', 'amount.cleared': 'Suma ištrinta',
   // --- own choices (asmeninis / išlaidos), balance ---
   'type.expense': 'Išlaidos', 'settings.personal': 'Asmeniniai', 'settings.expenses': 'Išlaidų rūšys',
@@ -75,8 +75,10 @@ export const lt = {
   'settings.about': 'Apie programą', 'settings.group.calendar': 'Kalendorius', 'settings.group.choices': 'Pasirinkimai', 'settings.group.data': 'Duomenys',
   'expenses.left': 'Liko šį mėnesį', 'expenses.chart': 'Pinigų srautas pagal dienas', 'expenses.paidBy': 'Kas sumokėjo', 'expenses.paidCount': 'mokėjo: {n}',
   'act.call': 'Skambinti', 'appt.minutes': '{n} min.', 'amount.suggest': 'Dažniausiai', 'amount.saved.yay': 'Suma išsaugota!',
-  'eod.title': 'Dienos suvestinė', 'eod.waiting': 'Laukia sumos', 'eod.older': 'Ankstesni vizitai be sumos', 'eod.paid': 'Sumokėta', 'eod.other': 'Kita suma', 'eod.again': 'Užregistruoti dar kartą',
-  'eod.alldone': 'Viskas suvesta!', 'eod.progress': 'Sumokėta {a} iš {b}', 'eod.upcoming': 'Dar laukia vizitų: {n}', 'eod.empty': 'Šią dieną vizitų nebuvo', 'eod.open': 'Atidaryti dienos suvestinę',
+  'eod.title.day': 'Dienos suvestinė', 'eod.title.week': 'Savaitės suvestinė', 'eod.title.month': 'Mėnesio suvestinė', 'eod.more': 'Ir dar {n}', 'eod.waiting': 'Laukia sumos', 'eod.older': 'Ankstesni vizitai be sumos', 'eod.paid': 'Sumokėta', 'eod.other': 'Kita suma', 'eod.again': 'Užregistruoti dar kartą',
+  'eod.alldone': 'Viskas suvesta!', 'eod.progress': 'Sumokėta {a} iš {b}', 'eod.upcoming': 'Dar laukia vizitų: {n}', 'eod.empty': 'Vizitų nebuvo',
+  'amount.zero.title': 'Nunulinti sumą? Vizitas vėl taps „Nepatvirtinta“ ir lauks sumos.', 'amount.zero.confirm': 'Nunulinti', 'amount.positive': 'Įveskite sumą didesnę už 0',
+  'amount.log.title': 'Sumos pakeitimai', 'amount.log.cleared': 'nunulinta',
   'balance.label': 'Balansas', 'balance.in': 'Gauta', 'balance.out': 'Išlaidos',
 } as const;
 

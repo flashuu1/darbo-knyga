@@ -30,6 +30,15 @@ export function snapClock(hm: string, slot = 15): string {
   const s = snap(`2000-01-01T${hm}`, slot);
   return s.startsWith('2000-01-01') ? timePart(s) : hhmm(24 * 60 - slot);
 }
+export type Scope = 'day' | 'week' | 'month';
+/** The dates a summary covers: [from, to) as YYYY-MM-DD. A week starts on Monday. */
+export function scopeRange(scope: Scope, date: string): { from: string; to: string } {
+  if (scope === 'day') return { from: date, to: addDays(date, 1) };
+  if (scope === 'week') { const from = weekStart(date); return { from, to: addDays(from, 7) }; }
+  const y = +date.slice(0, 4), m = +date.slice(5, 7);
+  const next = m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, '0')}`;
+  return { from: `${date.slice(0, 7)}-01`, to: `${next}-01` };
+}
 export function weekStart(date: string): string {
   const dow = (new Date(`${date}T00:00:00Z`).getUTCDay() + 6) % 7; // Monday = 0
   return addDays(date, -dow);

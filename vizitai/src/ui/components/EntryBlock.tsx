@@ -38,18 +38,19 @@ export function EntryBlock({ e, startMin, col, cols, compact, anchor }: {
     return () => ro.disconnect();
   }, []);
   const thin = e.appt.status === 'cancelled';
+  const personal = e.appt.kind === 'personal' && e.appt.status === 'booked'; // Asmeninis: always vibrant red and glowing
   const rows = Math.max(1, e.minutes / 15);
   const one = !compact && rows <= 1; // a 15-minute entry: one tidy line
   const style = {
     '--top': (minutesOfDay(e.appt.start) - startMin) / 15, '--len': rows, '--c': col, '--n': cols, '--svc': `var(--c-${e.color})`,
   } as CSSProperties;
-  const cls = ['entry', thin ? 'thin' : one ? 'one' : 'stack', compact ? 'compact' : '', due ? 'entry--due' : paid ? 'entry--paid' : '', e.appt.status === 'noshow' ? 'noshow' : '',
+  const cls = ['entry', thin ? 'thin' : one ? 'one' : 'stack', compact ? 'compact' : '', due ? 'entry--due' : paid ? 'entry--paid' : personal ? 'entry--personal' : '', e.appt.status === 'noshow' ? 'noshow' : '',
     highlight === e.appt.id ? 'highlight' : '', anchor ? 'anchor' : ''].filter(Boolean).join(' ');
   const svc = e.service?.name ?? (e.appt.kind === 'personal' ? t('type.personal') : e.appt.kind === 'expense' ? t('type.expense') : '');
   const out = e.appt.kind === 'expense' && e.amountCents !== null && e.appt.status === 'booked'; // money out
   return (
     <>
-    {due && !thin && <span class="entry-glow" aria-hidden="true" style={style}><i /><i /></span>}
+    {(due || personal) && !thin && <span class={personal ? 'entry-glow red' : 'entry-glow'} aria-hidden="true" data-testid={personal ? `glow-${e.appt.id}` : undefined} style={style}><i /><i /></span>}
     {bloom && !thin && <span class="entry-bloom" aria-hidden="true" data-testid={`bloom-${e.appt.id}`} style={style}><i /><i /><i /><i /><i /></span>}
     <button ref={ref} class={cls} style={style} data-testid={`entry-${e.appt.id}`} data-entry-id={e.appt.id} data-entry-box={thin ? undefined : ''}
       onClick={() => (thin ? openCancelled(e) : openEntry(e.appt))}>

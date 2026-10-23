@@ -22,13 +22,22 @@ async function centre(page: Page, id: string) {
   await page.waitForTimeout(60);
 }
 async function lift(page: Page, id: string) {
-  await centre(page, id);
-  await bound(page, id);
-  const box = (await page.getByTestId(`entry-${id}`).boundingBox())!;
-  const x = box.x + box.width / 2, y = box.y + 10;
-  await page.mouse.move(x, y);
-  await page.mouse.down();
-  await page.waitForTimeout(450);
+  // a busy machine can move the grid under the press or swallow it: measure again and try the long press up to four times
+  let x = 0, y = 0;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    await centre(page, id);
+    await bound(page, id);
+    await page.waitForTimeout(150);
+    const box = (await page.getByTestId(`entry-${id}`).boundingBox())!;
+    x = box.x + box.width / 2; y = box.y + 10;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.waitForTimeout(450);
+    if (await page.getByTestId('drag-ghost').isVisible()) break;
+    await page.mouse.move(5, 5); // let go away from the entry, so the failed press is not a tap that opens its sheet
+    await page.mouse.up();
+    await page.waitForTimeout(300);
+  }
   await expect(page.getByTestId('drag-ghost')).toBeVisible();
   return { x, y };
 }

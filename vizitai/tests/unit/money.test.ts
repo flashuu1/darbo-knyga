@@ -134,7 +134,7 @@ describe('summary of a day, week and month', () => {
 });
 
 describe('Asmeninis: half an hour, with a colour of its own', () => {
-  it('takes the length of its choice and is teal, not grey', async () => {
+  it('takes the length of its choice and is red, not grey', async () => {
     const [p] = await repo.listOptions('personal');
     await repo.updateOption(p.id, { minutes: 90 });
     const a = await repo.createAppointment({ kind: 'personal', title: p.name, optionId: p.id, minutes: 90, start: '2026-10-14T10:00' });
@@ -144,7 +144,7 @@ describe('Asmeninis: half an hour, with a colour of its own', () => {
     expect(e1.minutes).toBe(90);
     expect(e2.appt.id).toBe(b.id);
     expect(e2.minutes).toBe(30); // no length given: the default
-    expect(e1.color).toBe('teal');
+    expect(e1.color).toBe('red');
   });
   it('blocks its whole length', async () => {
     await repo.createAppointment({ kind: 'personal', title: 'Daktaras', minutes: 60, start: '2026-10-14T10:00' });

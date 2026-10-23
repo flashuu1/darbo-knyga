@@ -42,7 +42,7 @@ export function createRepo(db: VizitaiDB) {
     return list.map((appt) => {
       const service = appt.serviceId ? services.get(appt.serviceId) ?? null : null;
       const label = appt.kind === 'client' ? clients.get(appt.clientId ?? '')?.name ?? '' : appt.title ?? '';
-      return { appt, label, service, minutes: minutesFor(appt, services), color: appt.kind === 'expense' ? 'indigo' : appt.kind === 'personal' ? 'teal' : service?.color ?? 'gray', amountCents: isValidCents(appt.amountCents) ? appt.amountCents : null };
+      return { appt, label, service, minutes: minutesFor(appt, services), color: appt.kind === 'expense' ? 'indigo' : appt.kind === 'personal' ? 'red' : service?.color ?? 'gray', amountCents: isValidCents(appt.amountCents) ? appt.amountCents : null };
     });
   }
   // Same start: the earlier booking first, so side-by-side lanes keep a stable order.

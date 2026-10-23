@@ -44,7 +44,7 @@ export function AppointmentSheet({ id }: { id: string }) {
   return (
     <Sheet title={label} onClose={closeSheet} right={<button class="strong" data-testid="btn-close" onClick={closeSheet}>{t('btn.close')}</button>}>
       <div class="appt-hero">
-        <span class={isClient ? 'avatar hero-av' : expense ? 'avatar hero-av alt' : 'avatar hero-av teal'} aria-hidden="true">{isClient ? initials(label) : expense ? <WalletIcon /> : <PersonIcon />}</span>
+        <span class={isClient ? 'avatar hero-av' : expense ? 'avatar hero-av alt' : 'avatar hero-av red'} aria-hidden="true">{isClient ? initials(label) : expense ? <WalletIcon /> : <PersonIcon />}</span>
         <div class="hero-text">
           {isClient ? (
             <button class="link-name" data-testid="appt-name" onClick={() => ui.set({ sheet: null, client: appt.clientId })}>{label}</button>

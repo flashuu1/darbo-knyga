@@ -136,7 +136,7 @@ test('Asmeninis is picked from her own choices (no typing) and skips the service
   const [a] = await page.evaluate(async () => (window as any).__vizitai.db.appointments.toArray());
   const slot = (await page.getByTestId('slot-2026-10-14T12:00').boundingBox())!, box = (await page.getByTestId(`entry-${a.id}`).boundingBox())!;
   expect(Math.round(box.height / slot.height)).toBe(2);
-  expect(await page.getByTestId(`entry-${a.id}`).evaluate((el) => (el as HTMLElement).style.getPropertyValue('--svc'))).toBe('var(--c-teal)');
+  expect(await page.getByTestId(`entry-${a.id}`).evaluate((el) => (el as HTMLElement).style.getPropertyValue('--svc'))).toBe('var(--c-red)');
 });
 
 test('the calendar picker books another day and time', async ({ page }) => {
@@ -283,4 +283,35 @@ test('expense kinds are cards as well, and a word she adds herself gets a letter
   await page.getByTestId('type-expense').click();
   await expect(page.getByTestId('option-0').locator('.opt-ico')).toHaveText('🏠');
   await expect(page.getByTestId('option-1').locator('.opt-ico')).toHaveText('S');
+});
+
+test('every Asmeninis entry is vibrant red and glows (the animation runs), and ordinary visits do not', async ({ page }) => {
+  await openApp(page, '2026-10-14T09:00:00');
+  const ids = await page.evaluate(async () => {
+    const { repo } = (window as any).__vizitai;
+    const s = await repo.listServices(true);
+    const p1 = await repo.createAppointment({ kind: 'personal', title: 'Daktaras', start: '2026-10-14T12:00' });
+    const p2 = await repo.createAppointment({ kind: 'personal', title: 'Psichologas', minutes: 60, start: '2026-10-14T14:00' });
+    const c = await repo.createAppointment({ kind: 'client', name: 'Ona', serviceId: s[0].id, start: '2026-10-14T16:00' });
+    const gone = await repo.createAppointment({ kind: 'personal', title: 'Bankas', start: '2026-10-14T17:00' });
+    await repo.cancelAppointment(gone.id, null);
+    return [p1.id, p2.id, c.id, gone.id];
+  });
+  for (const id of [ids[0]!, ids[1]!]) {
+    const entry = page.getByTestId(`entry-${id}`);
+    await expect(entry).toHaveClass(/entry--personal/);
+    expect(await entry.evaluate((el) => (el as HTMLElement).style.getPropertyValue('--svc'))).toBe('var(--c-red)');
+    const glow = page.getByTestId(`glow-${id}`);
+    await expect(glow).toBeAttached();
+    expect(await glow.evaluate((el) => getComputedStyle(el).animationName)).toBe('due-glow'); // the glow is running
+    expect(await glow.locator('i').first().evaluate((el) => getComputedStyle(el).animationName)).toBe('due-spark');
+    // red for real: a bold red gradient with white type
+    expect(await entry.evaluate((el) => getComputedStyle(el).backgroundImage)).toContain('linear-gradient');
+    expect(await entry.evaluate((el) => getComputedStyle(el).color)).toBe('rgb(255, 255, 255)');
+  }
+  await expect(page.getByTestId(`entry-${ids[2]!}`)).not.toHaveClass(/entry--personal/); // a visit is not red
+  await expect(page.getByTestId(`glow-${ids[2]!}`)).toHaveCount(0);
+  await expect(page.getByTestId(`glow-${ids[3]!}`)).toHaveCount(0); // a cancelled one is just a struck-through line
+  await page.getByTestId(`entry-${ids[0]!}`).click();
+  await expect(page.locator('.hero-av.red')).toBeVisible(); // and red in its sheet too
 });

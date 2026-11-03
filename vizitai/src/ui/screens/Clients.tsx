@@ -20,7 +20,7 @@ export const initials = (name: string) => name.split(' ').filter(Boolean).slice(
 export const FILTER_LABEL: Record<ClientFilter, () => string> = {
   auto: () => t('cl.f.auto'), due: () => t('cl.tile.due'), week: () => t('cl.tile.week'), old: () => t('cl.tile.old'), recent: () => t('cl.tile.recent'),
 };
-const agoText = (date: string | null, now: string) => {
+export const agoText = (date: string | null, now: string) => {
   const a = agoParts(date, now);
   return !a ? t('cl.noVisits') : a.key === 'today' ? t('cl.ago.today') : a.key === 'yesterday' ? t('cl.ago.yesterday') : t(`cl.ago.${a.key}` as 'cl.ago.days', { n: a.n });
 };

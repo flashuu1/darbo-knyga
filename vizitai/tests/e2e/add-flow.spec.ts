@@ -435,3 +435,18 @@ test('Nedirbu over a booked visit also asks, and the pop-up names the visit', as
   await page.getByTestId('action-item-0').click();
   await expect(page.getByTestId('sheet')).toHaveCount(0);
 });
+
+test('name suggestions look like the client list: avatar, the typed part picked out, when they were last here and what they had, and an orange tag when an amount waits', async ({ page }) => {
+  await openApp(page, '2026-10-14T12:00:00');
+  await seedAppts(page, [{ name: 'Jonė Laukia', start: '2026-10-10T10:00', service: 1 }, { name: 'Jonas Kitas', start: '2026-10-20T10:00' }]);
+  await page.getByTestId('slot-2026-10-14T13:00').click();
+  await page.getByTestId('field-name').fill('jon');
+  const first = page.getByTestId('suggest-0');
+  await expect(first.locator('.avatar')).toBeVisible();
+  await expect(first.locator('mark')).toHaveText('Jon');
+  await expect(page.getByTestId('suggest-waiting-0').or(page.getByTestId('suggest-waiting-1'))).toHaveText('Laukia sumos');
+  const text = (await page.locator('.suggest').textContent()) ?? '';
+  expect(text).toContain('Kitas: spalio 20 d.'); // a coming visit
+  expect(text).toContain('Buvo prieš 4 d.');     // the one who was here
+  expect(text).toContain('Dažymas');            // what they had
+});

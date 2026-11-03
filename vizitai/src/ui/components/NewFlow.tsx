@@ -1,16 +1,17 @@
 import type { CSSProperties } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { repo } from '../../db/repo';
+import { repo, type ClientSuggestion } from '../../db/repo';
 import type { Client } from '../../db/types';
-import { euroSign, formatWhen, parseAmountInput } from '../../i18n/format';
+import { euroSign, formatDayShort, formatWhen, parseAmountInput } from '../../i18n/format';
 import { t } from '../../i18n/lt';
 import { glyphFor } from '../../logic/glyph';
-import { cleanName } from '../../logic/names';
-import { datePart, hhmm, minutesOfDay } from '../../logic/time';
+import { cleanName, foldName } from '../../logic/names';
+import { datePart, hhmm, minutesOfDay, nowLocal } from '../../logic/time';
 import { closeSheet, confirmOverlap, highlight } from '../actions';
 import { useLive, useOptions, useServices } from '../hooks';
-import { CheckIcon } from '../icons';
+import { CheckIcon, NextIcon } from '../icons';
 import { useKeyboardHeight } from '../keyboard';
+import { agoText, initials } from '../screens/Clients';
 import { ui, type Origin } from '../store';
 import { DateTimePicker } from './DateTimePicker';
 import { Sheet } from './Sheet';
@@ -43,7 +44,7 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
   const input = useRef<HTMLInputElement>(null);
   const busy = useRef(false);
   const typed = useRef(false); // she has typed in or picked into the name field
-  const matches = useLive(() => repo.searchClients(name, MAX_SUGGESTIONS + 1), [name], [] as Client[]);
+  const matches = useLive(() => repo.suggestClients(name, MAX_SUGGESTIONS + 1), [name], [] as ClientSuggestion[]);
   // A prefilled/last service may since have been hidden: fall back to the first card.
   const sid = services.some((s) => s.id === serviceId) ? serviceId : services[0]?.id ?? null;
   const hasName = cleanName(name).length > 0;
@@ -190,8 +191,18 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
           {kind === 'client' && (
             <ul class="suggest">
               {!name.trim() && matches.length > 0 && <li class="suggest-head">{t('suggest.recent')}</li>}
-              {matches.filter((c) => c.id !== linked?.id).slice(0, MAX_SUGGESTIONS).map((c, i) => (
-                <li key={c.id}><button data-testid={`suggest-${i}`} onClick={() => void pick(c)}><span>{c.name}</span><span class="chev" aria-hidden="true">›</span></button></li>
+              {matches.filter((s) => s.client.id !== linked?.id).slice(0, MAX_SUGGESTIONS).map((s, i) => (
+                <li key={s.client.id}>
+                  <button class="suggest-row" data-testid={`suggest-${i}`} onClick={() => void pick(s.client)}>
+                    <span class="avatar" aria-hidden="true">{initials(s.client.name)}</span>
+                    <span class="client-text">
+                      <b><Marked name={s.client.name} query={name} /></b>
+                      <span class="suggest-line">{suggestLine(s)}</span>
+                    </span>
+                    {s.waiting && <span class="mini-pill due" data-testid={`suggest-waiting-${i}`}>{t('client.pending')}</span>}
+                    <span class="chev"><NextIcon /></span>
+                  </button>
+                </li>
               ))}
             </ul>
           )}
@@ -242,4 +253,16 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
       </div>
     </Sheet>
   );
+}
+
+/** The name with the part she has typed picked out. (Folding keeps one character per character, so the positions line up.) */
+function Marked({ name, query }: { name: string; query: string }) {
+  const key = foldName(query), at = key ? foldName(name).indexOf(key) : -1;
+  if (at < 0) return <>{name}</>;
+  return <>{name.slice(0, at)}<mark>{name.slice(at, at + key.length)}</mark>{name.slice(at + key.length)}</>;
+}
+/** "Kitas: spalio 20 d. · Kirpimas" / "Buvo prieš 3 sav. · Dažymas" / "Vizitų dar nebuvo". */
+function suggestLine(s: ClientSuggestion): string {
+  const base = s.nextVisit ? t('cl.nextShort', { kada: formatDayShort(s.nextVisit) }) : agoText(s.lastVisit, nowLocal());
+  return s.lastService && s.visitCount > 0 ? `${base} · ${s.lastService}` : base;
 }

@@ -101,7 +101,7 @@ p.link-name { color: var(--label); }
 .suggest li:nth-child(2) { animation-delay: 40ms; }
 .suggest li:nth-child(3) { animation-delay: 80ms; }
 .suggest li + li { border-top: .5px solid var(--sep); }
-.suggest li button { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 54px; padding: 0 var(--s4); text-align: left; font-size: 1.05rem; }
+.suggest li button { display: flex; align-items: center; gap: var(--s3); width: 100%; min-height: 62px; padding: 6px var(--s4); text-align: left; font-size: 1.05rem; }
 .suggest li button:active { background: var(--fill); }
 .suggest .suggest-head { min-height: 0; padding: var(--s3) var(--s4) var(--s1); font-size: .75rem; font-weight: 600; text-transform: uppercase; color: var(--label-2); animation: none; }
 .suggest li .chev { color: var(--label-3); font-size: 1.4rem; }
@@ -720,3 +720,12 @@ p.link-name { color: var(--label); }
 .day-btn { flex: 1; min-width: 0; height: 44px; border-radius: 22px; background: var(--fill); color: var(--label-2); font-size: .85rem; font-weight: 650; transition: background-color var(--t-med), color var(--t-med), transform var(--t-press) var(--ease-out); }
 .day-btn.on { background: var(--accent); color: var(--on-accent); }
 .day-btn:active { transform: scale(.94); }
+
+/* name suggestions in the booking flow: rows like the client list */
+.suggest .suggest-row .client-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.suggest .suggest-row .client-text b { font-weight: 600; font-size: 1.02rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.suggest .suggest-row mark { background: transparent; color: var(--accent); font-weight: 750; }
+.suggest .suggest-line { font-size: .8rem; color: var(--label-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.suggest .suggest-row .chev { flex: none; display: inline-flex; color: var(--label-3); }
+.mini-pill { flex: none; display: inline-flex; align-items: center; height: 24px; padding: 0 9px; border-radius: 12px; font-size: .72rem; font-weight: 700; white-space: nowrap; }
+.mini-pill.due { background: color-mix(in srgb, var(--due) 22%, transparent); color: var(--due-ink); }

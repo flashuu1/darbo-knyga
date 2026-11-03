@@ -330,3 +330,19 @@ describe('cancelled visits only stay for a week', () => {
     expect(await db.clients.count()).toBe(1);
   });
 });
+
+describe('name suggestions for the booking flow', () => {
+  it('say when each client was last here, what is booked next, what they had, and whether an amount waits', async () => {
+    const [cut, color] = await repo.listServices(true);
+    const mk = (n: string, start: string, sid: string) => repo.createAppointment({ kind: 'client', name: n, serviceId: sid, start });
+    await mk('Jonė Laukia', '2026-10-10T10:00', cut.id);              // took place, no amount
+    const paid = await mk('Jonas Sumokėjo', '2026-10-12T10:00', color.id);
+    await repo.setAmount(paid.id, 4000);
+    await mk('Jonas Sumokėjo', '2026-10-20T10:00', cut.id);           // and comes again
+    const s = await repo.suggestClients('jon', 6, '2026-10-14T12:00');
+    const by = Object.fromEntries(s.map((x) => [x.client.name, x]));
+    expect(by['Jonė Laukia']).toMatchObject({ waiting: true, lastVisit: '2026-10-10', nextVisit: null, visitCount: 1, lastService: cut.name });
+    expect(by['Jonas Sumokėjo']).toMatchObject({ waiting: false, lastVisit: '2026-10-12', nextVisit: '2026-10-20T10:00', visitCount: 1, lastService: cut.name });
+    expect(await repo.suggestClients('qqq')).toEqual([]);
+  });
+});

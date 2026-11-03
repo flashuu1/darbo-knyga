@@ -25,6 +25,8 @@ export interface ClientRow {
   nextVisit: string | null;
 }
 /** How long a cancelled visit stays visible before it is removed. */
+/** One name suggestion in the booking flow: the client and what she wants to see at a glance. */
+export interface ClientSuggestion { client: Client; lastVisit: string | null; nextVisit: string | null; waiting: boolean; visitCount: number; lastService: string | null }
 export const CANCELLED_KEEP_DAYS = 7;
 /** How long the green "paid" pill stays on a client row after the visit. */
 export const PAID_PILL_DAYS = 14;
@@ -157,6 +159,17 @@ export function createRepo(db: VizitaiDB) {
         .sort((x, y) => x.r - y.r || stats.get(y.c.id)!.n - stats.get(x.c.id)!.n || stats.get(y.c.id)!.last.localeCompare(stats.get(x.c.id)!.last) || ltCollator.compare(x.c.name, y.c.name))
         .slice(0, limit)
         .map((x) => x.c);
+    },
+    /** searchClients, with each client's last visit, next visit, whether an amount waits, and the service they had last. */
+    async suggestClients(query: string, limit = 6, now_: string = nowLocal()): Promise<ClientSuggestion[]> {
+      const found = await this.searchClients(query, limit);
+      if (!found.length) return [];
+      const [rows, services] = await Promise.all([this.listClients(now_), serviceMap()]);
+      const by = new Map(rows.map((r) => [r.client.id, r]));
+      return Promise.all(found.map(async (client): Promise<ClientSuggestion> => {
+        const r = by.get(client.id), sid = await this.lastServiceId(client.id);
+        return { client, lastVisit: r?.lastVisit ?? null, nextVisit: r?.nextVisit ?? null, waiting: !!r?.pending, visitCount: r?.visitCount ?? 0, lastService: sid ? services.get(sid)?.name ?? null : null };
+      }));
     },
     async updateClient(id: string, p: { name?: string; phone?: string }) {
       const patch: Partial<Client> = { updatedAt: now() };

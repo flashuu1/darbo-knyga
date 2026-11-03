@@ -17,6 +17,9 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   { date: '2026-11-03', items: [
+    { kind: 'change', text: 'Naujas vizitas: vardų pasiūlymai atrodo kaip klientų sąrašas: nuotrauka su inicialais, surinktos raidės paryškintos, kada buvo ar kada kitas vizitas, kokia paslauga, ir oranžinė žyma, jei laukia suma.' },
+  ] },
+  { build: '08d759b', date: '2026-11-03', items: [
     { kind: 'feature', text: 'Nustatymai > Darbo laikas: galima pasirinkti, kuriomis savaitės dienomis dirbi; kitos dienos neįtraukiamos į dirbtas valandas.' },
   ] },
   { build: '6f6511e', date: '2026-11-03', items: [

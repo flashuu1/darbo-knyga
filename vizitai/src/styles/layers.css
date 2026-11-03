@@ -783,3 +783,5 @@ p.link-name { color: var(--label); }
 .peek-cal:active { background: var(--fill-2); }
 .client-row.holding { transform: scale(.985); transition: transform var(--t-fast) var(--ease-out); }
 @media (prefers-reduced-motion: reduce) { .peek-back, .peek-card, .peek-card > * { animation: none; } .peek-card[data-ready] { opacity: 1; } }
+/* the two pills of a client row are the same size */
+.pill-btn.due, .pill-btn.paid { min-width: 116px; }

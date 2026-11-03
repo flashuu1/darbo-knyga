@@ -17,6 +17,9 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   { date: '2026-11-03', items: [
+    { kind: 'change', text: 'Klientai: žalias „Sumokėta“ siauresnis, tokio pat dydžio kaip „Laukia sumos“: tik suma ir diena (pvz. 45 € · 10-31), be mėnesio pavadinimo ir metų. Palaikyti galima ir ant mygtuko.' },
+  ] },
+  { build: '18b6843', date: '2026-11-03', items: [
     { kind: 'change', text: 'Klientai: palaikius eilutę rodoma nauja maža kortelė (ne vizito langas): data ir laikas, paslauga, suma, telefonas. Laukiančiam sumos vizitui sumą galima įvesti čia pat; vizitas keičiamas tik kalendoriuje („Rodyti kalendoriuje“).' },
   ] },
   { build: 'bbdfa0b', date: '2026-11-03', items: [

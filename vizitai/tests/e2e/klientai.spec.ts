@@ -166,6 +166,28 @@ test.describe('Klientai list', () => {
     await expect(page.getByTestId(`entry-${id}`)).toBeVisible();
   });
 
+  test('the paid pill is as small as the orange one, shows only the amount and the day, and can be held for the card like the rest of the row', async ({ page }) => {
+    await openApp(page, NOW);
+    await seedList(page);
+    await page.evaluate(async () => {
+      const { repo, db } = (window as any).__vizitai;
+      await repo.setAmount((await db.appointments.toArray()).find((a: any) => a.start === '2026-10-13T09:00').id, 4550);
+    });
+    await page.getByTestId('tab-clients').click();
+    const pill = page.getByTestId('client-paid-0');
+    await expect(pill).toHaveText('✓ 45,50 € · 10-13');
+    const w = (await pill.boundingBox())!.width;
+    expect(w).toBeLessThan(150); // not wider than a pill and a bit
+    const b = (await pill.boundingBox())!;
+    await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.mouse.down(); await page.waitForTimeout(700); await page.mouse.up();
+    await expect(page.getByTestId('peek')).toHaveAttribute('data-state', 'done');
+    await expect(page.getByTestId('amount-input')).toHaveCount(0); // the hold did not also count as a tap on the pill
+    await page.getByTestId('peek-back').click({ position: { x: 12, y: 12 } });
+    await expect(page.getByTestId('peek')).toHaveCount(0);
+    await pill.click(); // a tap still edits the amount
+    await expect(page.getByTestId('amount-input')).toBeVisible();
+  });
+
   test('the orange pill adds the amount straight from the list, then the row turns green for two weeks', async ({ page }) => {
     await openApp(page, NOW);
     await seedList(page);
@@ -174,8 +196,7 @@ test.describe('Klientai list', () => {
     await page.getByTestId('amount-input').fill('45');
     await page.getByTestId('amount-confirm').click();
     await page.getByTestId('again-no').click();
-    await expect(page.getByTestId('client-paid-0')).toContainText('45,00');
-    await expect(page.getByTestId('client-paid-0')).toContainText('spalio 13 d.');
+    await expect(page.getByTestId('client-paid-0')).toHaveText('✓ 45 € · 10-13');
     await expect(page.getByTestId('tile-due').locator('.num')).toHaveText('0');
   });
 });

@@ -34,9 +34,14 @@ const plain = (frac: number) => new Intl.NumberFormat(L, { useGrouping: false, m
 const plain0 = plain(0), plain2 = plain(2);
 /** 4550 -> "45,50 €" (lt-LT: decimal comma, no-break space before the sign). */
 export const formatEuro = (cents: number) => euro.format(cents / 100);
+const compact = new Intl.DateTimeFormat(L, { ...utc, month: '2-digit', day: '2-digit' });
+/** "10-31": month and day only, no year (the year is not needed where a date is recent), for small places like a pill. */
+export const formatDayCompact = (date: string) => compact.format(d(date));
 const euro0 = new Intl.NumberFormat(L, { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
 /** 4550 -> "46 €": whole euros, for charts and totals. */
 export const formatEuroRound = (cents: number) => euro0.format(cents / 100);
+/** 4500 -> "45 €", 4550 -> "45,50 €": the cents only when there are some, for small places. */
+export const formatEuroShort = (cents: number) => (cents % 100 === 0 ? euro0.format(cents / 100) : euro.format(cents / 100));
 /** The currency sign as lt-LT writes it ("€"), for the suffix of the amount field. */
 export const euroSign = euro.formatToParts(0).find((p) => p.type === 'currency')?.value ?? '';
 /** The editable form of a stored amount: 4500 -> "45", 4550 -> "45,50" (no grouping, no sign). */

@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'preact/hooks';
 import { repo, type ClientRow } from '../../db/repo';
-import { formatDayShort, formatEuro, formatEuroRound } from '../../i18n/format';
+import { formatDayCompact, formatDayShort, formatEuroRound, formatEuroShort } from '../../i18n/format';
 import { confirmDeleteClient, openCancelled } from '../actions';
 import { SwipeRow } from '../components/SwipeRow';
 import { t } from '../../i18n/lt';
@@ -127,7 +127,7 @@ function ClientRowView({ r, i, sort, now }: { r: ClientRow; i: number; sort: str
   const startHold = (e: PointerEvent) => {
     cancelHold();
     held.current = false;
-    if (!entryId || (e.pointerType === 'mouse' && e.button !== 0) || (e.target as HTMLElement).closest('.pill-btn')) return;
+    if (!entryId || (e.pointerType === 'mouse' && e.button !== 0)) return;
     const row = e.currentTarget as HTMLElement;
     row.classList.add('holding');
     hold.current = { x: e.clientX, y: e.clientY, timer: window.setTimeout(() => { hold.current = null; held.current = true; row.classList.remove('holding'); const b = row.getBoundingClientRect(); ui.set({ peek: { id: entryId, top: b.top, height: b.height } }); }, HOLD_SHOW_MS) };
@@ -144,12 +144,12 @@ function ClientRowView({ r, i, sort, now }: { r: ClientRow; i: number; sort: str
       </span>
       {r.pending ? (
         <span class="pill-btn due" role="button" tabIndex={0} data-testid={`client-pending-${i}`}
-          onClick={(e) => { e.stopPropagation(); openAmount(r.pending!.id); }}
+          onClick={(e) => { e.stopPropagation(); if (held.current) { held.current = false; return; } openAmount(r.pending!.id); }}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openAmount(r.pending!.id); } }}>{t('client.pending')}</span>
       ) : r.paid ? (
         <span class="pill-btn paid" role="button" tabIndex={0} data-testid={`client-paid-${i}`}
-          onClick={(e) => { e.stopPropagation(); openAmount(r.paid!.id); }}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openAmount(r.paid!.id); } }}>✓ {t('cl.paidPill', { suma: formatEuro(r.paid.cents), data: formatDayShort(r.paid.start) })}</span>
+          onClick={(e) => { e.stopPropagation(); if (held.current) { held.current = false; return; } openAmount(r.paid!.id); }}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openAmount(r.paid!.id); } }}>✓ {t('cl.paidPill', { suma: formatEuroShort(r.paid.cents), data: formatDayCompact(r.paid.start) })}</span>
       ) : (
         <span class="chev"><NextIcon /></span>
       )}

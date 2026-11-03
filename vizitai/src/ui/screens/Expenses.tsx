@@ -11,6 +11,7 @@ import { usePager } from '../pager';
 import { goPage, pageIndex, slideClass, statsUi } from '../statsUi';
 import { ui, useStore } from '../store';
 import { ClientStats } from './ClientStats';
+import { MonthStats } from './MonthStats';
 import { initials } from './Clients';
 
 type Day = { date: string; inCents: number; outCents: number; paid: number };
@@ -115,6 +116,8 @@ export function ExpensesScreen() {
             </ul>
           </>
         )}
+
+        <MonthStats ym={ym} />
 
         {o.entries.length === 0 && <p class="empty-note" data-testid="exp-empty">{t('expenses.empty')}</p>}
         {o.byKind.length > 0 && (

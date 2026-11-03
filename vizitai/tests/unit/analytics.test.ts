@@ -46,6 +46,13 @@ describe('the numbers per month', () => {
     expect(a.cancelled[oct]).toBe(1);
     expect(a.lostCents[oct]).toBe(Math.round(2 * (14000 / 3)));
   });
+  it('keeps visits and money per day of the month', () => {
+    expect(a.days.visits[oct]![5]).toBe(1);   // 6 October
+    expect(a.days.cents[oct]![5]).toBe(5000);
+    expect(a.days.cents[oct]![6]).toBe(3000); // 7 October
+    expect(a.days.visits[oct]!.reduce((x, y) => x + y, 0)).toBe(a.visits[oct]);
+    expect(a.days.visits[oct]![8]).toBe(0);   // the no-show of the 9th is not a visit
+  });
   it('knows when each client came first, and how many clients there were', () => {
     expect(a.newClients[sep]).toBe(1);   // Ona
     expect(a.newClients[oct]).toBe(1);   // Zita (Rasa never had a kept visit)

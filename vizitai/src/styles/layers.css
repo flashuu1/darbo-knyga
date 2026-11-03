@@ -624,11 +624,11 @@ p.link-name { color: var(--label); }
 
 /* Analizė */
 .stats-body { padding-bottom: calc(var(--s6) * 3 + var(--s4)); }
-.stats-body .card { margin: var(--s3) 0 0; background: var(--card); border-radius: var(--r-xl); padding: 14px; }
-.stats-body .card h5 { margin: 0 0 2px; font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; color: var(--label-2); }
+:is(.stats-body, .month-stats) .card { margin: var(--s3) 0 0; background: var(--card); border-radius: var(--r-xl); padding: 14px; }
+:is(.stats-body, .month-stats) .card h5 { margin: 0 0 2px; font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; color: var(--label-2); }
 .stats-body .pillseg { margin: var(--s2) 0 0; }
-.stats-body .hint { margin-top: 6px; font-size: .74rem; }
-.stats-body .sub-head { margin: 10px 0 2px; font-size: .8rem; color: var(--label-2); }
+:is(.stats-body, .month-stats) .hint { margin-top: 6px; font-size: .74rem; }
+:is(.stats-body, .month-stats) .sub-head { margin: 10px 0 2px; font-size: .8rem; color: var(--label-2); }
 .bignum { font-size: 2rem; font-weight: 800; letter-spacing: -.02em; line-height: 1.12; font-variant-numeric: tabular-nums; }
 .bignum small { font-size: .8rem; font-weight: 600; color: var(--label-2); letter-spacing: 0; margin-left: 6px; }
 .bignum.s { font-size: 1.45rem; }
@@ -660,9 +660,9 @@ p.link-name { color: var(--label); }
 .gapline i { display: block; width: 100%; height: 100%; border-radius: 3px; background: var(--orange); transform-origin: left; animation: grow .8s var(--ease-spring) both; }
 @keyframes grow { from { transform: scaleX(0); } }
 .gapnote { display: block; margin-top: 3px; font-size: .78rem; color: var(--label-2); }
-.stats-body .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 2px; }
-.stats-body .chips button { min-height: 30px; min-width: 0; padding: 0 12px; border-radius: 15px; background: var(--fill); font-size: .8rem; font-weight: 600; color: var(--label-2); transition: background-color var(--t-med), color var(--t-med); }
-.stats-body .chips button.on { background: var(--accent); color: var(--on-accent); }
+:is(.stats-body, .month-stats) .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 2px; }
+:is(.stats-body, .month-stats) .chips button { min-height: 30px; min-width: 0; padding: 0 12px; border-radius: 15px; background: var(--fill); font-size: .8rem; font-weight: 600; color: var(--label-2); transition: background-color var(--t-med), color var(--t-med); }
+:is(.stats-body, .month-stats) .chips button.on { background: var(--accent); color: var(--on-accent); }
 .heat { display: grid; grid-template-columns: 34px repeat(4, 1fr); gap: 4px; margin-top: var(--s2); }
 .heat .h { font-size: .68rem; color: var(--label-2); text-align: center; align-self: end; }
 .heat .d { font-size: .74rem; font-weight: 650; align-self: center; }
@@ -706,3 +706,11 @@ p.link-name { color: var(--label); }
 @media (prefers-reduced-motion: reduce) { .rise, .client-list.anim > li, .glass, .gapline i, .rk .more { animation: none; } }
 .pager .scroll, .pager .chrome { touch-action: pan-y; } /* sideways drags go to the page swipe */
 @media (prefers-reduced-motion: reduce) { .pager .slide-in-next, .pager .slide-in-prev { animation: none; } }
+.month-stats { margin-bottom: var(--s4); }
+.month-stats .section-head { margin-top: var(--s5); }
+.mtiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: var(--s2) 0 0; }
+.mtile { background: var(--card); border-radius: var(--r-xl); padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.mtile small { font-size: .78rem; color: var(--label-2); font-weight: 600; }
+.month-stats .hint.center { text-align: center; margin: var(--s2) 0 var(--s2); }
+.month-stats .recs { margin-bottom: var(--s1); }
+.month-stats .card { margin: var(--s3) 0 0; }

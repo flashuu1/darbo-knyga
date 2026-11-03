@@ -265,4 +265,21 @@ test.describe('Išlaidos > Analizė', () => {
     await expect(page.getByTestId('clients-seg')).toHaveCount(0);
     await expect(page.getByTestId('tile-due')).toBeVisible();
   });
+
+  test('Išlaidos > Mėnuo also shows the figures of the month, with arrows against the month before, and follows the month arrows', async ({ page }) => {
+    await openApp(page, NOW);
+    await seedBooks(page);
+    await page.getByTestId('tab-expenses').click();
+    await expect(page.getByTestId('month-stats')).toBeVisible();
+    await expect(page.getByTestId('mtile-visits')).toContainText('↑ 200%', { timeout: 4000 }); // 3 visits in October, 1 in September
+    await expect(page.getByTestId('mtile-visits').locator('.bignum span').first()).toHaveText('3', { timeout: 4000 });
+    await expect(page.getByTestId('mtile-new').locator('.bignum span').first()).toHaveText('1', { timeout: 4000 }); // Rasa
+    await expect(page.getByTestId('mtile-avg').locator('.bignum span').first()).toContainText('45', { timeout: 4000 });
+    await expect(page.getByTestId('mrec-busy')).toHaveText('spalio 6 d.');
+    await expect(page.getByTestId('mrec-wd')).toHaveText('Antradienis');
+    await page.getByTestId('exp-prev').click();
+    await expect(page.getByTestId('mtile-visits').locator('.bignum span').first()).toHaveText('1', { timeout: 4000 }); // September
+    for (let i = 0; i < 5; i++) await page.getByTestId('exp-prev').click(); // April: nothing happened
+    await expect(page.getByTestId('month-none')).toBeVisible();
+  });
 });

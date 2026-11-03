@@ -17,7 +17,7 @@ const num = new Intl.NumberFormat('lt-LT', { maximumFractionDigits: 1 });
 const whole = (v: number) => String(Math.round(v));
 const gapText = (days: number) => (days < 14 ? t('st.d', { n: Math.round(days) }) : t('st.w', { n: num.format(days / 7) }));
 
-function Card({ i, title, children, testId }: { i: number; title: string; children: ComponentChildren; testId?: string }) {
+export function Card({ i, title, children, testId }: { i: number; title: string; children: ComponentChildren; testId?: string }) {
   return <section class="card rise" style={{ '--i': Math.min(i, 7) }} data-testid={testId}><h5>{title}</h5>{children}</section>;
 }
 function Spark({ vals, color }: { vals: number[]; color: string }) {
@@ -26,7 +26,7 @@ function Spark({ vals, color }: { vals: number[]; color: string }) {
   return <svg class="spark" viewBox="0 0 64 20" aria-hidden="true"><polyline points={vals.map((v, i) => `${(i / (n - 1) * 64).toFixed(1)},${(18 - v / mx * 16).toFixed(1)}`).join(' ')} fill="none" stroke={color} stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>;
 }
 /** A ranked list; tapping a row opens a line with its details. */
-function Rank({ rows, unit, detail, color }: { rows: RankRow[]; unit: (v: number) => string; detail: (r: RankRow) => string; color: string }) {
+export function Rank({ rows, unit, detail, color }: { rows: RankRow[]; unit: (v: number) => string; detail: (r: RankRow) => string; color: string }) {
   const [open, setOpen] = useState<string | null>(null);
   const top = statsUi.get().top;
   return (

@@ -36,6 +36,8 @@ export interface Analytics {
   services: { name: string; cents: number[] }[];
   /** [month][weekday 0 = Monday][band] */
   heat: number[][][];
+  /** [month][day of month - 1]: visits and money, for the month page. */
+  days: { visits: number[][]; cents: number[][] };
   people: Person[];
   gaps: Gap[];
   avgGapDays: number;
@@ -66,6 +68,7 @@ export function buildAnalytics(input: AnalyticsInput): Analytics {
   const people = new Map<string, Person>(input.clients.map((c) => [c.id, { id: c.id, name: c.name, visits: zeros(), cents: zeros(), firstMonth: null, total: 0, spent: 0, lastStart: null, hasUpcoming: false }]));
   const visits = zeros(), cents = zeros(), bookedMin = zeros(), missed = zeros(), cancelled = zeros(), paidCount = zeros();
   const heat = Array.from({ length: MONTHS }, () => Array.from({ length: 7 }, () => new Array<number>(BAND_COUNT).fill(0)));
+  const dayVisits = Array.from({ length: MONTHS }, () => new Array<number>(31).fill(0)), dayCents = Array.from({ length: MONTHS }, () => new Array<number>(31).fill(0));
   const svc = new Map<string, number[]>();
   const starts = new Map<string, string[]>(); // booked past visit starts per client
   const first = new Map<string, string>();    // the very first booked past visit of each client
@@ -86,6 +89,8 @@ export function buildAnalytics(input: AnalyticsInput): Analytics {
     if (v.cents !== null) { paidAll++; paidSum += v.cents; }
     if (m < 0) continue;
     visits[m]!++; bookedMin[m]! += v.minutes;
+    dayVisits[m]![+v.start.slice(8, 10) - 1]!++;
+    if (v.cents !== null) dayCents[m]![+v.start.slice(8, 10) - 1]! += v.cents;
     if (v.cents !== null) { cents[m]! += v.cents; paidCount[m]!++; const a = svc.get(v.service) ?? svc.set(v.service, zeros()).get(v.service)!; a[m]! += v.cents; }
     heat[m]![weekdayOf(datePart(v.start))]![bandOf(+v.start.slice(11, 13))]!++;
   }
@@ -130,7 +135,7 @@ export function buildAnalytics(input: AnalyticsInput): Analytics {
   return {
     keys, visits, cents, avgCents, newClients, totalClients, booked, free, off, util, perHour, missed, cancelled, lostCents,
     services: [...svc].map(([name, c]) => ({ name, cents: c })).sort((a, b) => b.cents.reduce((x, y) => x + y, 0) - a.cents.reduce((x, y) => x + y, 0)),
-    heat, people: [...people.values()], gaps: late, avgGapDays: gapN ? gapSum / gapN : 0,
+    heat, days: { visits: dayVisits, cents: dayCents }, people: [...people.values()], gaps: late, avgGapDays: gapN ? gapSum / gapN : 0,
     hasData: visits.some((v) => v > 0) || input.visits.length > 0,
   };
 }

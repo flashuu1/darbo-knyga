@@ -202,14 +202,20 @@ test.describe('Išlaidos > Analizė', () => {
     await expect(page.getByTestId('rank-0')).toContainText('Ona Petraitė');
   });
 
-  test('time: utilisation and hours', async ({ page }) => {
+  test('time: hours worked are the whole working day minus Nedirbu, not the length of the visits', async ({ page }) => {
     await openApp(page, NOW);
     await seedBooks(page);
+    await page.evaluate(async () => { // a Nedirbu from 15:00 to 17:00 on 6 October
+      const { repo } = (window as any).__vizitai;
+      await repo.createAppointment({ kind: 'personal', title: 'Nedirbu', minutes: 120, start: '2026-10-06T15:00' });
+    });
     await page.getByTestId('tab-expenses').click();
     await page.getByTestId('expenses-seg-stats').click();
     await page.getByTestId('stat-seg-time').click();
-    await expect(page.getByTestId('card-util')).toContainText('darbo laiko užimta');
-    await expect(page.getByTestId('card-util').locator('.bignum span').first()).toHaveText(/\d+%/, { timeout: 4000 });
+    await page.getByTestId('glass-3').click();
+    await expect(page.getByTestId('card-hours')).toContainText('darbo valandų');
+    // August to the middle of October: 61 days x 12 h, 1-13 October 13 x 12 h, today (12:00) 08:00-12:00 = 4 h, minus the 2 h off
+    await expect(page.getByTestId('card-hours').locator('.bignum span').first()).toHaveText('890 val.', { timeout: 4000 });
   });
 
   test('Išlaidos remembers the analysis page after a visit to another tab', async ({ page }) => {

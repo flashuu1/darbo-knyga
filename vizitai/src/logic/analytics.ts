@@ -1,7 +1,7 @@
 import { datePart, nowLocal } from './time';
 
 /** One client visit as the statistics see it. */
-export interface VisitRec { clientId: string; start: string; status: 'booked' | 'cancelled' | 'noshow'; minutes: number; cents: number | null; service: string }
+export interface VisitRec { clientId: string; start: string; status: 'booked' | 'cancelled' | 'noshow'; cents: number | null; service: string }
 /** A "Nedirbu" entry: time she was not available. */
 export interface OffRec { start: string; minutes: number }
 export interface AnalyticsInput {
@@ -27,9 +27,11 @@ export interface Analytics {
   keys: string[];
   visits: number[]; cents: number[]; avgCents: number[];
   newClients: number[]; totalClients: number[];
-  /** Hours: booked, free, not available ("Nedirbu"), and the share of the available time that was booked (percent). */
-  booked: number[]; free: number[]; off: number[]; util: number[];
-  /** Earnings per booked hour, in cents. */
+  /** Hours worked (her whole working day on every day, minus her "Nedirbu" time) and hours off, per month. */
+  hours: number[]; off: number[];
+  /** Days with at least one visit, per month. */
+  visitDays: number[];
+  /** Earnings per hour worked, in cents. */
   perHour: number[];
   missed: number[]; cancelled: number[]; lostCents: number[];
   /** Money per month by service. */
@@ -66,7 +68,7 @@ export function buildAnalytics(input: AnalyticsInput): Analytics {
   const idx = (start: string) => MONTHS - 1 - monthsBetween(start.slice(0, 7), cur); // may be < 0 (older) or > 23 (future)
   const today = datePart(now);
   const people = new Map<string, Person>(input.clients.map((c) => [c.id, { id: c.id, name: c.name, visits: zeros(), cents: zeros(), firstMonth: null, total: 0, spent: 0, lastStart: null, hasUpcoming: false }]));
-  const visits = zeros(), cents = zeros(), bookedMin = zeros(), missed = zeros(), cancelled = zeros(), paidCount = zeros();
+  const visits = zeros(), cents = zeros(), missed = zeros(), cancelled = zeros(), paidCount = zeros();
   const heat = Array.from({ length: MONTHS }, () => Array.from({ length: 7 }, () => new Array<number>(BAND_COUNT).fill(0)));
   const dayVisits = Array.from({ length: MONTHS }, () => new Array<number>(31).fill(0)), dayCents = Array.from({ length: MONTHS }, () => new Array<number>(31).fill(0));
   const svc = new Map<string, number[]>();
@@ -88,7 +90,7 @@ export function buildAnalytics(input: AnalyticsInput): Analytics {
     }
     if (v.cents !== null) { paidAll++; paidSum += v.cents; }
     if (m < 0) continue;
-    visits[m]!++; bookedMin[m]! += v.minutes;
+    visits[m]!++;
     dayVisits[m]![+v.start.slice(8, 10) - 1]!++;
     if (v.cents !== null) dayCents[m]![+v.start.slice(8, 10) - 1]! += v.cents;
     if (v.cents !== null) { cents[m]! += v.cents; paidCount[m]!++; const a = svc.get(v.service) ?? svc.set(v.service, zeros()).get(v.service)!; a[m]! += v.cents; }
@@ -104,21 +106,28 @@ export function buildAnalytics(input: AnalyticsInput): Analytics {
   const totalClients = zeros(); let run = older;
   for (let m = 0; m < MONTHS; m++) { run += newClients[m]!; totalClients[m] = run; }
 
-  // Hours: working days (Monday to Saturday) of the month up to today, times the length of her working day
-  const dayHours = Math.max(0, (toMin(dayEnd) - toMin(dayStart)) / 60);
-  const offH = zeros();
-  for (const o of input.off) { const m = idx(o.start); if (m >= 0 && m < MONTHS && o.start <= now) offH[m]! += o.minutes / 60; }
-  const booked = bookedMin.map((x) => x / 60), free = zeros(), util = zeros(), perHour = zeros(), off = zeros();
+  // Hours: every day counts with her whole working day (Nustatymai > Darbo laikas), minus the time of her "Nedirbu" entries
+  // (a few hours or the whole day). The length of the visits does not matter. Today counts only up to now, and months
+  // before her first entry are not counted at all.
+  const ws = toMin(dayStart), we = toMin(dayEnd), nowMin = toMin(now.slice(11, 16));
+  const offByDate = new Map<string, [number, number][]>();
+  for (const o of input.off) { const s0 = toMin(o.start.slice(11, 16)), d = datePart(o.start); (offByDate.get(d) ?? offByDate.set(d, []).get(d)!).push([s0, Math.min(1440, s0 + o.minutes)]); }
+  const firstSeen = Math.min(MONTHS, ...input.visits.map((v) => idx(v.start)), ...input.off.map((o) => idx(o.start)));
+  const hours = zeros(), off = zeros(), perHour = zeros();
   keys.forEach((k, m) => {
-    const y = +k.slice(0, 4), mo = +k.slice(5, 7);
-    const last = k === cur ? +today.slice(8, 10) : new Date(Date.UTC(y, mo, 0)).getUTCDate();
-    let days = 0;
-    for (let d = 1; d <= last; d++) if (weekdayOf(`${k}-${pad2(d)}`) !== 6) days++;
-    const avail = days * dayHours, away = Math.min(offH[m]!, avail), open = Math.max(0, avail - away);
-    off[m] = away; free[m] = Math.max(0, open - booked[m]!);
-    util[m] = open > 0 ? Math.min(100, Math.round(booked[m]! / open * 100)) : 0;
-    perHour[m] = booked[m]! > 0 ? Math.round(cents[m]! / booked[m]!) : 0;
+    if (m < firstSeen) return;
+    const last = k === cur ? +today.slice(8, 10) : new Date(Date.UTC(+k.slice(0, 4), +k.slice(5, 7), 0)).getUTCDate();
+    for (let d = 1; d <= last; d++) {
+      const date = `${k}-${pad2(d)}`, a0 = ws, b0 = date === today ? Math.min(we, nowMin) : we;
+      if (b0 <= a0) continue;
+      const iv = (offByDate.get(date) ?? []).map(([x, y]) => [Math.max(a0, x), Math.min(b0, y)] as [number, number]).filter(([x, y]) => y > x).sort((p, q) => p[0] - q[0]);
+      let away = 0, end = a0; // the union of her days off, so two overlapping entries are not counted twice
+      for (const [x, y] of iv) { const from = Math.max(x, end); if (y > from) { away += y - from; end = y; } }
+      off[m]! += away / 60; hours[m]! += (b0 - a0 - away) / 60;
+    }
+    perHour[m] = hours[m]! > 0 ? Math.round(cents[m]! / hours[m]!) : 0;
   });
+  const visitDays = dayVisits.map((arr) => arr.filter((x) => x > 0).length);
 
   // How often each client comes, and who is past their usual rhythm
   const gaps: Gap[] = []; let gapSum = 0, gapN = 0;
@@ -133,7 +142,7 @@ export function buildAnalytics(input: AnalyticsInput): Analytics {
   const late = gaps.filter((g) => g.ratio >= 1.2 && g.sinceDays <= 240 && !people.get(g.id)!.hasUpcoming).sort((a, b) => b.ratio - a.ratio);
 
   return {
-    keys, visits, cents, avgCents, newClients, totalClients, booked, free, off, util, perHour, missed, cancelled, lostCents,
+    keys, visits, cents, avgCents, newClients, totalClients, hours, off, visitDays, perHour, missed, cancelled, lostCents,
     services: [...svc].map(([name, c]) => ({ name, cents: c })).sort((a, b) => b.cents.reduce((x, y) => x + y, 0) - a.cents.reduce((x, y) => x + y, 0)),
     heat, days: { visits: dayVisits, cents: dayCents }, people: [...people.values()], gaps: late, avgGapDays: gapN ? gapSum / gapN : 0,
     hasData: visits.some((v) => v > 0) || input.visits.length > 0,

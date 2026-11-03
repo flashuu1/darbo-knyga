@@ -10,7 +10,7 @@ import { Card, Rank } from './ClientStats';
 
 /**
  * The same figures as Analizė, for the month Išlaidos is showing: how many visits, new clients, the average amount,
- * how much of the working time was booked, hours worked, earnings per hour (each against the month before), the best
+ * days with visits, hours worked, earnings per hour (each against the month before), the best
  * days, the money by service and the clients who paid most. Money in and out is already above, so it is not repeated.
  */
 export function MonthStats({ ym }: { ym: string }) {
@@ -31,8 +31,8 @@ export function MonthStats({ ym }: { ym: string }) {
     { id: 'visits', label: t('mo.visits'), value: a.visits[m]!, format: (v) => String(Math.round(v)), d: delta(a.visits, w) },
     { id: 'new', label: t('mo.new'), value: a.newClients[m]!, format: (v) => String(Math.round(v)), d: delta(a.newClients, w) },
     { id: 'avg', label: t('mo.avg'), value: a.avgCents[m]! / 100, format: (v) => formatEuroRound(v * 100), d: delta(a.avgCents, w, mean) },
-    { id: 'util', label: t('mo.util'), value: a.util[m]!, format: (v) => `${Math.round(v)}%`, d: delta(a.util, w, mean) },
-    { id: 'hours', label: t('mo.hours'), value: a.booked[m]!, format: (v) => t('st.hUnit', { n: Math.round(v) }), d: delta(a.booked, w) },
+    { id: 'days', label: t('mo.days'), value: a.visitDays[m]!, format: (v) => t('st.d', { n: Math.round(v) }), d: delta(a.visitDays, w) },
+    { id: 'hours', label: t('mo.hours'), value: a.hours[m]!, format: (v) => t('st.hUnit', { n: Math.round(v) }), d: delta(a.hours, w) },
     { id: 'perhour', label: t('mo.perHour'), value: a.perHour[m]! / 100, format: (v) => t('st.perHourUnit', { suma: formatEuroRound(v * 100) }), d: delta(a.perHour, w, mean) },
   ];
   const split = serviceSplit(a, w).map((s) => ({ label: s.name, value: s.cents }));

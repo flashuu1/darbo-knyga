@@ -113,9 +113,9 @@ export const lt = {
   'st.income': 'Pajamos per mėnesį', 'st.incomeSub': '{suma} per mėnesį', 'st.avgTicket': 'Vidutinė suma už vizitą', 'st.perVisit': 'už vizitą',
   'st.lost': 'Prarasta dėl neatvykimų ir atšaukimų', 'st.lostSub': 'neatvyko: {a} · atšaukta: {b}', 'st.lostTip': 'Prarasta apie {suma}', 'st.lostHint': 'Apytikslė suma pagal įprastą sumą už vizitą. Atšaukti vizitai saugomi tik savaitę.',
   'st.byService': 'Pajamos pagal paslaugą', 'st.sumAll': 'viso',
-  'mo.head': 'Mėnesio rodikliai', 'mo.visits': 'Vizitai', 'mo.new': 'Nauji klientai', 'mo.avg': 'Vid. suma už vizitą', 'mo.util': 'Užimtumas', 'mo.hours': 'Dirbta', 'mo.perHour': 'Už darbo valandą', 'mo.busyDay': 'Užimčiausia diena', 'mo.richDay': 'Pelningiausia diena', 'mo.bestWd': 'Geriausia savaitės diena', 'mo.vsPrev': 'Rodyklės lygina su praėjusiu mėnesiu', 'mo.none': 'Šį mėnesį vizitų nebuvo', 'mo.visitsN': 'vizitų: {n}',
-  'st.util': 'Užimtumas', 'st.utilBig': 'darbo laiko užimta', 'st.utilTip': 'Užimta: {n}%', 'st.hours': 'Valandos per laikotarpį', 'st.hWorked': 'Dirbta', 'st.hFree': 'Laisva', 'st.hOff': 'Nedirbu', 'st.hUnit': '{n} val.',
-  'st.hoursChart': 'Dirbtos ir laisvos valandos', 'st.hoursHint': 'Mėlyna – dirbta, pilka – laisva', 'st.perHour': 'Uždarbis už darbo valandą', 'st.perHourSub': 'už darbo valandą', 'st.perHourUnit': '{suma}/val.',
+  'mo.head': 'Mėnesio rodikliai', 'mo.visits': 'Vizitai', 'mo.new': 'Nauji klientai', 'mo.avg': 'Vid. suma už vizitą', 'mo.days': 'Dienos su vizitais', 'mo.hours': 'Dirbta', 'mo.perHour': 'Už darbo valandą', 'mo.busyDay': 'Užimčiausia diena', 'mo.richDay': 'Pelningiausia diena', 'mo.bestWd': 'Geriausia savaitės diena', 'mo.vsPrev': 'Rodyklės lygina su praėjusiu mėnesiu', 'mo.none': 'Šį mėnesį vizitų nebuvo', 'mo.visitsN': 'vizitų: {n}',
+  'st.hours': 'Valandos per laikotarpį', 'st.hWorked': 'Dirbta', 'st.hOff': 'Nedirbu', 'st.hUnit': '{n} val.', 'st.workedBig': 'darbo valandų', 'st.daysWith': 'Dienos su vizitais',
+  'st.hoursChart': 'Dirbtos ir nedirbtos valandos', 'st.hoursHint': 'Mėlyna – dirbta, pilka – nedirbu', 'st.perHour': 'Uždarbis už darbo valandą', 'st.perHourSub': 'už darbo valandą', 'st.perHourUnit': '{suma}/val.',
 } as const;
 
 /** The words Asmeninis starts with (hers to rename, add to and delete in Nustatymai): appointments of her own. */

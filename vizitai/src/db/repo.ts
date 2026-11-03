@@ -421,7 +421,7 @@ export function createRepo(db: VizitaiDB) {
       const off: OffRec[] = [];
       for (const a of appts) {
         if (a.kind === 'client' && a.clientId) {
-          visits.push({ clientId: a.clientId, start: a.start, status: a.status, minutes: minutesFor(a, services), cents: isValidCents(a.amountCents) ? a.amountCents : null, service: (a.serviceId ? services.get(a.serviceId)?.name : null) ?? t('service.default.other') });
+          visits.push({ clientId: a.clientId, start: a.start, status: a.status, cents: isValidCents(a.amountCents) ? a.amountCents : null, service: (a.serviceId ? services.get(a.serviceId)?.name : null) ?? t('service.default.other') });
         } else if (a.kind === 'personal' && a.status === 'booked' && a.title === t('off.title')) off.push({ start: a.start, minutes: a.durationMinutes ?? PERSONAL_MINUTES });
       }
       return { now: now_, visits, off, clients: clients.map((c) => ({ id: c.id, name: c.name })), dayStart: settings.dayStart, dayEnd: settings.dayEnd };

@@ -187,26 +187,27 @@ function ProfitTab({ a, win, labels, tipL, top }: TabProps & { top: number }) {
 }
 
 function TimeTab({ a, win, labels, tipL }: TabProps) {
-  const ut = slice(a.util, win), hw = slice(a.booked, win), hf = slice(a.free, win), ho = slice(a.off, win), ph = slice(a.perHour, win).map((c) => Math.round(c / 100));
-  const cfgUt = useMemo<LineCfg>(() => ({ labels, tipLabel: tipL, max: 100, series: [{ values: ut, color: '#5856d6', fill: true }], fmt: (v) => t('st.utilTip', { n: v }), axis: (v) => `${Math.round(v)}%` }), [a, win.from, win.to]);
+  const hw = slice(a.hours, win), ho = slice(a.off, win), vd = slice(a.visitDays, win), ph = slice(a.perHour, win).map((c) => Math.round(c / 100));
   const cfgHr = useMemo<LineCfg>(() => ({
-    labels, tipLabel: tipL, series: [{ values: hw.map(Math.round), color: '#007aff', fill: true }, { values: hf.map(Math.round), color: '#8e8e93' }],
+    labels, tipLabel: tipL, series: [{ values: hw.map(Math.round), color: '#007aff', fill: true }, { values: ho.map(Math.round), color: '#8e8e93' }],
     fmt: (v) => t('st.hUnit', { n: v }), hint: t('st.hoursHint'),
   }), [a, win.from, win.to]);
   const cfgPh = useMemo<LineCfg>(() => ({ labels, tipLabel: tipL, series: [{ values: ph, color: '#34c759', fill: true }], fmt: (v) => t('st.perHourUnit', { suma: formatEuroRound(v * 100) }) }), [a, win.from, win.to]);
   const hours = sum(hw);
   return (
     <>
-      <LineCard i={1} title={t('st.util')} testId="card-util" value={mean(ut)} format={(v) => `${Math.round(v)}%`} small={t('st.utilBig')} d={delta(a.util, win, mean)} cfg={cfgUt} />
+      <Card i={1} title={t('st.hoursChart')} testId="card-hours">
+        <BigNumber value={hours} format={(v) => t('st.hUnit', { n: Math.round(v) })}>{t('st.workedBig')}<Delta pct={delta(a.hours, win)} /></BigNumber>
+        <LineChart cfg={cfgHr} />
+      </Card>
       <Card i={2} title={t('st.hours')}>
         <div class="st3">
-          {([[hw, 'st.hWorked'], [hf, 'st.hFree'], [ho, 'st.hOff']] as const).map(([v, k]) => (
-            <div class="st" key={k}><BigNumber size="s" value={sum(v)} format={(x) => t('st.hUnit', { n: Math.round(x) })} /><small>{t(k)}</small></div>
-          ))}
+          <div class="st"><BigNumber size="s" value={hours} format={(x) => t('st.hUnit', { n: Math.round(x) })} /><small>{t('st.hWorked')}</small></div>
+          <div class="st"><BigNumber size="s" value={sum(ho)} format={(x) => t('st.hUnit', { n: Math.round(x) })} /><small>{t('st.hOff')}</small></div>
+          <div class="st"><BigNumber size="s" value={sum(vd)} format={(x) => t('st.d', { n: Math.round(x) })} /><small>{t('st.daysWith')}</small></div>
         </div>
       </Card>
-      <Card i={3} title={t('st.hoursChart')}><LineChart cfg={cfgHr} /></Card>
-      <LineCard i={4} title={t('st.perHour')} value={hours ? sum(slice(a.cents, win)) / hours / 100 : 0} format={(v) => t('st.perHourUnit', { suma: formatEuroRound(v * 100) })} small={t('st.perHourSub')} d={delta(a.perHour, win, mean)} cfg={cfgPh} />
+      <LineCard i={3} title={t('st.perHour')} value={hours ? sum(slice(a.cents, win)) / hours / 100 : 0} format={(v) => t('st.perHourUnit', { suma: formatEuroRound(v * 100) })} small={t('st.perHourSub')} d={delta(a.perHour, win, mean)} cfg={cfgPh} />
     </>
   );
 }

@@ -17,6 +17,9 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   { date: '2026-11-03', items: [
+    { kind: 'change', text: 'Dirbtos valandos: skaičiuojama visa darbo diena (pagal Darbo laiką) kiekvieną dieną, minus „Nedirbu“ laikas; vizitų trukmė nebenaudojama. „Užimtumas“ pakeistas dienomis su vizitais.' },
+  ] },
+  { build: 'ce22382', date: '2026-11-03', items: [
     { kind: 'feature', text: 'Išlaidos > Mėnuo: mėnesio rodikliai su rodyklėmis, palyginus su praėjusiu mėnesiu: vizitai, nauji klientai, vidutinė suma, užimtumas, dirbtos valandos, uždarbis už valandą, geriausios dienos, pajamos pagal paslaugą ir daugiausiai išleidusios. Keičiasi su mėnesio rodyklėmis.' },
   ] },
   { build: '6517b6d', date: '2026-11-03', items: [

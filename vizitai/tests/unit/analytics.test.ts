@@ -6,7 +6,7 @@ import {
 
 const NOW = '2026-11-03T10:24'; // a Tuesday
 const v = (clientId: string, start: string, cents: number | null, extra: Partial<VisitRec> = {}): VisitRec =>
-  ({ clientId, start, status: 'booked', minutes: 60, cents, service: 'Kirpimas', ...extra });
+  ({ clientId, start, status: 'booked', cents, service: 'Kirpimas', ...extra });
 const input = (visits: VisitRec[], extra: Partial<AnalyticsInput> = {}): AnalyticsInput => ({
   now: NOW, visits, off: [], clients: [{ id: 'a', name: 'Ona' }, { id: 'b', name: 'Zita' }, { id: 'c', name: 'Rasa' }], dayStart: '08:00', dayEnd: '20:00', ...extra,
 });
@@ -28,7 +28,7 @@ describe('months', () => {
 describe('the numbers per month', () => {
   const a = buildAnalytics(input([
     v('a', '2026-09-08T10:00', 4000), v('a', '2026-10-06T10:00', 5000), v('a', '2026-10-20T14:00', 6000),
-    v('b', '2026-10-07T09:00', 3000, { service: 'Dažymas', minutes: 120 }),
+    v('b', '2026-10-07T09:00', 3000, { service: 'Dažymas' }),
     v('b', '2026-10-21T09:00', null), // took place, no amount yet
     v('c', '2026-10-09T09:00', 3500, { status: 'noshow' }), v('c', '2026-10-10T09:00', 3500, { status: 'cancelled' }),
     v('a', '2026-11-20T10:00', null), // in the future: nothing counts, but it is a booking
@@ -69,24 +69,46 @@ describe('the numbers per month', () => {
   });
 });
 
-describe('hours and utilisation', () => {
-  it('uses Monday to Saturday of the month, minus days off, against the booked hours', () => {
+describe('hours: the whole working day, minus Nedirbu', () => {
+  const off = (start: string, minutes: number) => ({ start, minutes });
+  it('counts every day of the month with her working day (08:00-20:00 = 12 h), Sundays too, whatever the visits last', () => {
+    const a = buildAnalytics(input([v('a', '2026-10-06T10:00', 4000), v('a', '2026-10-13T10:00', 4000)]));
+    const oct = MONTHS - 2;
+    expect(a.hours[oct]).toBe(31 * 12);
+    expect(a.off[oct]).toBe(0);
+    expect(a.perHour[oct]).toBe(Math.round(8000 / (31 * 12)));
+  });
+  it('takes Nedirbu off, a few hours or the whole day, and only what falls inside the working day', () => {
     const a = buildAnalytics(input(
-      [v('a', '2026-10-06T10:00', 4000, { minutes: 120 }), v('a', '2026-10-13T10:00', 4000, { minutes: 180 })],
-      { off: [{ start: '2026-10-02T09:00', minutes: 600 }] },
+      [v('a', '2026-10-06T10:00', 4000)],
+      { off: [off('2026-10-02T09:00', 600), off('2026-10-03T08:00', 720), off('2026-10-04T06:00', 240)] },
     ));
     const oct = MONTHS - 2;
-    // October 2026 has 31 days, 4 Sundays (4, 11, 18, 25): 27 working days x 12 h = 324 h; 10 h off
-    expect(a.off[oct]).toBe(10);
-    expect(a.booked[oct]).toBe(5);
-    expect(a.free[oct]).toBeCloseTo(324 - 10 - 5);
-    expect(a.util[oct]).toBe(Math.round(5 / 314 * 100));
-    expect(a.perHour[oct]).toBe(Math.round(8000 / 5));
+    // 10 h on the 2nd, the whole 12 h on the 3rd, and 06:00-10:00 on the 4th is only 2 h inside 08:00-20:00
+    expect(a.off[oct]).toBe(10 + 12 + 2);
+    expect(a.hours[oct]).toBe(31 * 12 - 24);
   });
-  it('counts the current month only up to today', () => {
-    const a = buildAnalytics(input([]));
-    // 1-3 November 2026: Sunday, Monday, Tuesday -> two working days
-    expect(a.free[MONTHS - 1]).toBe(24);
+  it('her example: visits from 10 to 3, Nedirbu from 3 to 5, more visits until 7, the day ends at 8 pm: 12 h minus 2 h', () => {
+    const a = buildAnalytics(input([v('a', '2026-10-06T10:00', 1), v('a', '2026-10-06T17:00', 1)], { off: [off('2026-10-06T15:00', 120)] }));
+    const oct = MONTHS - 2;
+    expect(a.off[oct]).toBe(2);
+    expect(a.hours[oct]).toBe(31 * 12 - 2);
+  });
+  it('does not count overlapping Nedirbu entries twice', () => {
+    const a = buildAnalytics(input([v('a', '2026-10-06T10:00', 1)], { off: [off('2026-10-06T09:00', 180), off('2026-10-06T10:00', 180)] })); // 09-12 and 10-13
+    expect(a.off[MONTHS - 2]).toBe(4);
+  });
+  it('counts today only up to now, and nothing before her first entry', () => {
+    const a = buildAnalytics(input([v('a', '2026-10-06T10:00', 1)]));
+    // 1 and 2 November: 24 h; 3 November (it is 10:24): 08:00-10:24 = 2.4 h
+    expect(a.hours[MONTHS - 1]).toBeCloseTo(24 + 2.4);
+    expect(a.hours[0]).toBe(0);
+    expect(a.hours[MONTHS - 3]).toBe(0); // September, before the first entry
+    expect(a.hours[MONTHS - 2]).toBe(31 * 12);
+  });
+  it('counts the days that had visits', () => {
+    const a = buildAnalytics(input([v('a', '2026-10-06T10:00', 1), v('b', '2026-10-06T12:00', 1), v('a', '2026-10-13T10:00', 1)]));
+    expect(a.visitDays[MONTHS - 2]).toBe(2);
   });
 });
 

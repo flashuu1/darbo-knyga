@@ -30,7 +30,8 @@ describe('the demo books for a test phone', () => {
     expect(rows.slice(0, 5).every((r) => r.pending)).toBe(true); // waiting for an amount comes first
     const a = buildAnalytics(await repo.analyticsInput(NOW));
     expect(a.visits.reduce((x, y) => x + y, 0)).toBeGreaterThan(300);
-    expect(a.util.slice(-6).every((u) => u > 0 && u <= 100)).toBe(true);
+    expect(a.hours.slice(-6).every((h) => h > 0)).toBe(true);
+    expect(a.off.slice(-6).some((h) => h > 0)).toBe(true);
     expect(a.gaps.length).toBeGreaterThan(0);
     expect(a.lostCents.some((c) => c > 0)).toBe(true);
 

@@ -392,3 +392,8 @@ In Savaitė, holding a lifted entry at the left or right edge of the screen (36 
 - The pill names the week she lands on: "Ši savaitė" (this week, with its dates) when it is today's week, otherwise "Kita savaitė" or "Ankstesnė savaitė" by the direction she turned; Diena says "Šiandien" on today.
 
 - **Asmeninis is red and glows.** Every personal entry (not a cancelled one) is the system red as a bold gradient with white type, a white bar on its left, and a red glow that keeps breathing with two small sparks drifting up, the same glow layer as the orange one for a payment that is due (it scales with the entry and with the pinch). Its sheet and its row in Nustatymai are red too.
+
+## Nedirbu (off work) and the settings keyboard
+
+- **Nedirbu** is a special wide card with a dashed outline at the bottom of the Asmeninis choices (it is not one of her editable choices). Picking it asks for the time **from** ("Nuo kada nedirbi": the date and time picker, with a Nuo → Iki header, then Toliau) and then the time **to** ("Iki kada nedirbi": a time wheel on the same day, starting an hour later, which must be later than the start; then Išsaugoti). The entry is a personal entry titled Nedirbu whose length is exactly from–to. A day off longer than one day is booked day by day.
+- **Settings and the keyboard.** A settings page keeps room under its last row for the keyboard and scrolls a tapped field above it. A newly added choice or service gets the cursor at once, with its default name selected, so she can just type.

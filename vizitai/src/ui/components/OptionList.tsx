@@ -1,8 +1,8 @@
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import { repo } from '../../db/repo';
 import type { OptionGroup } from '../../db/types';
 import { t } from '../../i18n/lt';
-import { confirmDeleteOption } from '../actions';
+import { confirmDeleteOption, primeKeyboard } from '../actions';
 import { useOptions } from '../hooks';
 import { SwipeRow } from './SwipeRow';
 
@@ -12,6 +12,14 @@ const stepFor = (minutes: number) => (minutes < 120 ? 15 : 30);
 export function OptionList({ group }: { group: OptionGroup }) {
   const options = useOptions(group);
   const [tick, setTick] = useState(0);
+  const [focusId, setFocusId] = useState<string | null>(null); // the choice just added: its name field gets the cursor, with the name selected
+  useEffect(() => {
+    if (!focusId) return;
+    const i = options.findIndex((o) => o.id === focusId);
+    if (i < 0) return;
+    const input = document.querySelector<HTMLInputElement>(`[data-testid="opt-${group}-name-${i}"]`);
+    if (input) { input.focus(); input.select(); setFocusId(null); }
+  }, [focusId, options]);
   const rename = async (id: string, name: string) => {
     try { await repo.renameOption(id, name); } catch (e) { console.error(e); }
     setTick((x) => x + 1); // show the stored name again (a blank edit is ignored)
@@ -43,7 +51,7 @@ export function OptionList({ group }: { group: OptionGroup }) {
         </ul>
       )}
       <div class="group">
-        <button class="group-row accent" data-testid={`opt-${group}-add`} onClick={() => void repo.addOption(group, t('option.new'))}>{t('option.add')}</button>
+        <button class="group-row accent" data-testid={`opt-${group}-add`} onClick={() => { primeKeyboard(); void repo.addOption(group, t('option.new')).then((o) => setFocusId(o.id)); }}>{t('option.add')}</button>
       </div>
     </>
   );

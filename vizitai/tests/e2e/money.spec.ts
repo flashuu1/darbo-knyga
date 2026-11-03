@@ -256,3 +256,25 @@ test('a month with more going out than coming in shows red only on the total', a
   await expect(page.getByTestId('exp-net')).toHaveClass(/neg/);
   await expect(page.getByTestId('exp-payers')).toHaveCount(0); // nobody paid
 });
+
+test('adding a new choice at the bottom of a long list: its name field is scrolled above the keyboard, ready to type', async ({ page }) => {
+  await openApp(page);
+  await openSettings(page, 'personal');
+  const vh = page.viewportSize()!.height;
+  await page.evaluate(() => { // the keyboard goes up without resizing the page, as on iOS
+    const vv = window.visualViewport!;
+    Object.defineProperty(vv, 'height', { configurable: true, get: () => window.innerHeight - 336 });
+    vv.dispatchEvent(new Event('resize'));
+  });
+  await page.getByTestId('opt-personal-add').scrollIntoViewIfNeeded();
+  await page.getByTestId('opt-personal-add').click();
+  const input = page.getByTestId('opt-personal-name-12');
+  await expect(input).toBeFocused(); // the new name is selected, so typing replaces it
+  await expect.poll(async () => { const b = (await input.boundingBox())!; return b.y + b.height; }, { timeout: 8000 }).toBeLessThan(vh - 336);
+  await input.fill('Sporto salė');
+  await input.blur();
+  await expect.poll(() => page.evaluate(async () => (await (window as any).__vizitai.repo.listOptions('personal')).map((o: any) => o.name))).toContain('Sporto salė');
+  // and there is room under the last row to scroll it up (not stuck against the bottom)
+  const room = await page.evaluate(() => { const b = document.querySelector('.set-page .settings-body') as HTMLElement; return parseFloat(getComputedStyle(b).paddingBottom); });
+  expect(room).toBeGreaterThan(300);
+});

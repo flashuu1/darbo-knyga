@@ -81,6 +81,7 @@ export const lt = {
   'amount.log.title': 'Sumos pakeitimai', 'amount.log.cleared': 'nunulinta',
   'option.minutes': 'Trukmė (min.)',
   'drag.nextWeek': 'Kita savaitė', 'drag.prevWeek': 'Ankstesnė savaitė', 'drag.thisWeek': 'Ši savaitė', 'drag.today': 'Šiandien', 'drag.nextDay': 'Kita diena', 'drag.prevDay': 'Ankstesnė diena',
+  'off.title': 'Nedirbu', 'off.sub': 'Nuo – iki', 'off.from': 'Nuo kada nedirbi', 'off.to': 'Iki kada nedirbi', 'off.fromLabel': 'Nuo', 'off.toLabel': 'Iki',
   'balance.label': 'Balansas', 'balance.in': 'Gauta', 'balance.out': 'Išlaidos',
 } as const;
 

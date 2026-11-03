@@ -5,10 +5,11 @@ import { SERVICE_COLORS } from '../../db/types';
 import { formatBuildTime, formatDayShort } from '../../i18n/format';
 import { t, type Key } from '../../i18n/lt';
 import { snapClock, todayStr } from '../../logic/time';
-import { chooseImport, confirmDeleteService, runBackup, showToast } from '../actions';
+import { chooseImport, confirmDeleteService, primeKeyboard, runBackup, showToast } from '../actions';
 import { OptionList } from '../components/OptionList';
 import { SwipeRow } from '../components/SwipeRow';
 import { useNeedsBackup, useOptions, useServices, useSettings } from '../hooks';
+import { useKeyboardHeight } from '../keyboard';
 import { BackIcon, BackupIcon, ClockIcon, InfoIcon, NextIcon, PersonIcon, ScissorsIcon, WalletIcon } from '../icons';
 
 type Page = 'services' | 'hours' | 'personal' | 'expenses' | 'backup' | 'about';
@@ -88,8 +89,33 @@ export function SettingsScreen() {
 /** A page pushed over the list: a back button named after the list, a large title, and a swipe from the left edge to go back. */
 function SubPage({ title, id, leaving, onBack, children }: { title: string; id: Page; leaving: boolean; onBack: () => void; children: ComponentChildren }) {
   const el = useRef<HTMLDivElement>(null);
+  const kb = useKeyboardHeight();
+  const kbRef = useRef(kb);
+  kbRef.current = kb;
   const back = useRef(onBack);
   back.current = onBack;
+  // Tapping a field (or one being focused for her) brings it into view above the keyboard, once the keyboard is up
+  useEffect(() => {
+    const node = el.current;
+    if (!node) return;
+    let timer = 0;
+    const focused = (e: Event) => {
+      const t = e.target;
+      if (!(t instanceof HTMLInputElement)) return;
+      clearTimeout(timer);
+      // the keyboard covers the bottom of the screen without resizing the page: scroll just enough to put the field above it
+      timer = window.setTimeout(() => {
+        const body = node.querySelector<HTMLElement>('.settings-body');
+        if (!body) return;
+        const r = t.getBoundingClientRect(), top = body.getBoundingClientRect().top + 8;
+        const limit = window.innerHeight - kbRef.current - (kbRef.current > 0 ? 64 : 24); // 64: the strip above the keyboard
+        const delta = r.bottom > limit ? r.bottom - limit : r.top < top ? r.top - top : 0;
+        if (delta) body.scrollBy({ top: delta, behavior: 'smooth' });
+      }, 320);
+    };
+    node.addEventListener('focusin', focused);
+    return () => { clearTimeout(timer); node.removeEventListener('focusin', focused); };
+  }, []);
   useEffect(() => {
     const node = el.current;
     if (!node) return;
@@ -105,7 +131,7 @@ function SubPage({ title, id, leaving, onBack, children }: { title: string; id: 
     return () => { node.removeEventListener('touchstart', start); node.removeEventListener('touchend', end); };
   }, []);
   return (
-    <div ref={el} class={leaving ? 'set-page pop-out' : 'set-page push-in'} data-testid={`settings-page-${id}`}>
+    <div ref={el} class={leaving ? 'set-page pop-out' : 'set-page push-in'} data-testid={`settings-page-${id}`} style={{ '--kb': `${kb}px` } as CSSProperties}>
       <header class="chrome">
         <div class="navbar">
           <button class="nav-btn back" data-testid="settings-back" onClick={onBack}><BackIcon /><span>{t('tab.settings')}</span></button>
@@ -125,6 +151,14 @@ function ServicesPage() {
   const services = useServices(false);
   const [openColor, setOpenColor] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
+  const [focusId, setFocusId] = useState<string | null>(null); // the service just added: its name field gets the cursor
+  useEffect(() => {
+    if (!focusId) return;
+    const i = services.findIndex((s) => s.id === focusId);
+    if (i < 0) return;
+    const input = document.querySelector<HTMLInputElement>(`[data-testid="svc-name-${i}"]`);
+    if (input) { input.focus(); input.select(); setFocusId(null); }
+  }, [focusId, services]);
   async function toggle(id: string, active: boolean) {
     try { await repo.setServiceActive(id, active); } catch { showToast(t('service.lastActive')); }
   }
@@ -176,7 +210,7 @@ function ServicesPage() {
         ))}
       </ul>
       <div class="group">
-        <button class="group-row accent" data-testid="svc-add" onClick={() => void repo.addService(t('service.new'))}>{t('service.add')}</button>
+        <button class="group-row accent" data-testid="svc-add" onClick={() => { primeKeyboard(); void repo.addService(t('service.new')).then((s) => setFocusId(s.id)); }}>{t('service.add')}</button>
       </div>
     </>
   );

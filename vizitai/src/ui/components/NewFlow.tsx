@@ -6,7 +6,8 @@ import { euroSign, formatWhen, parseAmountInput } from '../../i18n/format';
 import { t } from '../../i18n/lt';
 import { glyphFor } from '../../logic/glyph';
 import { cleanName } from '../../logic/names';
-import { datePart } from '../../logic/time';
+import { TimeWheel } from './TimeWheel';
+import { datePart, hhmm, minutesOfDay } from '../../logic/time';
 import { closeSheet, highlight } from '../actions';
 import { useLive, useOptions, useServices } from '../hooks';
 import { CheckIcon } from '../icons';
@@ -18,7 +19,7 @@ import { Sheet } from './Sheet';
 // Enough to find someone as the client list grows, few enough to stay clear of the keyboard.
 const MAX_SUGGESTIONS = 8;
 type Kind = 'client' | 'personal' | 'expense';
-type Screen = 0 | 1 | 2; // 0 = client, 1 = service, 2 = time
+type Screen = 0 | 1 | 2 | 3; // 0 = client, 1 = service, 2 = time (Nedirbu: from), 3 = Nedirbu: to
 
 /**
  * New booking as three screens inside one full-height modal:
@@ -32,6 +33,8 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
   const [kind, setKind] = useState<Kind>('client');
   const [optionId, setOptionId] = useState<string | null>(null);
   const [amountText, setAmountText] = useState('');
+  const [off, setOff] = useState(false); // Asmeninis > Nedirbu: from a time to a time, nothing else
+  const [toTime, setToTime] = useState('');
   const [name, setName] = useState('');
   const [linked, setLinked] = useState<Client | null>(null);
   const [serviceId, setServiceId] = useState<string | null>(prefill.serviceId ?? null);
@@ -49,8 +52,12 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
   const chosen = kind === 'client' ? null : options.find((o) => o.id === optionId) ?? null;
   const cents = parseAmountInput(amountText);
   // The first screen is done when she has a name (client) or has picked one of her own choices (and an amount for an expense).
-  const canNext = kind === 'client' ? hasName : chosen !== null && (kind !== 'expense' || cents !== null);
+  const canNext = kind === 'client' ? hasName : kind === 'personal' ? chosen !== null || off : chosen !== null && cents !== null;
   const canSave = canNext && (kind !== 'client' || sid !== null);
+  // Nedirbu: the end must come after the start, on the same day
+  const fromMin = minutesOfDay(start);
+  const toMinutes = toTime ? +toTime.slice(0, 2) * 60 + +toTime.slice(3, 5) : 0;
+  const offValid = off && toMinutes > fromMin;
 
   // The tap that opened the flow focused the hidden primer (the iOS keyboard is up); hand focus to the field.
   useEffect(() => { if (screen === 0) input.current?.focus(); }, []);
@@ -76,7 +83,12 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
   // client card it came from, not through the service and name screens.
   const origin = prefill.screen === 'time' ? prefill.from : undefined;
   const leave = () => { if (origin?.type === 'appt') ui.set({ sheet: { type: 'appt', id: origin.id } }); else closeSheet(); };
-  const back = () => { if (screen === 2 && origin) leave(); else go(screen === 2 ? (kind === 'client' ? 1 : 0) : 0); };
+  const back = () => { if (screen === 2 && origin) leave(); else go(screen === 3 ? 2 : screen === 2 ? (kind === 'client' ? 1 : 0) : 0); };
+  // Nedirbu, step one done: the end starts an hour after the start (or the last minute of the day)
+  const toEnd = () => {
+    if (!toTime || toMinutes <= fromMin) setToTime(hhmm(Math.min(fromMin + 60, 23 * 60 + 59)));
+    go(3);
+  };
 
   async function pick(c: Client) {
     typed.current = true;
@@ -94,12 +106,14 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
   }
 
   async function save() {
-    if (!canSave || busy.current) return;
+    if ((off ? !offValid : !canSave) || busy.current) return;
     busy.current = true; setSaving(true);
     try {
-      const hit = await repo.findOverlapFor({ start, kind, serviceId: kind === 'client' ? sid : null, minutes: kind === 'personal' ? chosen?.minutes ?? 30 : undefined });
+      const offMinutes = toMinutes - fromMin;
+      const hit = await repo.findOverlapFor({ start, kind, serviceId: kind === 'client' ? sid : null, minutes: off ? offMinutes : kind === 'personal' ? chosen?.minutes ?? 30 : undefined });
       if (hit && clash === null) { setClash(t('warn.overlap', { vardas: hit.label, paslauga: hit.serviceName })); return; }
       const a = await repo.createAppointment(kind === 'client' ? { kind, name, serviceId: sid, start }
+        : off ? { kind: 'personal', title: t('off.title'), minutes: offMinutes, start }
         : kind === 'personal' ? { kind, title: chosen!.name, optionId: chosen!.id, minutes: chosen!.minutes ?? 30, start }
         : { kind, title: chosen!.name, optionId: chosen!.id, amountCents: cents!, start });
       if (prefill.replaceId) await repo.deleteAppointment(prefill.replaceId); // booked in place of a cancelled visit
@@ -112,7 +126,7 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
     }
   }
 
-  const title = screen === 0 ? t('sheet.new.title') : screen === 1 ? t('field.service') : t('field.time');
+  const title = screen === 0 ? t('sheet.new.title') : screen === 1 ? t('field.service') : off && screen === 3 ? t('off.to') : off ? t('off.from') : t('field.time');
   const warn = clash && <p class="warn" role="alert" data-testid="overlap-warning">{clash}</p>;
   const pane = (i: Screen) => ({ 'data-active': screen === i ? '' : undefined, 'aria-hidden': screen !== i, style: { '--i': i } as CSSProperties });
 
@@ -128,7 +142,7 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
           <div class="segmented wide">
             {(['client', 'personal', 'expense'] as const).map((k) => (
               <button key={k} data-testid={`type-${k}`} class={kind === k ? 'seg on' : 'seg'}
-                onClick={() => { setKind(k); setOptionId(null); setLinked(null); setClash(null); }}>{t(`type.${k}`)}</button>
+                onClick={() => { setKind(k); setOptionId(null); setOff(false); setLinked(null); setClash(null); }}>{t(`type.${k}`)}</button>
             ))}
           </div>
           {kind === 'client' && (
@@ -144,13 +158,20 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
                   const g = glyphFor(o.name);
                   return (
                     <button key={o.id} data-testid={`option-${i}`} class={o.id === optionId ? 'opt-card on' : 'opt-card'} aria-pressed={o.id === optionId}
-                      style={{ '--g': `var(--c-${g.color})` } as CSSProperties} onClick={() => { setOptionId(o.id); setClash(null); }}>
+                      style={{ '--g': `var(--c-${g.color})` } as CSSProperties} onClick={() => { setOptionId(o.id); setOff(false); setClash(null); }}>
                       <span class="opt-ico" aria-hidden="true">{g.glyph}</span>
                       <span class="opt-name">{o.name}</span>
                       <span class="radio" aria-hidden="true"><CheckIcon /></span>
                     </button>
                   );
                 })}
+                {kind === 'personal' && (
+                  <button data-testid="option-off" class={off ? 'opt-card off on' : 'opt-card off'} aria-pressed={off} onClick={() => { setOff(true); setOptionId(null); setClash(null); }}>
+                    <span class="opt-ico" aria-hidden="true">🌴</span>
+                    <span class="off-text"><span class="opt-name">{t('off.title')}</span><span class="off-sub">{t('off.sub')}</span></span>
+                    <span class="radio" aria-hidden="true"><CheckIcon /></span>
+                  </button>
+                )}
               </div>
               {kind === 'expense' && (
                 <label class="amount-field">
@@ -194,15 +215,37 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
 
         {/* 2 Laikas */}
         <section class="flow-pane time-pane" {...pane(2)}>
+          {off && (
+            <div class="off-range" data-testid="off-range-from">
+              <span class="off-chip on"><i>{t('off.fromLabel')}</i><b data-testid="off-from-value">{start.slice(11, 16)}</b></span>
+              <span class="off-arrow" aria-hidden="true">→</span>
+              <span class="off-chip"><i>{t('off.toLabel')}</i><b>··:··</b></span>
+            </div>
+          )}
           <DateTimePicker value={start} onChange={touch(setStart)} />
           {screen === 2 && warn}
+        </section>
+
+        {/* 3 Nedirbu: iki kada */}
+        <section class="flow-pane off-pane" data-testid="off-to-pane" {...pane(3)}>
+          <div class="off-range" data-testid="off-range-to">
+            <span class="off-chip"><i>{t('off.fromLabel')}</i><b data-testid="off-from-value-2">{start.slice(11, 16)}</b></span>
+            <span class="off-arrow" aria-hidden="true">→</span>
+            <span class="off-chip on"><i>{t('off.toLabel')}</i><b data-testid="off-to-value">{toTime}</b></span>
+          </div>
+          <p class="off-ask">{t('off.to')}</p>
+          {toTime && <TimeWheel value={toTime} onChange={touch(setToTime)} />}
+          {toTime && toMinutes <= fromMin && <p class="warn" role="alert" data-testid="off-invalid">{t('hours.invalid')}</p>}
+          {screen === 3 && warn}
         </section>
 
         {/* The main button: always at the bottom of the flow, riding up above the keyboard while it is open. */}
         <div class={kb > 0 ? 'flow-bar kb-open' : 'flow-bar'}>
           {screen === 0 && <button class="primary" data-testid="btn-next" disabled={!canNext} onClick={next}>{t('btn.next')}</button>}
           {screen === 1 && <button class="primary" data-testid="btn-save" disabled={!canSave || saving} onClick={() => void save()}>{t('btn.save')}</button>}
-          {screen === 2 && <button class="primary" data-testid="btn-save-time" disabled={!canSave || saving} onClick={() => void save()}>{t('btn.save')}</button>}
+          {screen === 2 && !off && <button class="primary" data-testid="btn-save-time" disabled={!canSave || saving} onClick={() => void save()}>{t('btn.save')}</button>}
+          {screen === 2 && off && <button class="primary" data-testid="btn-off-next" onClick={toEnd}>{t('btn.next')}</button>}
+          {screen === 3 && <button class="primary" data-testid="btn-save-off" disabled={!offValid || saving} onClick={() => void save()}>{t('btn.save')}</button>}
         </div>
       </div>
     </Sheet>

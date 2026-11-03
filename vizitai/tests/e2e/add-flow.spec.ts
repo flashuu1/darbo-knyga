@@ -263,7 +263,7 @@ test('the choices are cards, each with its own picture and colour, not a column 
   await page.getByTestId('slot-2026-10-14T12:00').click();
   await page.getByTestId('type-personal').click();
   await page.waitForTimeout(450);
-  const cards = await page.getByTestId('option-list').locator('.opt-card').evaluateAll((els) => els.map((e) => ({
+  const cards = await page.getByTestId('option-list').locator('.opt-card:not(.off)').evaluateAll((els) => els.map((e) => ({
     ico: e.querySelector('.opt-ico')!.textContent, name: e.querySelector('.opt-name')!.textContent, g: (e as HTMLElement).style.getPropertyValue('--g'), w: Math.round(e.getBoundingClientRect().width),
   })));
   expect(cards).toHaveLength(12);
@@ -314,4 +314,73 @@ test('every Asmeninis entry is vibrant red and glows (the animation runs), and o
   await expect(page.getByTestId(`glow-${ids[3]!}`)).toHaveCount(0); // a cancelled one is just a struck-through line
   await page.getByTestId(`entry-${ids[0]!}`).click();
   await expect(page.locator('.hero-av.red')).toBeVisible(); // and red in its sheet too
+});
+
+test('Nedirbu: its own wide card at the bottom; pick FROM, save, pick TO, save, and the entry covers exactly that time', async ({ page }) => {
+  await openApp(page);
+  await page.getByTestId('slot-2026-10-14T12:00').click();
+  await page.getByTestId('type-personal').click();
+  await page.waitForTimeout(450);
+  // a distinct card: dashed outline, the full width of the grid, below every other choice
+  const off = (await page.getByTestId('option-off').boundingBox())!, last = (await page.getByTestId('option-11').boundingBox())!, grid = (await page.getByTestId('option-list').boundingBox())!;
+  expect(off.y).toBeGreaterThan(last.y + last.height - 2);
+  expect(off.width).toBeGreaterThan(grid.width - 4);
+  expect(await page.getByTestId('option-off').evaluate((el) => getComputedStyle(el).outlineStyle)).toBe('dashed');
+  await expect(page.getByTestId('option-off')).toContainText('Nedirbu');
+  await page.getByTestId('option-off').scrollIntoViewIfNeeded();
+  await page.getByTestId('option-off').click();
+  await expect(page.getByTestId('option-off')).toHaveAttribute('aria-pressed', 'true');
+  await page.getByTestId('btn-next').click();
+  // step one says FROM clearly and has its own button
+  await expect(page.getByTestId('sheet')).toContainText('Nuo kada nedirbi');
+  await expect(page.getByTestId('off-from-value')).toHaveText('12:00');
+  await page.waitForTimeout(450);
+  await pickTime(page, '13:30');
+  await expect(page.getByTestId('off-from-value')).toHaveText('13:30');
+  await page.getByTestId('btn-off-next').click();
+  // step two says TO clearly, starts an hour later, and must end after it starts
+  await expect(page.getByTestId('sheet')).toContainText('Iki kada nedirbi');
+  await expect(page.getByTestId('off-to-value')).toHaveText('14:30');
+  await expect(page.getByTestId('off-from-value-2')).toHaveText('13:30');
+  await page.waitForTimeout(450);
+  await page.getByTestId('off-to-pane').getByTestId('wheel-h-13').click();
+  await page.getByTestId('off-to-pane').getByTestId('wheel-m-00').click();
+  await expect(page.getByTestId('off-invalid')).toBeVisible(); // 13:00 is before 13:30
+  await expect(page.getByTestId('btn-save-off')).toBeDisabled();
+  await page.getByTestId('off-to-pane').getByTestId('wheel-h-17').click();
+  await page.getByTestId('off-to-pane').getByTestId('wheel-m-15').click();
+  await expect(page.getByTestId('off-to-value')).toHaveText('17:15');
+  await expect(page.getByTestId('btn-save-off')).toBeEnabled();
+  await page.getByTestId('btn-save-off').click();
+  await expect(page.getByTestId('sheet')).toHaveCount(0);
+  const [a] = await page.evaluate(async () => (window as any).__vizitai.db.appointments.toArray());
+  expect(a).toMatchObject({ kind: 'personal', title: 'Nedirbu', start: '2026-10-14T13:30', durationMinutes: 225 }); // 13:30 to 17:15
+  const e = page.getByTestId(`entry-${a.id}`);
+  await expect(e).toContainText('Nedirbu');
+  const slot = (await page.getByTestId('slot-2026-10-14T13:30').boundingBox())!, box = (await e.boundingBox())!;
+  expect(Math.round(box.height / slot.height)).toBe(15); // 225 minutes = 15 quarter hours
+});
+
+test('Nedirbu can be backed out of, and picking an ordinary choice afterwards un-picks it', async ({ page }) => {
+  await openApp(page);
+  await page.getByTestId('slot-2026-10-14T12:00').click();
+  await page.getByTestId('type-personal').click();
+  await page.waitForTimeout(450);
+  await page.getByTestId('option-off').scrollIntoViewIfNeeded();
+  await page.getByTestId('option-off').click();
+  await page.getByTestId('btn-next').click();
+  await page.waitForTimeout(450);
+  await page.getByTestId('btn-off-next').click();
+  await page.waitForTimeout(450);
+  await page.getByTestId('btn-back').click(); // from "to" back to "from"
+  await expect(page.getByTestId('sheet')).toContainText('Nuo kada nedirbi');
+  await page.waitForTimeout(450);
+  await page.getByTestId('btn-back').click(); // and back to the cards
+  await page.waitForTimeout(450);
+  await expect(page.getByTestId('option-off')).toHaveAttribute('aria-pressed', 'true');
+  await page.getByTestId('option-0').click();
+  await expect(page.getByTestId('option-off')).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByTestId('option-0')).toHaveAttribute('aria-pressed', 'true');
+  await page.getByTestId('type-expense').click(); // other kinds have no such card
+  await expect(page.getByTestId('option-off')).toHaveCount(0);
 });

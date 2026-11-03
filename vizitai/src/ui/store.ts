@@ -25,6 +25,8 @@ export interface Origin { type: 'appt' | 'client'; id: string }
 export type Sheet = { type: 'new'; start: string; clientId?: string; serviceId?: string; screen?: 'time'; from?: Origin; replaceId?: string } | { type: 'appt'; id: string }
   | { type: 'amount'; id: string } | { type: 'move'; id: string } | { type: 'summary'; scope: 'day' | 'week' | 'month'; date: string }
   | { type: 'cfilter' } | { type: 'cnew' };
+/** The card shown while a client's row is held: which visit, and where the row is (the card is centred on it). */
+export interface PeekState { id: string; top: number; height: number }
 export interface ToastState { id: number; text: string; undo?: () => Promise<void> }
 export interface DragState { entry: Entry; label: string; x: number; y: number; grabDY: number; grabDX: number; left: number; width: number; over: { date: string; start: string } | null; /** Lifted from a "+N" chip: the key of that chip (the chip stays mounted, counting one less, while the entry is in her hand). */ chipKey?: string; /** Held at the left (-1) or right (1) edge: the calendar is about to turn to the previous / next day or week. */ edge?: -1 | 0 | 1 }
 export interface ActionItem { label: string; role?: 'destructive' | 'cancel'; onPress: () => void }
@@ -34,8 +36,9 @@ export interface UiState {
   zoom: number; drag: DragState | null; action: { title?: string; lines?: string[]; items: ActionItem[] } | null;
   /** Closing the sheet named by `for` goes back to `sheet` (the day summary opens Suma and returns to itself). */
   back: { for: string; sheet: Sheet } | null;
+  peek: PeekState | null;
 }
 export const ui = createStore<UiState>({
-  tab: 'calendar', view: 'day', date: todayStr(), sheet: null, client: null, toast: null, highlight: null, zoom: loadZoom(), drag: null, action: null, back: null,
+  tab: 'calendar', view: 'day', date: todayStr(), sheet: null, client: null, toast: null, highlight: null, zoom: loadZoom(), drag: null, action: null, back: null, peek: null,
 });
-export const isBusy = () => { const s = ui.get(); return !!(s.sheet || s.action || s.client || s.drag); };
+export const isBusy = () => { const s = ui.get(); return !!(s.sheet || s.action || s.client || s.drag || s.peek); };

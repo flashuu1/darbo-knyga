@@ -730,3 +730,56 @@ p.link-name { color: var(--label); }
 .mini-pill { flex: none; display: inline-flex; align-items: center; height: 24px; padding: 0 9px; border-radius: 12px; font-size: .72rem; font-weight: 700; white-space: nowrap; }
 .mini-pill.due { background: color-mix(in srgb, var(--due) 22%, transparent); color: var(--due-ink); }
 .client-row.holding { background: var(--fill); }
+
+/* The card over the list while a client's row is held (like holding an app icon): a looking card, never a form */
+.peek-layer { z-index: 25; }
+.peek-back { position: absolute; inset: 0; background: color-mix(in srgb, var(--backdrop) 80%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); animation: fade-in var(--t-med) var(--ease-out); }
+.peek-layer[data-leaving] .peek-back { animation: fade-out var(--t-fast) var(--ease-in) forwards; }
+.peek-card { position: absolute; left: 50%; width: min(344px, calc(100vw - 32px)); box-sizing: border-box; margin-left: calc(min(344px, 100vw - 32px) / -2); padding: var(--s4); border-radius: 26px;
+  background: var(--sheet-card);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .34), inset 0 0 0 .5px rgba(255, 255, 255, .5);
+  top: clamp(calc(env(safe-area-inset-top) + 12px), calc(var(--peek-center) - var(--peek-h) / 2), calc(100dvh - var(--peek-h) - 14px - env(safe-area-inset-bottom)));
+  transform-origin: 50% calc(var(--peek-center) - clamp(calc(env(safe-area-inset-top) + 12px), calc(var(--peek-center) - var(--peek-h) / 2), calc(100dvh - var(--peek-h) - 14px - env(safe-area-inset-bottom))));
+  opacity: 0; }
+.peek-card[data-ready] { animation: peek-in .42s var(--ease-spring) both; }
+.peek-layer[data-leaving] .peek-card { animation: peek-out var(--t-fast) var(--ease-in) both; }
+@keyframes peek-in { from { opacity: 0; transform: scale(.82) translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes peek-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: scale(.94); } }
+.peek-card > * { animation: rise .4s var(--ease-spring) both; }
+.peek-card > :nth-child(2) { animation-delay: 50ms; } .peek-card > :nth-child(3) { animation-delay: 90ms; } .peek-card > :nth-child(4) { animation-delay: 130ms; } .peek-card > :nth-child(5) { animation-delay: 170ms; }
+.peek-head { display: flex; align-items: center; gap: var(--s3); }
+.peek-head .avatar { width: 42px; height: 42px; }
+.peek-name { flex: 1; min-width: 0; font-size: 1.12rem; font-weight: 700; letter-spacing: -.01em; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.peek-chip { flex: none; display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 10px; border-radius: 13px; font-size: .74rem; font-weight: 750; white-space: nowrap; background: var(--fill); color: var(--label-2); }
+.peek-chip svg { width: 13px; height: 13px; }
+.peek-chip.waiting { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
+.peek-chip.unconfirmed { background: color-mix(in srgb, var(--due) 24%, transparent); color: var(--due-ink); }
+.peek-chip.done { background: color-mix(in srgb, var(--green) 22%, transparent); color: var(--green-ink); }
+.peek-when { margin: var(--s4) 0 var(--s3); padding: var(--s3) var(--s4); border-radius: var(--r-lg); background: var(--fill); }
+.peek-date { margin: 0; font-size: .84rem; font-weight: 600; color: var(--label-2); }
+.peek-time { margin: 2px 0 0; font-size: 1.9rem; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.peek-rel { margin: 2px 0 0; font-size: .84rem; font-weight: 650; color: var(--accent); }
+.peek-unconfirmed .peek-rel { color: var(--due-ink); } .peek-done .peek-rel { color: var(--green-ink); } .peek-noshow .peek-rel, .peek-cancelled .peek-rel { color: var(--label-2); }
+.peek-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.peek-rows li { display: flex; align-items: center; gap: var(--s3); min-height: 38px; font-size: .98rem; }
+.peek-rows li span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.peek-rows li em { font-style: normal; font-size: .84rem; color: var(--label-2); font-variant-numeric: tabular-nums; }
+.peek-rows li a { flex: 1; color: var(--accent); text-decoration: none; }
+.peek-rows li.quiet { color: var(--label-2); font-size: .86rem; min-height: 30px; }
+.peek-dot { flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--svc); margin: 0 4px 0 2px; }
+.peek-rows li .peek-ico { flex: none; width: 20px; display: inline-flex; justify-content: center; color: var(--label-2); }
+.peek-rows li .peek-amt { flex: none; }
+.peek-ico svg { width: 17px; height: 17px; }
+.peek-rows li.money { min-height: 48px; }
+.peek-amt { font-size: 1.5rem; font-weight: 800; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+.peek-rows li.paid .peek-amt { color: var(--green-ink); }
+.peek-amt.dim { font-size: .98rem; font-weight: 600; color: var(--due-ink); }
+.peek-pay { display: flex; flex-wrap: wrap; gap: var(--s2); margin: var(--s2) 0 var(--s1); }
+.peek-amtchip { min-width: 0; min-height: 44px; padding: 0 16px; border-radius: 22px; background: var(--due); color: #fff; font-size: 1rem; font-weight: 750; font-variant-numeric: tabular-nums; transition: transform var(--t-press) var(--ease-out); }
+.peek-amtchip:active { transform: scale(.94); }
+.peek-amtchip.other { background: var(--fill); color: var(--label); font-weight: 650; }
+.peek-cal { display: flex; align-items: center; justify-content: center; gap: var(--s2); width: 100%; min-height: 46px; margin-top: var(--s3); border-radius: var(--r-lg); background: var(--fill); color: var(--accent); font-size: .98rem; font-weight: 650; }
+.peek-cal svg { width: 18px; height: 18px; }
+.peek-cal:active { background: var(--fill-2); }
+.client-row.holding { transform: scale(.985); transition: transform var(--t-fast) var(--ease-out); }
+@media (prefers-reduced-motion: reduce) { .peek-back, .peek-card, .peek-card > * { animation: none; } .peek-card[data-ready] { opacity: 1; } }

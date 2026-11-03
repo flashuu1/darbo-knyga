@@ -113,6 +113,8 @@ export const lt = {
   'st.income': 'Pajamos per mėnesį', 'st.incomeSub': '{suma} per mėnesį', 'st.avgTicket': 'Vidutinė suma už vizitą', 'st.perVisit': 'už vizitą',
   'st.lost': 'Prarasta dėl neatvykimų ir atšaukimų', 'st.lostSub': 'neatvyko: {a} · atšaukta: {b}', 'st.lostTip': 'Prarasta apie {suma}', 'st.lostHint': 'Apytikslė suma pagal įprastą sumą už vizitą. Atšaukti vizitai saugomi tik savaitę.',
   'st.byService': 'Pajamos pagal paslaugą', 'st.sumAll': 'viso',
+  'pk.upcoming': 'Netrukus', 'pk.paid': 'Sumokėta', 'pk.noAmount': 'Suma dar neįvesta', 'pk.other': 'Kita suma', 'pk.calendar': 'Rodyti kalendoriuje', 'pk.visits': 'Vizitų: {n}', 'pk.range': '{nuo}–{iki}',
+  'pk.today': 'Šiandien', 'pk.tomorrow': 'Rytoj', 'pk.inDays': 'Po {n} d.', 'pk.inWeeks': 'Po {n} sav.',
   'mo.head': 'Mėnesio rodikliai', 'mo.visits': 'Vizitai', 'mo.new': 'Nauji klientai', 'mo.avg': 'Vid. suma už vizitą', 'mo.days': 'Dienos su vizitais', 'mo.hours': 'Dirbta', 'mo.perHour': 'Už darbo valandą', 'mo.busyDay': 'Užimčiausia diena', 'mo.richDay': 'Pelningiausia diena', 'mo.bestWd': 'Geriausia savaitės diena', 'mo.vsPrev': 'Rodyklės lygina su praėjusiu mėnesiu', 'mo.none': 'Šį mėnesį vizitų nebuvo', 'mo.visitsN': 'vizitų: {n}',
   'st.hours': 'Valandos per laikotarpį', 'st.hWorked': 'Dirbta', 'st.hOff': 'Nedirbu', 'st.hUnit': '{n} val.', 'st.workedBig': 'darbo valandų', 'st.daysWith': 'Dienos su vizitais',
   'st.hoursChart': 'Dirbtos ir nedirbtos valandos', 'st.hoursHint': 'Mėlyna – dirbta, pilka – nedirbu', 'st.perHour': 'Uždarbis už darbo valandą', 'st.perHourSub': 'už darbo valandą', 'st.perHourUnit': '{suma}/val.',

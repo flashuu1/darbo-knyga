@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'preact/hooks';
 import { repo, type ClientRow } from '../../db/repo';
 import { formatDayShort, formatEuro, formatEuroRound } from '../../i18n/format';
-import { confirmDeleteClient, openAppt, openCancelled } from '../actions';
+import { confirmDeleteClient, openCancelled } from '../actions';
 import { SwipeRow } from '../components/SwipeRow';
 import { t } from '../../i18n/lt';
 import { agoParts } from '../../logic/analytics';
@@ -118,8 +118,8 @@ function ClientRowView({ r, i, sort, now }: { r: ClientRow; i: number; sort: str
     : r.pending ? t('cl.visitOn', { data: formatDayShort(r.pending.start) })
     : r.nextVisit ? t('cl.nextShort', { kada: formatDayShort(r.nextVisit) })
     : agoText(r.lastVisit, now);
-  // Press and hold shows the visit the line talks about (the one waiting for its amount, the next one, the one paid for,
-  // or the last one), with all its details; a tap still opens the client.
+  // Press and hold floats a small card over the list about the visit the line talks about (the one waiting for its amount,
+  // the next one, the one paid for, or the last one); a tap still opens the client.
   const hold = useRef<{ timer: number; x: number; y: number } | null>(null);
   const held = useRef(false);
   const entryId = r.pending?.id ?? r.nextId ?? r.paid?.id ?? r.lastId;
@@ -130,7 +130,7 @@ function ClientRowView({ r, i, sort, now }: { r: ClientRow; i: number; sort: str
     if (!entryId || (e.pointerType === 'mouse' && e.button !== 0) || (e.target as HTMLElement).closest('.pill-btn')) return;
     const row = e.currentTarget as HTMLElement;
     row.classList.add('holding');
-    hold.current = { x: e.clientX, y: e.clientY, timer: window.setTimeout(() => { hold.current = null; held.current = true; row.classList.remove('holding'); openAppt(entryId); }, HOLD_SHOW_MS) };
+    hold.current = { x: e.clientX, y: e.clientY, timer: window.setTimeout(() => { hold.current = null; held.current = true; row.classList.remove('holding'); const b = row.getBoundingClientRect(); ui.set({ peek: { id: entryId, top: b.top, height: b.height } }); }, HOLD_SHOW_MS) };
   };
   const moveHold = (e: PointerEvent) => { const h = hold.current; if (h && Math.hypot(e.clientX - h.x, e.clientY - h.y) > 8) { cancelHold(); (e.currentTarget as HTMLElement).classList.remove('holding'); } };
   const endHold = (e: PointerEvent) => { cancelHold(); (e.currentTarget as HTMLElement).classList.remove('holding'); };

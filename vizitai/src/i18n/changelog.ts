@@ -17,6 +17,9 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   { date: '2026-11-03', items: [
+    { kind: 'change', text: 'Klientai: palaikius eilutę rodoma nauja maža kortelė (ne vizito langas): data ir laikas, paslauga, suma, telefonas. Laukiančiam sumos vizitui sumą galima įvesti čia pat; vizitas keičiamas tik kalendoriuje („Rodyti kalendoriuje“).' },
+  ] },
+  { build: 'bbdfa0b', date: '2026-11-03', items: [
     { kind: 'feature', text: 'Klientai: palaikius eilutę atidaromas vizitas, apie kurį ji kalba (laukiantis sumos, kitas, apmokėtas ar paskutinis), su visomis detalėmis.' },
   ] },
   { build: '328d667', date: '2026-11-03', items: [

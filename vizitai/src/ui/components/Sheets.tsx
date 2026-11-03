@@ -3,6 +3,7 @@ import { AmountSheet } from './AmountSheet';
 import { AppointmentSheet } from './AppointmentSheet';
 import { SummarySheet } from './SummarySheet';
 import { ClientFilterSheet, NewClientSheet } from './ClientSheets';
+import { VisitPeek } from './VisitPeek';
 import { DragGhost } from './DragGhost';
 import { MoveSheet } from './MoveSheet';
 import { NewFlow } from './NewFlow';
@@ -17,6 +18,8 @@ export function Sheets() {
   const { sheet, client } = useStore(ui);
   // A closing sheet stays mounted for its exit animation (pointer-events off) and is then removed.
   const [shown, leaving] = usePresence<Sheet>(sheet);
+  const { peek } = useStore(ui);
+  const [peeked, peekLeaving] = usePresence(peek);
   return (
     <>
       {client && <ClientCard id={client} />}
@@ -31,6 +34,7 @@ export function Sheets() {
           {shown.type === 'cnew' && <NewClientSheet />}
         </div>
       )}
+      {peeked && <VisitPeek key={peeked.id} peek={peeked} leaving={peekLeaving} />}
       <ActionSheet />
       <DragGhost />
       <ToastHost />

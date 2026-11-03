@@ -94,25 +94,76 @@ test.describe('Klientai list', () => {
     await expect.poll(() => page.evaluate(async () => (await (window as any).__vizitai.db.clients.toArray())[0].phone)).toBe('+370 611 22233');
   });
 
-  test('press and hold on a row shows the visit its line talks about; a tap still opens the client', async ({ page }) => {
+  const holdRow = async (page: Page, id: string, ms = 700) => {
+    const b = (await page.getByTestId(id).boundingBox())!;
+    await page.mouse.move(b.x + 120, b.y + b.height / 2); await page.mouse.down(); await page.waitForTimeout(ms); await page.mouse.up();
+  };
+
+  test('press and hold floats a small card about the visit the row talks about: a coming visit is only looked at', async ({ page }) => {
     await openApp(page, NOW);
     await seedList(page);
     await page.getByTestId('tab-clients').click();
-    const hold = async (id: string, ms: number) => {
-      const b = (await page.getByTestId(id).boundingBox())!;
-      await page.mouse.move(b.x + 120, b.y + b.height / 2); await page.mouse.down(); await page.waitForTimeout(ms); await page.mouse.up();
-    };
-    await hold('client-row-1', 700); // Mmm Ateis: the next visit, 17 October 10:00
-    await expect(page.getByTestId('appt-when')).toContainText('spalio 17 d.');
-    await expect(page.getByTestId('appt-when')).toContainText('10:00');
-    await expect(page.getByTestId('card-name')).toHaveCount(0); // the client card did not open behind it
-    await page.getByTestId('btn-close').click();
-    await expect(page.getByTestId('appt-when')).toHaveCount(0);
-    await hold('client-row-0', 700); // Zzz Laukia: the visit that waits for its amount
-    await expect(page.getByTestId('appt-when')).toContainText('spalio 13 d.');
-    await page.getByTestId('btn-close').click();
-    await hold('client-row-2', 80); // a short press is a tap
+    await holdRow(page, 'client-row-1'); // Mmm Ateis: the next visit, 17 October 10:00
+    await expect(page.getByTestId('peek')).toHaveAttribute('data-state', 'waiting');
+    await expect(page.getByTestId('peek-name')).toHaveText('Mmm Ateis');
+    await expect(page.getByTestId('peek-status')).toHaveText('Netrukus');
+    await expect(page.getByTestId('peek-date')).toContainText('spalio 17 d.');
+    await expect(page.getByTestId('peek-time')).toHaveText('10:00–10:15');
+    await expect(page.getByTestId('peek-phone')).toHaveText('+370 600 11122');
+    await expect(page.getByTestId('peek-pay')).toHaveCount(0);          // nothing to enter yet
+    await expect(page.locator('[data-testid^="svc-"]')).toHaveCount(0); // and no service choices: the visit is changed in the calendar
+    await expect(page.getByTestId('card-name')).toHaveCount(0);         // the client card did not open behind it
+    await expect(page.getByTestId('appt-when')).toHaveCount(0);         // and it is not the visit sheet
+    await page.getByTestId('peek-back').click({ position: { x: 12, y: 12 } }); // outside the card
+    await expect(page.getByTestId('peek')).toHaveCount(0);
+    await holdRow(page, 'client-row-2', 80); // a short press is a tap
     await expect(page.getByTestId('card-name')).toBeVisible();
+  });
+
+  test('a visit that took place and waits for its amount: the amount can be entered in the card from earlier amounts, and it turns into a paid card', async ({ page }) => {
+    await openApp(page, NOW);
+    await seedList(page);
+    await page.evaluate(async () => {
+      const { repo } = (window as any).__vizitai;
+      const svc = await repo.listServices(true);
+      const a = await repo.createAppointment({ kind: 'client', name: 'Zzz Laukia', serviceId: svc[0].id, start: '2026-09-01T10:00' });
+      await repo.setAmount(a.id, 4500);
+    });
+    await page.getByTestId('tab-clients').click();
+    await holdRow(page, 'client-row-0');
+    await expect(page.getByTestId('peek')).toHaveAttribute('data-state', 'unconfirmed');
+    await expect(page.getByTestId('peek-status')).toHaveText('Laukia sumos');
+    await expect(page.getByTestId('peek-date')).toContainText('spalio 13 d.');
+    await expect(page.getByTestId('peek-chip-0')).toHaveText('45,00 €');
+    await expect(page.getByTestId('peek-other')).toBeVisible();
+    await expect(page.getByTestId('peek-amount')).toHaveCount(0);
+    await page.getByTestId('peek-chip-0').click();
+    await expect(page.getByTestId('peek')).toHaveAttribute('data-state', 'done');
+    await expect(page.getByTestId('peek-status')).toHaveText('Sumokėta');
+    await expect(page.getByTestId('peek-amount')).toHaveText('45,00 €');
+    await expect(page.getByTestId('peek-pay')).toHaveCount(0); // a paid visit is only shown
+    await expect(page.getByTestId('peek-calendar')).toBeVisible();
+  });
+
+  test('"Kita suma" in the card opens Suma', async ({ page }) => {
+    await openApp(page, NOW);
+    await seedList(page);
+    await page.getByTestId('tab-clients').click();
+    await holdRow(page, 'client-row-0');
+    await page.getByTestId('peek-other').click();
+    await expect(page.getByTestId('peek')).toHaveCount(0);
+    await expect(page.getByTestId('amount-input')).toBeVisible();
+  });
+
+  test('"Rodyti kalendoriuje" goes to the day of that visit', async ({ page }) => {
+    await openApp(page, NOW);
+    await seedList(page);
+    const id = await page.evaluate(async () => (await (window as any).__vizitai.db.appointments.toArray()).find((a: any) => a.start === '2026-10-17T10:00').id);
+    await page.getByTestId('tab-clients').click();
+    await holdRow(page, 'client-row-1');
+    await page.getByTestId('peek-calendar').click();
+    await expect(page.getByTestId('peek')).toHaveCount(0);
+    await expect(page.getByTestId(`entry-${id}`)).toBeVisible();
   });
 
   test('the orange pill adds the amount straight from the list, then the row turns green for two weeks', async ({ page }) => {

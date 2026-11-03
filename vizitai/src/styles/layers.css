@@ -785,3 +785,16 @@ p.link-name { color: var(--label); }
 @media (prefers-reduced-motion: reduce) { .peek-back, .peek-card, .peek-card > * { animation: none; } .peek-card[data-ready] { opacity: 1; } }
 /* the two pills of a client row are the same size */
 .pill-btn.due, .pill-btn.paid { min-width: 116px; }
+
+/* rows: the third line, and the card's second visit */
+.client-line.sub { font-size: .76rem; color: var(--label-3); }
+.client-text .client-line.sub { color: var(--label-2); opacity: .8; }
+.peek-note { margin: var(--s1) 0 0; font-size: .84rem; font-weight: 650; color: var(--due-ink); }
+.peek-side { display: flex; flex-direction: column; gap: 1px; margin-top: var(--s3); padding: var(--s3) var(--s4); border-radius: var(--r-lg); box-shadow: inset 0 0 0 1px var(--sep); }
+.peek-side small { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--label-2); }
+.peek-side b { font-size: .98rem; font-weight: 700; }
+.peek-side span { font-size: .84rem; color: var(--label-2); }
+.peek-side em { font-style: normal; font-weight: 650; }
+.peek-side em.paid { color: var(--green-ink); } .peek-side em.due { color: var(--due-ink); }
+.peek-edit { flex: none; min-height: 34px; min-width: 0; padding: 0 14px; border-radius: 17px; background: var(--fill); color: var(--accent); font-size: .86rem; font-weight: 650; }
+.peek-edit:active { background: var(--fill-2); }

@@ -25,6 +25,8 @@ export interface ClientRow {
   nextVisit: string | null;
   /** The ids of that visit and of the latest visit that took place (press and hold on a row opens the one the row talks about). */
   nextId: string | null; lastId: string | null;
+  /** What the latest visit that took place brought in (null: no amount entered, or no visit). It is shown after the green pill has expired. */
+  lastCents: number | null;
 }
 /** How long a cancelled visit stays visible before it is removed. */
 /** One name suggestion in the booking flow: the client and what she wants to see at a glance. */
@@ -406,14 +408,14 @@ export function createRepo(db: VizitaiDB) {
       const appts = await db.appointments.toArray();
       const paidFrom = addDays(datePart(now_), -PAID_PILL_DAYS);
       const by = new Map<string, ClientRow>();
-      for (const client of clients) by.set(client.id, { client, lastVisit: null, pending: null, paid: null, visitCount: 0, spentCents: 0, nextVisit: null, nextId: null, lastId: null });
+      for (const client of clients) by.set(client.id, { client, lastVisit: null, pending: null, paid: null, visitCount: 0, spentCents: 0, nextVisit: null, nextId: null, lastId: null, lastCents: null });
       for (const a of appts) {
         const r = a.clientId ? by.get(a.clientId) : undefined;
         if (!r || a.status === 'cancelled') continue;
         if (a.start <= now_) {
           if (a.status === 'noshow') continue;
           r.visitCount++;
-          if (!r.lastVisit || a.start > r.lastVisit) { r.lastVisit = a.start; r.lastId = a.id; }
+          if (!r.lastVisit || a.start > r.lastVisit) { r.lastVisit = a.start; r.lastId = a.id; r.lastCents = isValidCents(a.amountCents) ? a.amountCents : null; }
           if (isValidCents(a.amountCents)) {
             r.spentCents += a.amountCents;
             if (datePart(a.start) >= paidFrom && (!r.paid || a.start > r.paid.start)) r.paid = { id: a.id, cents: a.amountCents, start: a.start };

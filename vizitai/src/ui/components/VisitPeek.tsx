@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'preact';
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { repo } from '../../db/repo';
-import { formatDayShort, formatEuro, weekdayName } from '../../i18n/format';
+import { formatDayShort, formatEuro, formatEuroShort, weekdayName } from '../../i18n/format';
 import { t } from '../../i18n/lt';
 import { addMinutes, datePart, nowLocal, timePart } from '../../logic/time';
 import { highlight, showToast } from '../actions';
@@ -55,6 +55,12 @@ export function VisitPeek({ peek, leaving }: { peek: PeekState; leaving: boolean
   const chip = { waiting: 'pk.upcoming', unconfirmed: 'client.pending', done: 'pk.paid', noshow: 'status.noshow', cancelled: 'status.cancelled' } as const;
   const paid = kind === 'done' && amount !== null;
   const center = peek.top + peek.height / 2;
+  // The other side of the story: for a visit that took place, the next one; for one that is still ahead, the last one
+  // (so a client who paid and is coming again shows both), and how many more visits still wait for their amount.
+  const nextE = detail?.upcoming.find((e) => e.appt.id !== appt.id) ?? null;
+  const lastE = detail?.past.find((e) => e.appt.id !== appt.id && e.appt.status === 'booked') ?? null;
+  const side = kind === 'waiting' ? lastE : nextE;
+  const moreUnpaid = (detail?.past ?? []).filter((e) => e.appt.id !== appt.id && e.appt.status === 'booked' && e.amountCents === null).length;
 
   async function pay(cents: number) {
     if (busy.current) return;
@@ -64,7 +70,7 @@ export function VisitPeek({ peek, leaving }: { peek: PeekState; leaving: boolean
       showToast(t('amount.saved'), () => repo.putSnapshot(before));
     } catch (e) { console.error(e); } finally { busy.current = false; }
   }
-  function other() { openAmount(appt!.id); close(); } // synchronously, so the number keyboard comes up
+  function other() { openAmount(appt!.id); close(); } // synchronously, so the number keyboard comes up (also to change an amount that is already in)
   function toCalendar() { ui.set({ peek: null, client: null, tab: 'calendar', view: 'day', date }); highlight(appt!.id); }
 
   return (
@@ -86,11 +92,23 @@ export function VisitPeek({ peek, leaving }: { peek: PeekState; leaving: boolean
 
         <ul class="peek-rows">
           <li><i class="peek-dot" aria-hidden="true" /><span data-testid="peek-service">{service?.name ?? t('service.default.other')}{service?.floral ? ' 🌸' : ''}</span><em>{t('appt.minutes', { n: minutes })}</em></li>
-          {paid && <li class="money paid"><span class="peek-amt" data-testid="peek-amount">{formatEuro(amount)}</span><em>{t('pk.paid')}</em></li>}
+          {paid && <li class="money paid"><span class="peek-amt" data-testid="peek-amount">{formatEuro(amount)}</span><em>{t('pk.paid')}</em><button class="peek-edit" data-testid="peek-edit" onClick={other}>{t('pk.edit')}</button></li>}
           {kind === 'unconfirmed' && <li class="money due"><span class="peek-amt dim">{t('pk.noAmount')}</span></li>}
           {client?.phone?.trim() && <li><span class="peek-ico" aria-hidden="true"><PhoneIcon /></span><a href={`tel:${client.phone.replace(/[^\d+]/g, '')}`} data-testid="peek-phone">{client.phone}</a></li>}
           {detail && <li class="quiet"><span>{t('pk.visits', { n: detail.visitCount })}</span></li>}
         </ul>
+        {moreUnpaid > 0 && kind !== 'waiting' && <p class="peek-note" data-testid="peek-more-unpaid">{t('pk.moreUnpaid', { n: moreUnpaid })}</p>}
+
+        {side && (
+          <div class="peek-side" data-testid={kind === 'waiting' ? 'peek-last' : 'peek-next'}>
+            <small>{kind === 'waiting' ? t('pk.lastVisit') : t('pk.nextVisit')}</small>
+            <b>{weekdayName((new Date(`${datePart(side.appt.start)}T12:00:00Z`).getUTCDay() + 6) % 7)}, {formatDayShort(datePart(side.appt.start))} · {timePart(side.appt.start)}</b>
+            <span>
+              {side.service?.name ?? t('service.default.other')}
+              {side.amountCents !== null ? <em class="paid"> · ✓ {formatEuroShort(side.amountCents)}</em> : kind === 'waiting' && side.appt.start <= nowLocal() ? <em class="due"> · {t('client.pending')}</em> : null}
+            </span>
+          </div>
+        )}
 
         {kind === 'unconfirmed' && (
           <div class="peek-pay" data-testid="peek-pay">

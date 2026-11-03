@@ -188,6 +188,46 @@ test.describe('Klientai list', () => {
     await expect(page.getByTestId('amount-input')).toBeVisible();
   });
 
+  test('a client who paid and is coming again shows both: the money and the next visit, in the row and in the card', async ({ page }) => {
+    await openApp(page, NOW);
+    await page.evaluate(async () => {
+      const { repo } = (window as any).__vizitai;
+      const svc = await repo.listServices(true);
+      const mk = async (n: string, start: string, cents: number | null) => { const a = await repo.createAppointment({ kind: 'client', name: n, serviceId: svc[0].id, start }); if (cents) await repo.setAmount(a.id, cents); };
+      await mk('Rasa Neseniai', '2026-10-12T10:00', 3000); await mk('Rasa Neseniai', '2026-10-22T10:00', null); // paid two days ago, comes again
+      await mk('Ona Seniai', '2026-09-20T10:00', 4500); await mk('Ona Seniai', '2026-10-20T10:00', null);       // paid three weeks ago, comes again
+    });
+    await page.getByTestId('tab-clients').click();
+    // paid lately: the green pill says the money, the line says the next visit
+    await expect(page.getByTestId('client-paid-0')).toHaveText('✓ 30 € · 10-12');
+    await expect(page.getByTestId('client-next-0')).toContainText('spalio 22 d.');
+    // paid long ago: no pill, so the row says the next visit AND how the last time went
+    await expect(page.getByTestId('client-paid-1')).toHaveCount(0);
+    await expect(page.getByTestId('client-next-1')).toContainText('spalio 20 d.');
+    await expect(page.getByTestId('client-last-1')).toHaveText('Paskutinį kartą: 45 € · prieš 3 sav.');
+    // hold the second row: the next visit, and the last one with its money
+    const hold = async (id: string) => { const b = (await page.getByTestId(id).boundingBox())!; await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.mouse.down(); await page.waitForTimeout(700); await page.mouse.up(); };
+    await hold('client-row-1');
+    await expect(page.getByTestId('peek')).toHaveAttribute('data-state', 'waiting');
+    await expect(page.getByTestId('peek-date')).toContainText('spalio 20 d.');
+    await expect(page.getByTestId('peek-last')).toContainText('Paskutinis vizitas');
+    await expect(page.getByTestId('peek-last')).toContainText('45 €');
+    await page.getByTestId('peek-back').click({ position: { x: 12, y: 12 } });
+    await expect(page.getByTestId('peek')).toHaveCount(0);
+    // hold the green pill: the paid visit, with the next one below it, and the price can be changed
+    await hold('client-paid-0');
+    await expect(page.getByTestId('peek')).toHaveAttribute('data-state', 'done');
+    await expect(page.getByTestId('peek-amount')).toHaveText('30,00 €');
+    await expect(page.getByTestId('peek-next')).toContainText('Kitas vizitas');
+    await expect(page.getByTestId('peek-next')).toContainText('spalio 22 d.');
+    await page.getByTestId('peek-edit').click();
+    await expect(page.getByTestId('peek')).toHaveCount(0);
+    await expect(page.getByTestId('amount-input')).toHaveValue('30');
+    await page.getByTestId('amount-input').fill('35');
+    await page.getByTestId('amount-confirm').click();
+    await expect(page.getByTestId('client-paid-0')).toHaveText('✓ 35 € · 10-12');
+  });
+
   test('the orange pill adds the amount straight from the list, then the row turns green for two weeks', async ({ page }) => {
     await openApp(page, NOW);
     await seedList(page);

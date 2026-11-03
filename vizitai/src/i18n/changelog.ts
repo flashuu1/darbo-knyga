@@ -17,6 +17,10 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   { date: '2026-11-03', items: [
+    { kind: 'change', text: 'Klientų eilutė pasako viską, kas aktualu: pinigai (mygtukas), kitas vizitas ir kaip praėjo paskutinis kartas (suma ir kada), net kai žalias mygtukas jau nebeberodomas.' },
+    { kind: 'change', text: 'Palaikymo kortelėje rodomas ir kitas, ir paskutinis vizitas; apmokėto vizito sumą galima pakeisti („Keisti sumą“).' },
+  ] },
+  { build: 'b4c18bb', date: '2026-11-03', items: [
     { kind: 'change', text: 'Klientai: žalias „Sumokėta“ siauresnis, tokio pat dydžio kaip „Laukia sumos“: tik suma ir diena (pvz. 45 € · 10-31), be mėnesio pavadinimo ir metų. Palaikyti galima ir ant mygtuko.' },
   ] },
   { build: '18b6843', date: '2026-11-03', items: [

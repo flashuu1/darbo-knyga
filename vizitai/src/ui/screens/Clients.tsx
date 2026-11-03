@@ -20,6 +20,11 @@ export const initials = (name: string) => name.split(' ').filter(Boolean).slice(
 export const FILTER_LABEL: Record<ClientFilter, () => string> = {
   auto: () => t('cl.f.auto'), due: () => t('cl.tile.due'), week: () => t('cl.tile.week'), old: () => t('cl.tile.old'), recent: () => t('cl.tile.recent'),
 };
+/** "prieš 3 sav.", "vakar": how long ago, without "Buvo". */
+export const agoWords = (date: string | null, now: string) => {
+  const a = agoParts(date, now);
+  return !a ? '' : a.key === 'today' ? t('cl.w.today') : a.key === 'yesterday' ? t('cl.w.yesterday') : t(`cl.w.${a.key}` as 'cl.w.days', { n: a.n });
+};
 export const agoText = (date: string | null, now: string) => {
   const a = agoParts(date, now);
   return !a ? t('cl.noVisits') : a.key === 'today' ? t('cl.ago.today') : a.key === 'yesterday' ? t('cl.ago.yesterday') : t(`cl.ago.${a.key}` as 'cl.ago.days', { n: a.n });
@@ -113,11 +118,19 @@ export function ClientsScreen() {
 
 const HOLD_SHOW_MS = 450; // how long a row is held before its visit opens
 function ClientRowView({ r, i, sort, now }: { r: ClientRow; i: number; sort: string; now: string }) {
-  const line = sort === 'spent' ? t('cl.totalLine', { suma: formatEuroRound(r.spentCents), n: r.visitCount })
-    : sort === 'visits' ? t('cl.visitsLine', { n: r.visitCount, ago: agoText(r.lastVisit, now) })
-    : r.pending ? t('cl.visitOn', { data: formatDayShort(r.pending.start) })
-    : r.nextVisit ? t('cl.nextShort', { kada: formatDayShort(r.nextVisit) })
-    : agoText(r.lastVisit, now);
+  // A row says what applies, in this order, and never hides one of them behind another:
+  //   1. money: the orange pill (an amount is waiting) or the green one (paid in the last two weeks);
+  //   2. when she is next here (blue);
+  //   3. how the last time went: its amount and how long ago, unless the green pill already says it.
+  const nextTxt = r.nextVisit ? t('cl.nextShort', { kada: formatDayShort(r.nextVisit) }) : null;
+  const ago = agoWords(r.lastVisit, now);
+  const lastTxt = r.lastVisit ? (r.lastCents !== null ? t('cl.lastPaid', { suma: formatEuroShort(r.lastCents), kada: ago }) : t('cl.lastWas', { kada: ago })) : null;
+  let line: string, sub: string | null = null, lineIsNext = false, subIsNext = false;
+  if (sort === 'spent') line = t('cl.totalLine', { suma: formatEuroRound(r.spentCents), n: r.visitCount });
+  else if (sort === 'visits') line = t('cl.visitsLine', { n: r.visitCount, ago: agoText(r.lastVisit, now) });
+  else if (r.pending) { line = t('cl.visitOn', { data: formatDayShort(r.pending.start) }); sub = nextTxt; subIsNext = !!nextTxt; }
+  else if (nextTxt) { line = nextTxt; lineIsNext = true; sub = r.paid ? null : lastTxt; }
+  else line = r.lastVisit ? (r.lastCents !== null && !r.paid ? t('cl.lastLine', { kada: ago, suma: formatEuroShort(r.lastCents) }) : agoText(r.lastVisit, now)) : t('cl.noVisits');
   // Press and hold floats a small card over the list about the visit the line talks about (the one waiting for its amount,
   // the next one, the one paid for, or the last one); a tap still opens the client.
   const hold = useRef<{ timer: number; x: number; y: number } | null>(null);
@@ -127,10 +140,12 @@ function ClientRowView({ r, i, sort, now }: { r: ClientRow; i: number; sort: str
   const startHold = (e: PointerEvent) => {
     cancelHold();
     held.current = false;
-    if (!entryId || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    // on a pill: the visit the pill is about; elsewhere on the row: the most pressing one
+    const id = (e.target as HTMLElement).closest('.pill-btn') ? r.pending?.id ?? r.paid?.id ?? entryId : entryId;
+    if (!id || (e.pointerType === 'mouse' && e.button !== 0)) return;
     const row = e.currentTarget as HTMLElement;
     row.classList.add('holding');
-    hold.current = { x: e.clientX, y: e.clientY, timer: window.setTimeout(() => { hold.current = null; held.current = true; row.classList.remove('holding'); const b = row.getBoundingClientRect(); ui.set({ peek: { id: entryId, top: b.top, height: b.height } }); }, HOLD_SHOW_MS) };
+    hold.current = { x: e.clientX, y: e.clientY, timer: window.setTimeout(() => { hold.current = null; held.current = true; row.classList.remove('holding'); const b = row.getBoundingClientRect(); ui.set({ peek: { id, top: b.top, height: b.height } }); }, HOLD_SHOW_MS) };
   };
   const moveHold = (e: PointerEvent) => { const h = hold.current; if (h && Math.hypot(e.clientX - h.x, e.clientY - h.y) > 8) { cancelHold(); (e.currentTarget as HTMLElement).classList.remove('holding'); } };
   const endHold = (e: PointerEvent) => { cancelHold(); (e.currentTarget as HTMLElement).classList.remove('holding'); };
@@ -140,7 +155,8 @@ function ClientRowView({ r, i, sort, now }: { r: ClientRow; i: number; sort: str
       <span class="avatar" aria-hidden="true">{initials(r.client.name)}</span>
       <span class="client-text">
         <b>{r.client.name}</b>
-        <span class={r.nextVisit && !r.pending && sort !== 'spent' && sort !== 'visits' ? 'client-line next' : 'client-line'} data-testid={r.nextVisit ? `client-next-${i}` : undefined}>{line}</span>
+        <span class={lineIsNext ? 'client-line next' : 'client-line'} data-testid={lineIsNext ? `client-next-${i}` : undefined}>{line}</span>
+        {sub && <span class={subIsNext ? 'client-line next' : 'client-line sub'} data-testid={subIsNext ? `client-next-${i}` : `client-last-${i}`}>{sub}</span>}
       </span>
       {r.pending ? (
         <span class="pill-btn due" role="button" tabIndex={0} data-testid={`client-pending-${i}`}

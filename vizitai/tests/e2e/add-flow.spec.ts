@@ -104,7 +104,7 @@ test('empty name field lists the recent clients', async ({ page }) => {
   await expect(page.getByTestId('suggest-1')).toContainText('Ona');
 });
 
-test('an overlap warns on the first Išsaugoti and saves on the second', async ({ page }) => {
+test('an overlap opens a pop-up with the details of what is in the way, and saving anyway is one tap in it', async ({ page }) => {
   await openApp(page);
   await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T10:00' }]);
   await page.getByTestId('slot-2026-10-14T10:15').click();
@@ -112,9 +112,16 @@ test('an overlap warns on the first Išsaugoti and saves on the second', async (
   await page.getByTestId('time-row').click();
   await pickTime(page, '10:00'); // 15-minute defaults: the same start clashes
   await page.getByTestId('btn-save-time').click();
-  await expect(page.getByTestId('overlap-warning')).toHaveText('Šiuo laiku jau užregistruota: Ona – Kirpimas');
+  await expect(page.getByTestId('action-title')).toContainText('Šiuo laiku jau yra įrašas');
+  await expect(page.getByTestId('action-line-0')).toHaveText('Ona · Kirpimas · 10:00–10:15'); // who, what, from when to when
+  await expect(page.getByTestId('action-item-0')).toHaveText('Vis tiek išsaugoti');
+  await expect(page.getByTestId('action-item-1')).toHaveText('Pakeisti laiką');
+  expect(await apptCount(page)).toBe(1); // nothing is saved before she agrees
+  await page.getByTestId('action-item-1').click(); // Pakeisti laiką: back to the picker, nothing saved
   await expect(page.getByTestId('sheet')).toBeVisible();
+  expect(await apptCount(page)).toBe(1);
   await page.getByTestId('btn-save-time').click();
+  await page.getByTestId('action-item-0').click(); // Vis tiek išsaugoti
   await expect(page.getByTestId('sheet')).toHaveCount(0);
   await expect.poll(() => apptCount(page)).toBe(2);
 });
@@ -337,18 +344,26 @@ test('Nedirbu: its own wide card at the bottom; pick FROM, save, pick TO, save, 
   await page.waitForTimeout(450);
   await pickTime(page, '13:30');
   await expect(page.getByTestId('off-from-value')).toHaveText('13:30');
+  await expect(page.getByTestId('off-chip-from')).toHaveClass(/on/); // "nuo" is the one glowing
+  await expect(page.getByTestId('off-chip-to')).not.toHaveClass(/on/);
   await page.getByTestId('btn-off-next').click();
-  // step two says TO clearly, starts an hour later, and must end after it starts
+  // "iki" is the same screen: the other end lights up, the calendar is locked (same day), the title says IKI, an hour later to start with
   await expect(page.getByTestId('sheet')).toContainText('Iki kada nedirbi');
+  await expect(page.getByTestId('picker')).toHaveClass(/date-locked/);
+  await expect(page.getByTestId('off-chip-to')).toHaveClass(/on/);
+  await expect(page.getByTestId('off-chip-from')).not.toHaveClass(/on/);
   await expect(page.getByTestId('off-to-value')).toHaveText('14:30');
-  await expect(page.getByTestId('off-from-value-2')).toHaveText('13:30');
+  await expect(page.getByTestId('off-from-value')).toHaveText('13:30');
+  const chip = await page.getByTestId('off-chip-to').evaluate((el) => ({ bg: getComputedStyle(el).backgroundImage, glow: getComputedStyle(el, '::after').animationName }));
+  expect(chip.glow).toBe('chip-glow'); // a feint glow
+  expect(chip.bg).not.toContain('255, 59, 48'); // not red: grey-blue
   await page.waitForTimeout(450);
-  await page.getByTestId('off-to-pane').getByTestId('wheel-h-13').click();
-  await page.getByTestId('off-to-pane').getByTestId('wheel-m-00').click();
+  await page.getByTestId('wheel-h-13').click();
+  await page.getByTestId('wheel-m-00').click();
   await expect(page.getByTestId('off-invalid')).toBeVisible(); // 13:00 is before 13:30
   await expect(page.getByTestId('btn-save-off')).toBeDisabled();
-  await page.getByTestId('off-to-pane').getByTestId('wheel-h-17').click();
-  await page.getByTestId('off-to-pane').getByTestId('wheel-m-15').click();
+  await page.getByTestId('wheel-h-17').click();
+  await page.getByTestId('wheel-m-15').click();
   await expect(page.getByTestId('off-to-value')).toHaveText('17:15');
   await expect(page.getByTestId('btn-save-off')).toBeEnabled();
   await page.getByTestId('btn-save-off').click();
@@ -372,8 +387,10 @@ test('Nedirbu can be backed out of, and picking an ordinary choice afterwards un
   await page.waitForTimeout(450);
   await page.getByTestId('btn-off-next').click();
   await page.waitForTimeout(450);
-  await page.getByTestId('btn-back').click(); // from "to" back to "from"
+  await expect(page.getByTestId('sheet')).toContainText('Iki kada nedirbi');
+  await page.getByTestId('btn-back').click(); // from "iki" back to "nuo", still the same screen
   await expect(page.getByTestId('sheet')).toContainText('Nuo kada nedirbi');
+  await expect(page.getByTestId('off-chip-from')).toHaveClass(/on/);
   await page.waitForTimeout(450);
   await page.getByTestId('btn-back').click(); // and back to the cards
   await page.waitForTimeout(450);
@@ -383,4 +400,38 @@ test('Nedirbu can be backed out of, and picking an ordinary choice afterwards un
   await expect(page.getByTestId('option-0')).toHaveAttribute('aria-pressed', 'true');
   await page.getByTestId('type-expense').click(); // other kinds have no such card
   await expect(page.getByTestId('option-off')).toHaveCount(0);
+});
+
+test('the details in the pop-up say which entry overlaps, also when it only overlaps in part', async ({ page }) => {
+  await openApp(page);
+  await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T14:00' }]);
+  await page.evaluate(async () => { const { repo } = (window as any).__vizitai; const [s] = await repo.listServices(true); await repo.updateService(s.id, { minutes: 30 }); });
+  await page.getByTestId('slot-2026-10-14T16:00').click();
+  await nameThenEnter(page, 'Jonas');
+  await page.getByTestId('time-row').click();
+  await page.waitForTimeout(450);
+  await pickTime(page, '14:15'); // in the middle of Ona's half hour
+  await page.getByTestId('btn-save-time').click();
+  await expect(page.getByTestId('action-line-0')).toHaveText('Ona · Kirpimas · 14:00–14:30');
+  await page.getByTestId('action-item-1').click();
+});
+
+test('Nedirbu over a booked visit also asks, and the pop-up names the visit', async ({ page }) => {
+  await openApp(page);
+  await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T15:00' }]);
+  await page.getByTestId('slot-2026-10-14T14:00').click();
+  await page.getByTestId('type-personal').click();
+  await page.waitForTimeout(450);
+  await page.getByTestId('option-off').scrollIntoViewIfNeeded();
+  await page.getByTestId('option-off').click();
+  await page.getByTestId('btn-next').click();
+  await page.waitForTimeout(450);
+  await page.getByTestId('btn-off-next').click();
+  await page.waitForTimeout(450);
+  await page.getByTestId('wheel-h-16').click();
+  await page.getByTestId('wheel-m-00').click(); // 14:00 to 16:00 runs over Ona at 15:00
+  await page.getByTestId('btn-save-off').click();
+  await expect(page.getByTestId('action-line-0')).toHaveText('Ona · Kirpimas · 15:00–15:15');
+  await page.getByTestId('action-item-0').click();
+  await expect(page.getByTestId('sheet')).toHaveCount(0);
 });

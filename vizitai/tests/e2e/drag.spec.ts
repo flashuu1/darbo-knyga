@@ -331,3 +331,19 @@ test('turning back onto the current week says "Ši savaitė", not "Ankstesnė sa
   await page.mouse.move(200, y, { steps: 4 });
   await page.mouse.up();
 });
+
+test('dragging an entry next to or onto another only says it moved: no overlap talk, and Anuliuoti is there', async ({ page }) => {
+  await openApp(page);
+  const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T10:00' }, { name: 'Jonas', start: '2026-10-14T11:00' }]);
+  const row = await rowHeight(page);
+  const { x, y } = await lift(page, id);
+  await page.mouse.move(x, y + 4 * row + 2, { steps: 8 }); // exactly on Jonas
+  await page.mouse.up();
+  await expect(page.getByTestId('toast')).toContainText('Perkelta');
+  await expect(page.getByTestId('toast')).not.toContainText('užregistruota');
+  await expect(page.getByTestId('action-title')).toHaveCount(0); // no pop-up either
+  await expect(page.getByTestId('toast-undo')).toBeVisible();
+  await expect.poll(start(page, id)).toBe('2026-10-14T11:00');
+  await page.getByTestId('toast-undo').click();
+  await expect.poll(start(page, id)).toBe('2026-10-14T10:00');
+});

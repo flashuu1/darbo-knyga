@@ -17,6 +17,7 @@ export const lt = {
   'toast.moved': 'Perkelta: {data} · {laikas}', 'toast.cancelled': 'Vizitas atšauktas',
   'toast.restored': 'Vizitas atkurtas', 'toast.noshow': 'Pažymėta: neatvyko', 'toast.undo': 'Anuliuoti',
   'warn.overlap': 'Šiuo laiku jau užregistruota: {vardas} – {paslauga}',
+  'overlap.title': 'Šiuo laiku jau yra įrašas', 'overlap.with': 'Persidengia su:', 'overlap.keep': 'Vis tiek išsaugoti', 'overlap.keepMove': 'Vis tiek perkelti', 'overlap.change': 'Pakeisti laiką',
   'empty.day': 'Šią dieną vizitų nėra',
   'clients.search': 'Ieškoti', 'clients.empty': 'Klientų dar nėra',
   'client.upcoming': 'Būsimi vizitai', 'client.past': 'Ankstesni vizitai',

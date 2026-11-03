@@ -397,3 +397,10 @@ In Savaitė, holding a lifted entry at the left or right edge of the screen (36 
 
 - **Nedirbu** is a special wide card with a dashed outline at the bottom of the Asmeninis choices (it is not one of her editable choices). Picking it asks for the time **from** ("Nuo kada nedirbi": the date and time picker, with a Nuo → Iki header, then Toliau) and then the time **to** ("Iki kada nedirbi": a time wheel on the same day, starting an hour later, which must be later than the start; then Išsaugoti). The entry is a personal entry titled Nedirbu whose length is exactly from–to. A day off longer than one day is booked day by day.
 - **Settings and the keyboard.** A settings page keeps room under its last row for the keyboard and scrolls a tapped field above it. A newly added choice or service gets the cursor at once, with its default name selected, so she can just type.
+
+## Overlaps: a pop-up with details, not a second press
+
+- Saving a new entry (or moving one with Perkelti) onto time that is already taken opens a pop-up: "Šiuo laiku jau yra įrašas · Persidengia su:", then one line per entry in the way (at most three): "Ona · Kirpimas · 14:00–14:30" (who or what, service, from when to when), with "Vis tiek išsaugoti" ("Vis tiek perkelti") and "Pakeisti laiką". Nothing is saved or moved before she agrees; "Pakeisti laiką" leaves her where she was. Back-to-back entries are not an overlap, and money out never is. This also applies to Nedirbu.
+- **Dragging in the calendar never talks about overlaps**: the toast only says "Perkelta: ..." with Anuliuoti for a few seconds, as before.
+- **Nedirbu is one screen with two steps**: the same picker, with a Nuo / Iki header in grey-blue (the entry in the calendar stays red). The chip being set glows faintly; "Toliau" moves the glow from Nuo to Iki on the same screen (the calendar is dimmed and locked, only the time wheel works, same day) and the button becomes "Išsaugoti".
+- No choice card is red or pink (Daktaras is blue, Masažas purple), so red means Asmeninis only.

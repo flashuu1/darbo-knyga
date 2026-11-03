@@ -247,13 +247,20 @@ p.link-name { color: var(--label); }
 .off-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .off-sub { font-size: .8rem; color: var(--label-2); }
 .off-range { display: flex; align-items: center; justify-content: center; gap: var(--s3); margin: var(--s1) 0 var(--s2); }
-.off-chip { display: inline-flex; flex-direction: column; align-items: center; min-width: 96px; padding: 6px 14px; border-radius: var(--r-md); background: var(--fill); color: var(--label-2); }
+.off-chip { position: relative; display: inline-flex; flex-direction: column; align-items: center; min-width: 96px; padding: 6px 14px; border-radius: var(--r-md); background: var(--fill); color: var(--label-2); transition: background var(--t-med), color var(--t-med); }
 .off-chip i { font-style: normal; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
 .off-chip b { font-size: 1.45rem; font-weight: 750; font-variant-numeric: tabular-nums; }
-.off-chip.on { background: var(--c-red); color: #fff; box-shadow: 0 4px 14px color-mix(in srgb, var(--c-red) 35%, transparent); }
+/* grey-blue, not red: the red is the entry itself in the calendar */
+.off-chip.on { background: linear-gradient(180deg, #7d8db0, #5f6f93); color: #fff; }
+.off-chip.on::after { content: ''; position: absolute; inset: -2px; border-radius: inherit; pointer-events: none; box-shadow: 0 0 16px 3px rgba(111, 133, 184, .55); animation: chip-glow 2.4s ease-in-out infinite; }
+@keyframes chip-glow { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .off-chip.on::after { animation: none; opacity: .7; } }
+.picker.date-locked .picker-head, .picker.date-locked .picker-dows, .picker.date-locked .picker-months { opacity: .38; pointer-events: none; transition: opacity var(--t-med); }
 .off-arrow { color: var(--label-3); font-size: 1.3rem; }
 .off-ask { text-align: center; font-size: 1.1rem; font-weight: 650; margin: var(--s2) 0 0; }
-.flow-pane.off-pane { padding-left: var(--s3); padding-right: var(--s3); }
+.action-title { white-space: pre-line; }
+.action-lines { list-style: none; margin: 0; padding: 0 var(--s4) var(--s3); text-align: center; }
+.action-lines li { padding: 6px 12px; margin-top: 6px; border-radius: var(--r-md); background: var(--fill); font-weight: 650; font-size: .98rem; font-variant-numeric: tabular-nums; }
 .entry-amount.out { color: var(--label); background: var(--fill-2); font-variant-numeric: tabular-nums; }
 .amount-row .value.out { color: var(--label); }
 

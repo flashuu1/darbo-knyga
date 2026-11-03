@@ -120,12 +120,28 @@ test('Perkelti moves the appointment, shows the toast and Anuliuoti undoes it', 
   await expect.poll(async () => (await apptState(page, id)).start).toBe('2026-10-14T10:00');
 });
 
-test('moving onto another booking adds the overlap warning to the toast', async ({ page }) => {
+test('moving onto another booking with Perkelti asks first, naming the entry; "Vis tiek perkelti" moves it', async ({ page }) => {
   await openApp(page);
   const [a] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T10:00' }, { name: 'Jonas', start: '2026-10-14T14:00' }]);
   await page.getByTestId(`entry-${a}`).click();
   await pickMove(page, a, '2026-10-14', '14:00');
-  await expect(page.getByTestId('toast')).toContainText('Šiuo laiku jau užregistruota: Jonas – Kirpimas');
+  await expect(page.getByTestId('action-title')).toContainText('Šiuo laiku jau yra įrašas');
+  await expect(page.getByTestId('action-line-0')).toHaveText('Jonas · Kirpimas · 14:00–14:15');
+  expect((await apptState(page, a)).start).toBe('2026-10-14T10:00'); // not moved yet
+  await page.getByTestId('action-item-0').click();
+  await expect.poll(async () => (await apptState(page, a)).start).toBe('2026-10-14T14:00');
+  await expect(page.getByTestId('toast')).toContainText('Perkelta');
+  await expect(page.getByTestId('toast')).not.toContainText('užregistruota'); // the toast only says it moved
+});
+
+test('"Pakeisti laiką" in the overlap pop-up leaves the entry where it was', async ({ page }) => {
+  await openApp(page);
+  const [a] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T10:00' }, { name: 'Jonas', start: '2026-10-14T14:00' }]);
+  await page.getByTestId(`entry-${a}`).click();
+  await pickMove(page, a, '2026-10-14', '14:00');
+  await page.getByTestId('action-item-1').click();
+  await expect(page.getByTestId('move-sheet')).toBeVisible(); // still choosing
+  expect((await apptState(page, a)).start).toBe('2026-10-14T10:00');
 });
 
 test('the toast disappears after 5 seconds', async ({ page }) => {

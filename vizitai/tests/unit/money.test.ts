@@ -152,3 +152,26 @@ describe('Asmeninis: half an hour, with a colour of its own', () => {
     expect(await repo.findOverlapFor({ start: '2026-10-14T11:00', kind: 'personal', serviceId: null })).toBeUndefined();
   });
 });
+
+describe('what an overlap says', () => {
+  it('names every entry in the way, with its own start and end', async () => {
+    const [svc] = await repo.listServices(true);
+    await repo.updateService(svc.id, { minutes: 30 });
+    await repo.createAppointment({ kind: 'client', name: 'Ona', serviceId: svc.id, start: '2026-10-14T14:00' });
+    await repo.createAppointment({ kind: 'personal', title: 'Daktaras', minutes: 60, start: '2026-10-14T14:30' });
+    const hits = await repo.overlapsFor({ start: '2026-10-14T14:15', kind: 'client', serviceId: svc.id });
+    expect(hits.map((h) => [h.label, h.what, h.start.slice(11), h.end.slice(11)])).toEqual([
+      ['Ona', 'Kirpimas', '14:00', '14:30'], ['Daktaras', 'Asmeninis', '14:30', '15:30'],
+    ]);
+    expect(await repo.overlapsFor({ start: '2026-10-14T15:30', kind: 'client', serviceId: svc.id })).toEqual([]); // back to back is not an overlap
+    expect(await repo.overlapsFor({ start: '2026-10-14T14:15', kind: 'expense', serviceId: null })).toEqual([]); // money out never overlaps
+  });
+  it('for a move it uses the entry\'s own length and leaves the entry itself out', async () => {
+    const [svc] = await repo.listServices(true);
+    await repo.updateService(svc.id, { minutes: 60 });
+    const a = await repo.createAppointment({ kind: 'client', name: 'Ona', serviceId: svc.id, start: '2026-10-14T10:00' });
+    await repo.createAppointment({ kind: 'personal', title: 'Daktaras', start: '2026-10-14T11:30' });
+    expect((await repo.overlapsOfMove(a.id, '2026-10-14T11:00')).map((h) => h.label)).toEqual(['Daktaras']); // 11:00-12:00 runs into 11:30
+    expect(await repo.overlapsOfMove(a.id, '2026-10-14T10:30')).toEqual([]); // 10:30-11:30 ends exactly where it starts
+  });
+});

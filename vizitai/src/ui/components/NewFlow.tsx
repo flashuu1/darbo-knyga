@@ -6,9 +6,8 @@ import { euroSign, formatWhen, parseAmountInput } from '../../i18n/format';
 import { t } from '../../i18n/lt';
 import { glyphFor } from '../../logic/glyph';
 import { cleanName } from '../../logic/names';
-import { TimeWheel } from './TimeWheel';
 import { datePart, hhmm, minutesOfDay } from '../../logic/time';
-import { closeSheet, highlight } from '../actions';
+import { closeSheet, confirmOverlap, highlight } from '../actions';
 import { useLive, useOptions, useServices } from '../hooks';
 import { CheckIcon } from '../icons';
 import { useKeyboardHeight } from '../keyboard';
@@ -19,7 +18,7 @@ import { Sheet } from './Sheet';
 // Enough to find someone as the client list grows, few enough to stay clear of the keyboard.
 const MAX_SUGGESTIONS = 8;
 type Kind = 'client' | 'personal' | 'expense';
-type Screen = 0 | 1 | 2 | 3; // 0 = client, 1 = service, 2 = time (Nedirbu: from), 3 = Nedirbu: to
+type Screen = 0 | 1 | 2; // 0 = client, 1 = service, 2 = time (Nedirbu: from, then to, on the same screen)
 
 /**
  * New booking as three screens inside one full-height modal:
@@ -35,11 +34,11 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
   const [amountText, setAmountText] = useState('');
   const [off, setOff] = useState(false); // Asmeninis > Nedirbu: from a time to a time, nothing else
   const [toTime, setToTime] = useState('');
+  const [offStep, setOffStep] = useState<'from' | 'to'>('from'); // which end of Nedirbu is being set
   const [name, setName] = useState('');
   const [linked, setLinked] = useState<Client | null>(null);
   const [serviceId, setServiceId] = useState<string | null>(prefill.serviceId ?? null);
   const [start, setStart] = useState(prefill.start);
-  const [clash, setClash] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   const busy = useRef(false);
@@ -70,7 +69,7 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
     });
   }, []);
 
-  const touch = <T,>(set: (v: T) => void) => (v: T) => { set(v); setClash(null); };
+  const touch = <T,>(set: (v: T) => void) => (v: T) => { set(v); };
   const go = (s: Screen) => { if (s !== 0) input.current?.blur(); setScreen(s); };
   const next = () => { if (canNext) go(kind === 'client' ? 1 : 2); };
   // Dragging the list while the keyboard is up puts the keyboard away (like iOS lists), so the whole list can be scrolled and seen.
@@ -83,16 +82,19 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
   // client card it came from, not through the service and name screens.
   const origin = prefill.screen === 'time' ? prefill.from : undefined;
   const leave = () => { if (origin?.type === 'appt') ui.set({ sheet: { type: 'appt', id: origin.id } }); else closeSheet(); };
-  const back = () => { if (screen === 2 && origin) leave(); else go(screen === 3 ? 2 : screen === 2 ? (kind === 'client' ? 1 : 0) : 0); };
-  // Nedirbu, step one done: the end starts an hour after the start (or the last minute of the day)
+  const back = () => {
+    if (off && screen === 2 && offStep === 'to') { setOffStep('from'); return; } // Nedirbu: from "iki" back to "nuo", same screen
+    if (screen === 2 && origin) leave(); else go(screen === 2 ? (kind === 'client' ? 1 : 0) : 0);
+  };
+  // Nedirbu, "nuo" done: now "iki", on the same screen; the end starts an hour after the start (or the last minute of the day)
   const toEnd = () => {
     if (!toTime || toMinutes <= fromMin) setToTime(hhmm(Math.min(fromMin + 60, 23 * 60 + 59)));
-    go(3);
+    setOffStep('to');
   };
 
   async function pick(c: Client) {
     typed.current = true;
-    setLinked(c); setName(c.name); setClash(null);
+    setLinked(c); setName(c.name);
     const last = await repo.lastServiceId(c.id);
     if (last) setServiceId(last);
     go(1);
@@ -105,13 +107,16 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
     closeSheet();
   }
 
-  async function save() {
+  async function save(confirmed = false) {
     if ((off ? !offValid : !canSave) || busy.current) return;
     busy.current = true; setSaving(true);
     try {
       const offMinutes = toMinutes - fromMin;
-      const hit = await repo.findOverlapFor({ start, kind, serviceId: kind === 'client' ? sid : null, minutes: off ? offMinutes : kind === 'personal' ? chosen?.minutes ?? 30 : undefined });
-      if (hit && clash === null) { setClash(t('warn.overlap', { vardas: hit.label, paslauga: hit.serviceName })); return; }
+      if (!confirmed) {
+        // something already there: a pop-up says what (who, which service, from when to when) and asks, instead of a second press
+        const hits = await repo.overlapsFor({ start, kind, serviceId: kind === 'client' ? sid : null, minutes: off ? offMinutes : kind === 'personal' ? chosen?.minutes ?? 30 : undefined });
+        if (hits.length) { confirmOverlap(hits, () => void save(true)); return; }
+      }
       const a = await repo.createAppointment(kind === 'client' ? { kind, name, serviceId: sid, start }
         : off ? { kind: 'personal', title: t('off.title'), minutes: offMinutes, start }
         : kind === 'personal' ? { kind, title: chosen!.name, optionId: chosen!.id, minutes: chosen!.minutes ?? 30, start }
@@ -126,8 +131,7 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
     }
   }
 
-  const title = screen === 0 ? t('sheet.new.title') : screen === 1 ? t('field.service') : off && screen === 3 ? t('off.to') : off ? t('off.from') : t('field.time');
-  const warn = clash && <p class="warn" role="alert" data-testid="overlap-warning">{clash}</p>;
+  const title = screen === 0 ? t('sheet.new.title') : screen === 1 ? t('field.service') : off ? (offStep === 'to' ? t('off.to') : t('off.from')) : t('field.time');
   const pane = (i: Screen) => ({ 'data-active': screen === i ? '' : undefined, 'aria-hidden': screen !== i, style: { '--i': i } as CSSProperties });
 
   return (
@@ -142,13 +146,13 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
           <div class="segmented wide">
             {(['client', 'personal', 'expense'] as const).map((k) => (
               <button key={k} data-testid={`type-${k}`} class={kind === k ? 'seg on' : 'seg'}
-                onClick={() => { setKind(k); setOptionId(null); setOff(false); setLinked(null); setClash(null); }}>{t(`type.${k}`)}</button>
+                onClick={() => { setKind(k); setOptionId(null); setOff(false); setOffStep('from'); setLinked(null); }}>{t(`type.${k}`)}</button>
             ))}
           </div>
           {kind === 'client' && (
             <input ref={input} class="field" data-testid="field-name" value={name} autocomplete="off" autocapitalize="words" enterkeyhint="next" placeholder={t('field.name')}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); next(); } }}
-              onInput={(e) => { typed.current = true; setName((e.target as HTMLInputElement).value); setLinked(null); setClash(null); }} />
+              onInput={(e) => { typed.current = true; setName((e.target as HTMLInputElement).value); setLinked(null); }} />
           )}
           {kind !== 'client' && (
             <>
@@ -158,7 +162,7 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
                   const g = glyphFor(o.name);
                   return (
                     <button key={o.id} data-testid={`option-${i}`} class={o.id === optionId ? 'opt-card on' : 'opt-card'} aria-pressed={o.id === optionId}
-                      style={{ '--g': `var(--c-${g.color})` } as CSSProperties} onClick={() => { setOptionId(o.id); setOff(false); setClash(null); }}>
+                      style={{ '--g': `var(--c-${g.color})` } as CSSProperties} onClick={() => { setOptionId(o.id); setOff(false); }}>
                       <span class="opt-ico" aria-hidden="true">{g.glyph}</span>
                       <span class="opt-name">{o.name}</span>
                       <span class="radio" aria-hidden="true"><CheckIcon /></span>
@@ -166,7 +170,7 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
                   );
                 })}
                 {kind === 'personal' && (
-                  <button data-testid="option-off" class={off ? 'opt-card off on' : 'opt-card off'} aria-pressed={off} onClick={() => { setOff(true); setOptionId(null); setClash(null); }}>
+                  <button data-testid="option-off" class={off ? 'opt-card off on' : 'opt-card off'} aria-pressed={off} onClick={() => { setOff(true); setOffStep('from'); setOptionId(null); }}>
                     <span class="opt-ico" aria-hidden="true">🌴</span>
                     <span class="off-text"><span class="opt-name">{t('off.title')}</span><span class="off-sub">{t('off.sub')}</span></span>
                     <span class="radio" aria-hidden="true"><CheckIcon /></span>
@@ -176,7 +180,7 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
               {kind === 'expense' && (
                 <label class="amount-field">
                   <input data-testid="expense-amount" inputMode="decimal" enterKeyHint="done" autocomplete="off" aria-label={t('expense.amount')} placeholder="0" value={amountText}
-                    onInput={(e) => { setAmountText((e.target as HTMLInputElement).value); setClash(null); }}
+                    onInput={(e) => { setAmountText((e.target as HTMLInputElement).value); }}
                     onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLInputElement).blur(); } }} />
                   <span class="amount-eur" aria-hidden="true">{euroSign}</span>
                 </label>
@@ -210,33 +214,21 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
             <span class="value" data-testid="time-value">{formatWhen(start)}</span>
             <span class="chev" aria-hidden="true">›</span>
           </button>
-          {screen !== 2 && warn}
         </section>
 
         {/* 2 Laikas */}
         <section class="flow-pane time-pane" {...pane(2)}>
           {off && (
-            <div class="off-range" data-testid="off-range-from">
-              <span class="off-chip on"><i>{t('off.fromLabel')}</i><b data-testid="off-from-value">{start.slice(11, 16)}</b></span>
+            <div class="off-range" data-testid="off-range">
+              <span class={offStep === 'from' ? 'off-chip on' : 'off-chip'} data-testid="off-chip-from"><i>{t('off.fromLabel')}</i><b data-testid="off-from-value">{start.slice(11, 16)}</b></span>
               <span class="off-arrow" aria-hidden="true">→</span>
-              <span class="off-chip"><i>{t('off.toLabel')}</i><b>··:··</b></span>
+              <span class={offStep === 'to' ? 'off-chip on' : 'off-chip'} data-testid="off-chip-to"><i>{t('off.toLabel')}</i><b data-testid="off-to-value">{toTime || '··:··'}</b></span>
             </div>
           )}
-          <DateTimePicker value={start} onChange={touch(setStart)} />
-          {screen === 2 && warn}
-        </section>
-
-        {/* 3 Nedirbu: iki kada */}
-        <section class="flow-pane off-pane" data-testid="off-to-pane" {...pane(3)}>
-          <div class="off-range" data-testid="off-range-to">
-            <span class="off-chip"><i>{t('off.fromLabel')}</i><b data-testid="off-from-value-2">{start.slice(11, 16)}</b></span>
-            <span class="off-arrow" aria-hidden="true">→</span>
-            <span class="off-chip on"><i>{t('off.toLabel')}</i><b data-testid="off-to-value">{toTime}</b></span>
-          </div>
-          <p class="off-ask">{t('off.to')}</p>
-          {toTime && <TimeWheel value={toTime} onChange={touch(setToTime)} />}
-          {toTime && toMinutes <= fromMin && <p class="warn" role="alert" data-testid="off-invalid">{t('hours.invalid')}</p>}
-          {screen === 3 && warn}
+          {off && offStep === 'to'
+            ? <DateTimePicker value={`${datePart(start)}T${toTime || start.slice(11, 16)}`} onChange={(v) => touch(setToTime)(v.slice(11, 16))} lockDate />
+            : <DateTimePicker value={start} onChange={touch(setStart)} />}
+          {off && offStep === 'to' && toTime && toMinutes <= fromMin && <p class="warn" role="alert" data-testid="off-invalid">{t('hours.invalid')}</p>}
         </section>
 
         {/* The main button: always at the bottom of the flow, riding up above the keyboard while it is open. */}
@@ -244,8 +236,8 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
           {screen === 0 && <button class="primary" data-testid="btn-next" disabled={!canNext} onClick={next}>{t('btn.next')}</button>}
           {screen === 1 && <button class="primary" data-testid="btn-save" disabled={!canSave || saving} onClick={() => void save()}>{t('btn.save')}</button>}
           {screen === 2 && !off && <button class="primary" data-testid="btn-save-time" disabled={!canSave || saving} onClick={() => void save()}>{t('btn.save')}</button>}
-          {screen === 2 && off && <button class="primary" data-testid="btn-off-next" onClick={toEnd}>{t('btn.next')}</button>}
-          {screen === 3 && <button class="primary" data-testid="btn-save-off" disabled={!offValid || saving} onClick={() => void save()}>{t('btn.save')}</button>}
+          {screen === 2 && off && offStep === 'from' && <button class="primary" data-testid="btn-off-next" onClick={toEnd}>{t('btn.next')}</button>}
+          {screen === 2 && off && offStep === 'to' && <button class="primary" data-testid="btn-save-off" disabled={!offValid || saving} onClick={() => void save()}>{t('btn.save')}</button>}
         </div>
       </div>
     </Sheet>

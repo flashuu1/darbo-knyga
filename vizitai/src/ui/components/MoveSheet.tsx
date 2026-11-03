@@ -2,7 +2,7 @@ import { useRef, useState } from 'preact/hooks';
 import { repo } from '../../db/repo';
 import { formatWhen } from '../../i18n/format';
 import { t } from '../../i18n/lt';
-import { closeSheet, moveWithToast } from '../actions';
+import { closeSheet, confirmOverlap, moveWithToast } from '../actions';
 import { useLive } from '../hooks';
 import { DateTimePicker } from './DateTimePicker';
 import { Sheet } from './Sheet';
@@ -15,11 +15,15 @@ export function MoveSheet({ id }: { id: string }) {
   if (!appt) return null;
   const value = picked ?? appt.start;
   const changed = value !== appt.start;
-  const confirm = () => {
-    if (!changed || busy.current) return;
+  const go = () => {
     busy.current = true;
     closeSheet();
     moveWithToast(id, value).catch((e) => console.error(e));
+  };
+  // Something already at the new time: say what, and ask first
+  const confirm = () => {
+    if (!changed || busy.current) return;
+    void repo.overlapsOfMove(id, value).then((hits) => { if (hits.length) confirmOverlap(hits, go, 'overlap.keepMove'); else go(); }).catch((e) => console.error(e));
   };
   return (
     <Sheet title={t('act.move')} onClose={closeSheet} testId="move-sheet"

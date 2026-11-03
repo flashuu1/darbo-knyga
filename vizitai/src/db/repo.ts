@@ -5,7 +5,7 @@ import type { VizitaiDB } from './db';
 import { DEFAULT_SETTINGS } from './seed';
 import { cleanName, foldName, ltCollator } from '../logic/names';
 import { addDays, addMinutes, datePart, minutesOfDay, nowLocal, parse, scopeRange, type Scope } from '../logic/time';
-import { findOverlap, minutesFor, nextFreeSlot, PERSONAL_MINUTES, SHORT_MINUTES, type Block } from '../logic/overlap';
+import { findOverlap, findOverlaps, minutesFor, nextFreeSlot, PERSONAL_MINUTES, SHORT_MINUTES, type Block } from '../logic/overlap';
 import { t } from '../i18n/lt';
 import { isAmountDue, isValidCents } from '../logic/amount';
 
@@ -23,6 +23,8 @@ export interface ClientRow {
 }
 /** How long a cancelled visit stays visible before it is removed. */
 export const CANCELLED_KEEP_DAYS = 7;
+/** One entry that is in the way of another: who, what and when it runs (start and end are local `YYYY-MM-DDTHH:mm`). */
+export interface OverlapInfo { id: string; label: string; what: string; start: string; end: string }
 export interface Entry { appt: Appointment; label: string; service: Service | null; minutes: number; color: ServiceColor; amountCents: number | null }
 const toMin = (hhmm: string) => +hhmm.slice(0, 2) * 60 + +hhmm.slice(3, 5);
 
@@ -308,6 +310,22 @@ export function createRepo(db: VizitaiDB) {
       return { label: e.label, serviceName: e.service?.name ?? t('type.personal') };
     },
 
+    /** What a new entry at `start` would run into: who, what and from when to when (at most 3). */
+    async overlapsFor(i: { start: string; kind: 'client' | 'personal' | 'expense'; serviceId: string | null; excludeId?: string; minutes?: number }): Promise<OverlapInfo[]> {
+      if (i.kind === 'expense') return [];
+      const services = await serviceMap();
+      const minutes = i.minutes ?? (i.kind === 'personal' ? PERSONAL_MINUTES : i.kind !== 'client' || !i.serviceId ? SHORT_MINUTES : services.get(i.serviceId)?.minutes ?? SHORT_MINUTES);
+      const near = await db.appointments.where('start').between(addMinutes(i.start, -1440), addMinutes(i.start, 1440), true, true).toArray();
+      const hits = findOverlaps({ id: i.excludeId ?? '', start: i.start, minutes }, near, services).slice(0, 3);
+      return (await toEntries(hits)).map((e) => ({ id: e.appt.id, label: e.label, what: e.service?.name ?? (e.appt.kind === 'personal' ? t('type.personal') : ''), start: e.appt.start, end: addMinutes(e.appt.start, e.minutes) }));
+    },
+    /** The same for an existing entry moved to `start` (its own length). */
+    async overlapsOfMove(id: string, start: string): Promise<OverlapInfo[]> {
+      const a = await db.appointments.get(id);
+      if (!a) return [];
+      const services = await serviceMap();
+      return this.overlapsFor({ start, kind: a.kind, serviceId: a.serviceId, excludeId: id, minutes: minutesFor(a, services) });
+    },
     async entriesBetween(fromDate: string, toDateExclusive: string): Promise<Entry[]> {
       const list = await db.appointments.where('start').between(`${fromDate}T00:00`, `${toDateExclusive}T00:00`, true, false).toArray();
       return toEntries(list.sort(byStart));

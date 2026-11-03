@@ -1,8 +1,8 @@
 import { db } from '../db/db';
-import { repo, type Entry } from '../db/repo';
+import { repo, type Entry, type OverlapInfo } from '../db/repo';
 import type { Appointment, CancelReason, Option } from '../db/types';
 import { formatDayShort, weekdayShort } from '../i18n/format';
-import { t } from '../i18n/lt';
+import { t, type Key } from '../i18n/lt';
 import { backupFileName, BackupError, exportData, importData, parseBackup, shareBackup, type BackupFile } from '../logic/backup';
 import { addDays, datePart, timePart, todayStr } from '../logic/time';
 import { ui, type Origin, type Sheet } from './store';
@@ -158,13 +158,30 @@ export function highlight(id: string) {
   window.setTimeout(() => ui.set({ highlight: null }), 1800);
 }
 
+/** Moved: the toast only says where it went (and offers Anuliuoti). Overlaps are asked about before a move by dialog, never after a drag. */
 export async function moveWithToast(id: string, to: string) {
   const { before, after } = await repo.moveAppointment(id, to);
   if (before.start === after.start) return;
-  const hit = await repo.findOverlapFor({ start: after.start, kind: after.kind, serviceId: after.serviceId, excludeId: id });
-  let text = t('toast.moved', { data: `${formatDayShort(datePart(after.start))}, ${weekdayShort(after.start)}`, laikas: timePart(after.start) });
-  if (hit) text += ` — ${t('warn.overlap', { vardas: hit.label, paslauga: hit.serviceName })}`;
+  const text = t('toast.moved', { data: `${formatDayShort(datePart(after.start))}, ${weekdayShort(after.start)}`, laikas: timePart(after.start) });
   showToast(text, () => repo.putSnapshot(before));
+}
+/** One line per entry in the way: "Ona · Kirpimas · 14:00–14:30". */
+export const overlapLine = (o: OverlapInfo) => [o.label, o.what, `${timePart(o.start)}–${timePart(o.end)}`].filter(Boolean).join(' · ');
+/**
+ * "There is already something at that time": a pop-up that says what (who, which service, from when to when) and asks
+ * whether to go ahead anyway. `go` runs only if she agrees; "Pakeisti laiką" leaves everything as it is.
+ */
+export function confirmOverlap(hits: OverlapInfo[], go: () => void, goLabel: Key = 'overlap.keep') {
+  ui.set({
+    action: {
+      title: `${t('overlap.title')}\n${t('overlap.with')}`,
+      lines: hits.map(overlapLine),
+      items: [
+        { label: t(goLabel), onPress: go },
+        { label: t('overlap.change'), role: 'cancel' as const, onPress: () => {} },
+      ],
+    },
+  });
 }
 export async function cancelWithToast(id: string, reason: CancelReason | null) {
   const { before } = await repo.cancelAppointment(id, reason);

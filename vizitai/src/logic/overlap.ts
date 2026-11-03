@@ -21,6 +21,13 @@ export function findOverlap(candidate: Block, booked: Appointment[], services: M
       blocksOverlap(candidate, { id: a.id, start: a.start, minutes: minutesFor(a, services) }),
   );
 }
+/** Every booked entry the candidate runs into (money out never counts). */
+export function findOverlaps(candidate: Block, booked: Appointment[], services: Map<string, Service>): Appointment[] {
+  return booked.filter(
+    (a) => a.id !== candidate.id && a.status === 'booked' && a.kind !== 'expense' &&
+      blocksOverlap(candidate, { id: a.id, start: a.start, minutes: minutesFor(a, services) }),
+  );
+}
 export function nextFreeSlot(from: string, blocks: Block[], dayEndMin: number, slot = 15): string {
   let s = snap(from, slot, 'ceil');
   for (let i = 0; i < 200; i++) {

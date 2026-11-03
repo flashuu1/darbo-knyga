@@ -6,12 +6,12 @@ export interface Glyph { glyph: string; color: GlyphColor }
 const RULES: [string, string, GlyphColor][] = [
   ['psichol', '🧠', 'purple'], ['psichiatr', '💊', 'indigo'], ['neurolog', '⚡', 'yellow'],
   ['dantist', '🦷', 'teal'], ['odontol', '🦷', 'teal'], ['akių', '👁️', 'blue'], ['okulist', '👁️', 'blue'],
-  ['kinezi', '💪', 'green'], ['reabilit', '💪', 'green'], ['masaž', '💆', 'pink'],
-  ['šeimos', '🏥', 'indigo'], ['dakt', '🩺', 'red'], ['gydyt', '🩺', 'red'], ['slaugyt', '🩺', 'red'],
+  ['kinezi', '💪', 'green'], ['reabilit', '💪', 'green'], ['masaž', '💆', 'purple'],
+  ['šeimos', '🏥', 'indigo'], ['dakt', '🩺', 'blue'], ['gydyt', '🩺', 'blue'], ['slaugyt', '🩺', 'blue'],
   ['piet', '🍽️', 'orange'], ['kav', '☕', 'orange'], ['autoserv', '🚗', 'blue'], ['servis', '🚗', 'blue'], ['auto', '🚗', 'blue'],
   ['bank', '🏦', 'teal'], ['paštas', '📮', 'orange'], ['mokykl', '🎒', 'green'], ['darželi', '🧸', 'pink'],
   // money out
-  ['medžiag', '🧴', 'purple'], ['nuom', '🏠', 'indigo'], ['mokes', '🧾', 'orange'], ['degal', '⛽', 'red'], ['draud', '🛡️', 'blue'], ['reklam', '📣', 'pink'], ['komunal', '💡', 'yellow'],
+  ['medžiag', '🧴', 'purple'], ['nuom', '🏠', 'indigo'], ['mokes', '🧾', 'orange'], ['degal', '⛽', 'yellow'], ['draud', '🛡️', 'blue'], ['reklam', '📣', 'pink'], ['komunal', '💡', 'yellow'],
 ];
 const FALLBACK: GlyphColor[] = ['blue', 'green', 'indigo', 'orange', 'pink', 'purple', 'teal'];
 

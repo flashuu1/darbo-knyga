@@ -16,7 +16,7 @@ const addMonths = (first: string, n: number) => {
  * In-app date and time selector: a month calendar above two time wheels (hours, minutes).
  * Value and result are local wall-clock `YYYY-MM-DDTHH:mm` strings; every minute can be chosen.
  */
-export function DateTimePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+export function DateTimePicker({ value, onChange, lockDate }: { value: string; onChange: (v: string) => void; /** only the time can be changed; the calendar stays as it is, dimmed */ lockDate?: boolean }) {
   const date = datePart(value);
   const time = timePart(value);
   const [month, setMonth] = useState(`${date.slice(0, 7)}-01`);
@@ -32,7 +32,7 @@ export function DateTimePicker({ value, onChange }: { value: string; onChange: (
   useEffect(() => { setMonth((m) => (m.slice(0, 7) === date.slice(0, 7) ? m : `${date.slice(0, 7)}-01`)); }, [date]);
 
   return (
-    <div class="picker" data-testid="picker">
+    <div class={lockDate ? 'picker date-locked' : 'picker'} data-testid="picker">
       <div class="picker-head">
         <button class="picker-nav" data-testid="pick-prev" aria-label={t('picker.prev')} onClick={() => shift(-1)}>‹</button>
         <b class="picker-title" data-testid="pick-month">{monthName(month)} {month.slice(0, 4)}</b>

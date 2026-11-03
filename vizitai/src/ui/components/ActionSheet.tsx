@@ -15,6 +15,11 @@ export function ActionSheet() {
       <div class="actions">
         <div class="action-group">
           {shown.title && <p class="action-title" data-testid="action-title">{shown.title}</p>}
+          {shown.lines && shown.lines.length > 0 && (
+            <ul class="action-lines" data-testid="action-lines">
+              {shown.lines.map((l, i) => <li key={i} data-testid={`action-line-${i}`}>{l}</li>)}
+            </ul>
+          )}
           {main.map((i, n) => (
             <button key={n} data-testid={`action-item-${n}`} class={i.role === 'destructive' ? 'action destructive' : 'action'} onClick={press(i.onPress)}>{i.label}</button>
           ))}

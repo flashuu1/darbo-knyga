@@ -17,6 +17,12 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   { date: '2026-11-03', items: [
+    { kind: 'feature', text: 'Klientai: plytelės „Laukia sumos“, „Ateina šią savaitę“, „Seniai nebuvo“ ir „Neseniai buvo“ iškart nufiltruoja sąrašą; filtro ir rūšiavimo langas; paieška pagal vardą ir telefoną; naujo kliento pridėjimas.' },
+    { kind: 'change', text: 'Klientų sąrašas: pirma laukiantys sumos, tada neseniai sumokėję, tada artimiausi vizitai. „Laukia sumos“ didesnis ir paspaudžiamas, žalias „Sumokėta“ su suma ir vizito data lieka dvi savaites.' },
+    { kind: 'feature', text: 'Klientai > Analizė: nauji, dažniausi, pelningiausi ir laikas. Linijų grafikai, šilumos žemėlapis, apskritimas, reitingai, rekordai, palyginimo rodyklės, „kas kiek ateina“ ir prarasta dėl neatvykimų. Laikotarpį galima tempti arba rinktis stiklo mygtukais.' },
+    { kind: 'change', text: 'Sklandesnės animacijos Klientų ir Analizės puslapiuose.' },
+  ] },
+  { build: 'b45e0d1', date: '2026-11-03', items: [
     { kind: 'bugfix', text: 'Įrašus, paslėptus už „+N“, dabar galima nutempti: palaikius „+N“ pakeliamas pats įrašas, o skaičius sumažėja.' },
   ] },
   { build: '00dd7be', date: '2026-11-03', items: [

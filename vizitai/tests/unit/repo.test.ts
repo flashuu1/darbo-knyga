@@ -260,9 +260,9 @@ describe('name suggestions (they have to stay useful as the client list grows)',
   });
 });
 
-describe('contacts list: pending payment first, paid this month, then the next visit', () => {
+describe('contacts list: pending payment first, paid in the last two weeks, then the next visit', () => {
   const NOW = '2026-10-14T12:00';
-  it('orders, labels and expires the paid status at the end of the month', async () => {
+  it('orders, labels and expires the paid status two weeks after the visit', async () => {
     const s = (await repo.listServices(true))[0];
     const book = async (name: string, start: string, amount?: number) => {
       const a = await repo.createAppointment({ kind: 'client', name, serviceId: s.id, start });
@@ -272,22 +272,22 @@ describe('contacts list: pending payment first, paid this month, then the next v
     await book('Aaa Laukia', '2026-10-14T09:00'); // visit passed, no amount: pending
     await book('Bbb Seniai', '2026-10-10T09:00'); // pending for longer: before Aaa
     await book('Ccc Sumokėjo', '2026-10-12T10:00', 4500);
-    await book('Ccc Sumokėjo', '2026-10-13T10:00', 1500); // sum 60,00 this month
+    await book('Ccc Sumokėjo', '2026-10-13T10:00', 1500); // the latest paid visit is the one shown
     await book('Ccc Sumokėjo', '2026-10-30T10:00'); // and a visit coming up
-    await book('Ddd Praeitą mėnesį', '2026-09-28T10:00', 5000); // paid last month: no longer shown as paid
+    await book('Ddd Seniai sumokėjo', '2026-09-28T10:00', 5000); // paid more than two weeks ago: no longer shown as paid
     await book('Eee Netrukus', '2026-10-20T10:00');
     await book('Fff Vėliau', '2026-11-05T10:00');
     await repo.matchOrCreateClient('Ggg Tuščias');
     const rows = await repo.listClients(NOW);
-    expect(rows.map((r) => r.client.name)).toEqual(['Bbb Seniai', 'Aaa Laukia', 'Ccc Sumokėjo', 'Eee Netrukus', 'Fff Vėliau', 'Ddd Praeitą mėnesį', 'Ggg Tuščias']);
+    expect(rows.map((r) => r.client.name)).toEqual(['Bbb Seniai', 'Aaa Laukia', 'Ccc Sumokėjo', 'Eee Netrukus', 'Fff Vėliau', 'Ddd Seniai sumokėjo', 'Ggg Tuščias']);
     const by = Object.fromEntries(rows.map((r) => [r.client.name, r]));
     expect(by['Bbb Seniai'].pending?.start).toBe('2026-10-10T09:00');
-    expect(by['Ccc Sumokėjo']).toMatchObject({ pending: null, paidCents: 6000, nextVisit: '2026-10-30T10:00' });
-    expect(by['Ddd Praeitą mėnesį'].paidCents).toBe(0);
-    expect(by['Ggg Tuščias']).toMatchObject({ pending: null, paidCents: 0, nextVisit: null, lastVisit: null });
-    // the paid status ends with the month: on 1 November the same data reads differently
-    const nov = await repo.listClients('2026-11-01T08:00');
-    expect(nov.find((r) => r.client.name === 'Ccc Sumokėjo')!.paidCents).toBe(0);
+    expect(by['Ccc Sumokėjo']).toMatchObject({ pending: null, paid: { cents: 1500, start: '2026-10-13T10:00' }, spentCents: 6000, visitCount: 2, nextVisit: '2026-10-30T10:00' });
+    expect(by['Ddd Seniai sumokėjo']).toMatchObject({ paid: null, spentCents: 5000, visitCount: 1 });
+    expect(by['Ggg Tuščias']).toMatchObject({ pending: null, paid: null, nextVisit: null, lastVisit: null, visitCount: 0, spentCents: 0 });
+    // the paid status lasts two weeks from the visit date: still there on 27 October, gone on 28 October
+    expect((await repo.listClients('2026-10-27T08:00')).find((r) => r.client.name === 'Ccc Sumokėjo')!.paid).not.toBeNull();
+    expect((await repo.listClients('2026-10-28T08:00')).find((r) => r.client.name === 'Ccc Sumokėjo')!.paid).toBeNull();
   });
   it('ignores cancelled and no-show visits', async () => {
     const s = (await repo.listServices(true))[0];
@@ -296,7 +296,7 @@ describe('contacts list: pending payment first, paid this month, then the next v
     const b = await repo.createAppointment({ kind: 'client', name: 'Iii', serviceId: s.id, start: '2026-10-10T09:00' });
     await repo.markNoShow(b.id);
     const rows = await repo.listClients(NOW);
-    expect(rows.every((r) => r.pending === null && r.paidCents === 0 && r.nextVisit === null)).toBe(true);
+    expect(rows.every((r) => r.pending === null && r.paid === null && r.nextVisit === null && r.visitCount === 0)).toBe(true);
   });
 });
 

@@ -66,7 +66,7 @@ export function showOverflow(list: Entry[]) {
     },
   });
 }
-export const sheetKey = (s: Sheet) => (s.type === 'new' ? 'new' : s.type === 'summary' ? 'summary' : `${s.type}${s.id}`);
+export const sheetKey = (s: Sheet) => (s.type === 'new' ? 'new' : s.type === 'summary' || s.type === 'cfilter' || s.type === 'cnew' ? s.type : `${s.type}${s.id}`);
 export function closeSheet() {
   const { back, sheet } = ui.get();
   if (back && sheet && sheetKey(sheet) === back.for) ui.set({ sheet: back.sheet, back: null }); // e.g. Suma opened from the day summary

@@ -19,3 +19,4 @@ export const PersonIcon = () => (<svg {...base} width={20} height={20}><circle c
 export const BackupIcon = () => (<svg {...base} width={20} height={20}><path d="M12 15V4M7.500 8.500L12 4l4.500 4.500" /><path d="M5 13v5.500A1.500 1.500 0 006.500 20h11a1.500 1.500 0 001.500-1.500V13" /></svg>);
 export const TrashIcon = () => (<svg {...base} width={22} height={22}><path d="M4 7h16M9.500 7V4.500h5V7M6.500 7l.8 12a1.500 1.500 0 001.500 1.400h6.400a1.500 1.500 0 001.500-1.400l.8-12M10 11v6M14 11v6" /></svg>);
 export const DeleteIcon = () => (<svg {...base} width={24} height={24}><path d="M9 6h10.500A1.500 1.500 0 0121 7.500v9a1.500 1.500 0 01-1.500 1.500H9l-6-6z" /><path d="M12.500 9.500l5 5M17.500 9.500l-5 5" /></svg>);
+export const FilterIcon = () => (<svg {...base} width={22} height={22} stroke-width={2}><path d="M4 7h10M18 7h2M4 17h2M10 17h10" /><circle cx="16" cy="7" r="2.2" /><circle cx="8" cy="17" r="2.2" /></svg>);

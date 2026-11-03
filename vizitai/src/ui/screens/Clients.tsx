@@ -1,85 +1,149 @@
-import { useState } from 'preact/hooks';
-import { repo } from '../../db/repo';
-import { formatDayShort, formatEuro, formatWhen } from '../../i18n/format';
+import { useMemo, useState } from 'preact/hooks';
+import { repo, type ClientRow } from '../../db/repo';
+import { formatDayShort, formatEuro, formatEuroRound } from '../../i18n/format';
 import { confirmDeleteClient, openCancelled } from '../actions';
 import { SwipeRow } from '../components/SwipeRow';
+import { Segmented } from '../components/Segmented';
 import { t } from '../../i18n/lt';
-import { foldName } from '../../logic/names';
+import { agoParts } from '../../logic/analytics';
+import { applyClients, filterTest, TILE_FILTERS, type ClientFilter } from '../../logic/clientlist';
+import { datePart, nowLocal } from '../../logic/time';
+import { formatWhen } from '../../i18n/format';
 import { useLive } from '../hooks';
-import { NextIcon, SearchIcon } from '../icons';
+import { FilterIcon, NextIcon, PlusIcon, SearchIcon } from '../icons';
 import { openAmount } from '../amount';
-import { ui } from '../store';
+import { ui, useStore } from '../store';
+import { clientsUi } from '../clientsUi';
+import { ClientStats } from './ClientStats';
 
 /** Monogram for a client: the first letters of the first two words. */
 export const initials = (name: string) => name.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join('');
 
+export const FILTER_LABEL: Record<ClientFilter, () => string> = {
+  auto: () => t('cl.f.auto'), due: () => t('cl.tile.due'), week: () => t('cl.tile.week'), old: () => t('cl.tile.old'), recent: () => t('cl.tile.recent'),
+};
+const agoText = (date: string | null, now: string) => {
+  const a = agoParts(date, now);
+  return !a ? t('cl.noVisits') : a.key === 'today' ? t('cl.ago.today') : a.key === 'yesterday' ? t('cl.ago.yesterday') : t(`cl.ago.${a.key}` as 'cl.ago.days', { n: a.n });
+};
+
 export function ClientsScreen() {
+  const { view, filter, sort } = useStore(clientsUi);
   const [q, setQ] = useState('');
-  const list = useLive(() => repo.listClients(), [], []);
+  const now = nowLocal();
+  const all = useLive(() => repo.listClients(), [], [] as ClientRow[]);
   const cancelled = useLive(() => repo.cancelledEntries(), [], []);
-  const key = foldName(q);
-  const rows = key ? list.filter((r) => r.client.nameKey.includes(key)) : list;
-  const cancelledRows = key ? cancelled.filter((e) => foldName(e.label).includes(key)) : cancelled;
+  const rows = useMemo(() => applyClients(all, filter, sort, q, now), [all, filter, sort, q, datePart(now)]);
+  const changed = (filter !== 'auto' ? 1 : 0) + (sort !== 'auto' ? 1 : 0);
+  const key = q.trim().toLowerCase();
+  const cancelledRows = filter === 'auto' && sort === 'auto' ? (key ? cancelled.filter((e) => e.label.toLowerCase().includes(key)) : cancelled) : [];
+  const stats = view === 'stats';
   return (
-    <section class="list-screen" data-testid="clients">
+    <section class="list-screen clients" data-testid="clients">
       <header class="chrome">
-        <h1 class="large-title top">{t('tab.clients')}</h1>
-        <label class="searchbar">
-          <SearchIcon />
-          <input type="search" data-testid="client-search" placeholder={t('clients.search')} value={q} autocomplete="off"
-            onInput={(e) => setQ((e.target as HTMLInputElement).value)} />
-        </label>
-      </header>
-      <div class="scroll list-body">
-        {list.length === 0 && <p class="empty-note" data-testid="clients-empty">{t('clients.empty')}</p>}
-        {rows.length > 0 && (
-          <ul class="group client-list">
-            {rows.map((r, i) => (
-              <li key={r.client.id}>
-                <SwipeRow testId={`client-swipe-${i}`} onDelete={() => void confirmDeleteClient(r.client.id, r.client.name)}>
-                <button class="client-row" data-testid={`client-row-${i}`} onClick={() => ui.set({ client: r.client.id })}>
-                  <span class="avatar" aria-hidden="true">{initials(r.client.name)}</span>
-                  <span class="client-text">
-                    <b>{r.client.name}</b>
-                    <span class="client-status">
-                      {r.pending && (
-                        <span class="pill due tap" role="button" tabIndex={0} data-testid={`client-pending-${i}`}
-                          onClick={(e) => { e.stopPropagation(); openAmount(r.pending!.id); }}
-                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openAmount(r.pending!.id); } }}>{t('client.pending')}</span>
-                      )}
-                      {r.paidCents > 0 && <span class="pill paid" data-testid={`client-paid-${i}`}>✓ {t('client.paid', { suma: formatEuro(r.paidCents) })}</span>}
-                      {r.nextVisit && <span class="next" data-testid={`client-next-${i}`}>{t('client.next', { kada: formatWhen(r.nextVisit) })}</span>}
-                      {!r.pending && r.paidCents === 0 && !r.nextVisit && r.lastVisit && <span>{t('client.lastVisit', { data: formatDayShort(r.lastVisit) })}</span>}
-                    </span>
-                  </span>
-                  <span class="chev"><NextIcon /></span>
-                </button>
-                </SwipeRow>
-              </li>
-            ))}
-          </ul>
+        <div class="titlebar">
+          <h1 class="large-title top">{t('tab.clients')}</h1>
+          <button class="add-btn press" data-testid="client-add" aria-label={t('cl.addAria')} onClick={() => ui.set({ sheet: { type: 'cnew' } })}><PlusIcon /></button>
+        </div>
+        <Segmented testId="clients-seg" value={view} onChange={(v) => clientsUi.set({ view: v })}
+          items={[{ id: 'list', label: t('cl.seg.list') }, { id: 'stats', label: t('cl.seg.stats') }]} />
+        {!stats && (
+          <div class="searchrow">
+            <label class="searchbar">
+              <SearchIcon />
+              <input type="search" data-testid="client-search" placeholder={t('cl.search')} value={q} autocomplete="off"
+                onInput={(e) => setQ((e.target as HTMLInputElement).value)} />
+            </label>
+            <button class={changed ? 'filter-btn on press' : 'filter-btn press'} data-testid="client-filter" aria-label={t('cl.filterAria')} onClick={() => ui.set({ sheet: { type: 'cfilter' } })}>
+              <FilterIcon /><span class="filter-dot" data-testid="filter-count">{changed}</span>
+            </button>
+          </div>
         )}
-        {cancelledRows.length > 0 && (
-          <>
-            <h2 class="section-head" data-testid="cancelled-head">{t('clients.cancelledHead')}</h2>
-            <ul class="group client-list">
-              {cancelledRows.map((e, i) => (
-                <li key={e.appt.id}>
-                  <button class="client-row cancelled-row" data-testid={`cancelled-row-${i}`} onClick={() => openCancelled(e)}>
-                    <span class="avatar dim" aria-hidden="true">{initials(e.label)}</span>
-                    <span class="client-text">
-                      <b>{e.label}</b>
-                      <span class="client-status"><span class="pill gone">{t('status.cancelled')}</span><span class="next">{formatWhen(e.appt.start)}</span></span>
-                    </span>
-                    <span class="chev"><NextIcon /></span>
+      </header>
+      {stats ? <ClientStats /> : (
+        <div class="scroll list-body">
+          {all.length === 0 && <p class="empty-note" data-testid="clients-empty">{t('clients.empty')}</p>}
+          {all.length > 0 && (
+            <div class="tiles" data-testid="tiles">
+              {TILE_FILTERS.map((f) => {
+                const list = all.filter((r) => filterTest(f, r, now));
+                const sub = f === 'week' ? (list.length ? t('cl.sub.week', { kada: formatDayShort(list.map((r) => r.nextVisit!).sort()[0]!) }) : '') : t(`cl.sub.${f}` as 'cl.sub.due');
+                return (
+                  <button key={f} class={`tile ${f}${filter === f ? ' on' : ''}`} data-testid={`tile-${f}`} onClick={() => clientsUi.set({ filter: filter === f ? 'auto' : f })}>
+                    <span class="num">{list.length}</span><span class="lab">{FILTER_LABEL[f]()}</span><span class="sub">{sub}</span>
                   </button>
+                );
+              })}
+            </div>
+          )}
+          {all.length > 0 && (
+            <div class="listhead" data-testid="list-head">
+              <span>{filter === 'auto' ? t('cl.head.all') : FILTER_LABEL[filter]()} · {rows.length}</span>
+              {filter !== 'auto' && <button data-testid="show-all" onClick={() => clientsUi.set({ filter: 'auto' })}>{t('cl.head.showAll')}</button>}
+            </div>
+          )}
+          {all.length > 0 && rows.length === 0 && <p class="empty-note" data-testid="clients-none">{filter === 'due' && !q ? t('cl.dueAllDone') : t('cl.none')}</p>}
+          {rows.length > 0 && (
+            <ul class="group client-list anim" key={`${filter}-${sort}`}>
+              {rows.map((r, i) => (
+                <li key={r.client.id} style={{ '--i': Math.min(i, 8) }}>
+                  <SwipeRow testId={`client-swipe-${i}`} onDelete={() => void confirmDeleteClient(r.client.id, r.client.name)}>
+                    <ClientRowView r={r} i={i} sort={sort} now={now} />
+                  </SwipeRow>
                 </li>
               ))}
             </ul>
-            <p class="section-foot">{t('clients.cancelledFoot')}</p>
-          </>
-        )}
-      </div>
+          )}
+          {cancelledRows.length > 0 && (
+            <>
+              <h2 class="section-head" data-testid="cancelled-head">{t('clients.cancelledHead')}</h2>
+              <ul class="group client-list">
+                {cancelledRows.map((e, i) => (
+                  <li key={e.appt.id}>
+                    <button class="client-row cancelled-row" data-testid={`cancelled-row-${i}`} onClick={() => openCancelled(e)}>
+                      <span class="avatar dim" aria-hidden="true">{initials(e.label)}</span>
+                      <span class="client-text">
+                        <b>{e.label}</b>
+                        <span class="client-status"><span class="pill gone">{t('status.cancelled')}</span><span class="next">{formatWhen(e.appt.start)}</span></span>
+                      </span>
+                      <span class="chev"><NextIcon /></span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <p class="section-foot">{t('clients.cancelledFoot')}</p>
+            </>
+          )}
+        </div>
+      )}
     </section>
+  );
+}
+
+function ClientRowView({ r, i, sort, now }: { r: ClientRow; i: number; sort: string; now: string }) {
+  const line = sort === 'spent' ? t('cl.totalLine', { suma: formatEuroRound(r.spentCents), n: r.visitCount })
+    : sort === 'visits' ? t('cl.visitsLine', { n: r.visitCount, ago: agoText(r.lastVisit, now) })
+    : r.pending ? t('cl.visitOn', { data: formatDayShort(r.pending.start) })
+    : r.nextVisit ? t('cl.nextShort', { kada: formatDayShort(r.nextVisit) })
+    : agoText(r.lastVisit, now);
+  return (
+    <button class="client-row" data-testid={`client-row-${i}`} onClick={() => ui.set({ client: r.client.id })}>
+      <span class="avatar" aria-hidden="true">{initials(r.client.name)}</span>
+      <span class="client-text">
+        <b>{r.client.name}</b>
+        <span class={r.nextVisit && !r.pending && sort !== 'spent' && sort !== 'visits' ? 'client-line next' : 'client-line'} data-testid={r.nextVisit ? `client-next-${i}` : undefined}>{line}</span>
+      </span>
+      {r.pending ? (
+        <span class="pill-btn due" role="button" tabIndex={0} data-testid={`client-pending-${i}`}
+          onClick={(e) => { e.stopPropagation(); openAmount(r.pending!.id); }}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openAmount(r.pending!.id); } }}>{t('client.pending')}</span>
+      ) : r.paid ? (
+        <span class="pill-btn paid" role="button" tabIndex={0} data-testid={`client-paid-${i}`}
+          onClick={(e) => { e.stopPropagation(); openAmount(r.paid!.id); }}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openAmount(r.paid!.id); } }}>✓ {t('cl.paidPill', { suma: formatEuro(r.paid.cents), data: formatDayShort(r.paid.start) })}</span>
+      ) : (
+        <span class="chev"><NextIcon /></span>
+      )}
+    </button>
   );
 }

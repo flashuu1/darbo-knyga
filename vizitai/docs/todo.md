@@ -7,11 +7,12 @@ The order below is a suggestion; the owner decides after testing what is built. 
 - [x] **1. End-of-day screen ("Dienos suvestinė").** One page for the books of what is on screen: day, week or month (the button in the calendar follows the view), with one-tap chips of the usual amounts, the money, a small celebration. Amount changes are logged on the visit and 0 resets after a confirmation.
 - [ ] **2. Prices per service.** A default price on each service, so the amount sheet and the end-of-day chips open pre-filled and a payment is one tap; later: earnings per service.
 - [ ] **3. Client reminders in one tap.** A "Rytojaus klientai" list with a button that opens a ready-made SMS or WhatsApp message (no backend: the phone sends it).
-- [ ] **4. "Kas turėtų grįžti".** Learn each client's rhythm (for example every 6 weeks), list who is overdue, rebook in one tap. First real assistant step.
+- [ ] **4. "Kas turėtų grįžti".** Learn each client's rhythm (for example every 6 weeks), list who is overdue, rebook in one tap. First real assistant step. (The rhythm and the overdue list already exist inside Klientai > Analizė > Dažniausi; what is left is a list of its own with one-tap rebooking and reminders.)
 
-## Klientai tab redesign (to plan together)
+## Klientai tab redesign
 
-The main view is plain: a search box and a list. Ideas to choose from (see the conversation): filters (Visi, Skolingi, Šią savaitę, Seniai nebuvę, Nauji), sorting (smart, A–Ž, last visit, most spent), an A–Ž index with sticky letters, richer rows (last visit, next visit, lifetime total, badges), quick actions (call, message, book again), a richer client card (history, total spent, rhythm, favourite service, notes, phone), a "needs a reminder" list, duplicates merge, manual add.
+- [x] Done in the build of 2026-11-03: filter and sort sheet, tiles, search by name and phone, adding a client, the green "paid" pill, and the Analizė page (see `architecture.md`, "Klientai: list, filter, and analysis").
+- [ ] Still open: quick actions on a row (call, message, book again), a richer client card (history, total spent, rhythm, notes), merging duplicates, a cancellation log so "money lost" can count cancellations older than a week.
 
 ## Also worth doing
 

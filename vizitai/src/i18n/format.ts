@@ -7,6 +7,14 @@ const wd = new Intl.DateTimeFormat(L, { ...utc, weekday: 'short' });
 const month = new Intl.DateTimeFormat(L, { ...utc, month: 'long' });
 const d = (date: string) => new Date(`${date.slice(0, 10)}T12:00:00Z`);
 
+const wdLong = new Intl.DateTimeFormat(L, { ...utc, weekday: 'long' });
+const cap = (x: string) => x.charAt(0).toUpperCase() + x.slice(1);
+/** Monday = 0 ... Sunday = 6, as written in Lithuanian ("Pirmadienis", "Pr"). */
+export const weekdayName = (i: number) => cap(wdLong.format(d(`2024-01-0${i + 1}`)));
+export const weekdayAbbr = (i: number) => cap(wd.format(d(`2024-01-0${i + 1}`)));
+/** 'YYYY-MM' as "spalis 2026", and its short chart label ("spal"). */
+export const monthYear = (ym: string) => `${month.format(d(`${ym}-01`))} ${ym.slice(0, 4)}`;
+export const monthAbbr = (ym: string) => month.format(d(`${ym}-01`)).slice(0, 4);
 export const formatDayLong = (date: string) => long.format(d(date));
 export const formatDayShort = (date: string) => short.format(d(date));
 export const weekdayShort = (date: string) => wd.format(d(date));
@@ -26,6 +34,9 @@ const plain = (frac: number) => new Intl.NumberFormat(L, { useGrouping: false, m
 const plain0 = plain(0), plain2 = plain(2);
 /** 4550 -> "45,50 €" (lt-LT: decimal comma, no-break space before the sign). */
 export const formatEuro = (cents: number) => euro.format(cents / 100);
+const euro0 = new Intl.NumberFormat(L, { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+/** 4550 -> "46 €": whole euros, for charts and totals. */
+export const formatEuroRound = (cents: number) => euro0.format(cents / 100);
 /** The currency sign as lt-LT writes it ("€"), for the suffix of the amount field. */
 export const euroSign = euro.formatToParts(0).find((p) => p.type === 'currency')?.value ?? '';
 /** The editable form of a stored amount: 4500 -> "45", 4550 -> "45,50" (no grouping, no sign). */

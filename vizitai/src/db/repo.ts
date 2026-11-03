@@ -8,6 +8,7 @@ import { addDays, addMinutes, datePart, minutesOfDay, nowLocal, parse, scopeRang
 import { findOverlap, findOverlaps, minutesFor, nextFreeSlot, PERSONAL_MINUTES, SHORT_MINUTES, type Block } from '../logic/overlap';
 import { t } from '../i18n/lt';
 import { isAmountDue, isValidCents } from '../logic/amount';
+import type { AnalyticsInput, OffRec, VisitRec } from '../logic/analytics';
 
 /** One row of the contacts list (see listClients). */
 export interface ClientRow {
@@ -16,13 +17,17 @@ export interface ClientRow {
   lastVisit: string | null;
   /** The longest-waiting past visit that still has no amount. */
   pending: { id: string; start: string } | null;
-  /** Sum of the amounts entered for visits in the current month. */
-  paidCents: number;
+  /** The latest visit of the last two weeks whose amount she entered: shown as a green "paid" pill for two weeks. */
+  paid: { id: string; cents: number; start: string } | null;
+  /** Visits that took place (not cancelled, not no-shows) and the money entered for them, all time. */
+  visitCount: number; spentCents: number;
   /** Start of the next booked visit. */
   nextVisit: string | null;
 }
 /** How long a cancelled visit stays visible before it is removed. */
 export const CANCELLED_KEEP_DAYS = 7;
+/** How long the green "paid" pill stays on a client row after the visit. */
+export const PAID_PILL_DAYS = 14;
 /** One entry that is in the way of another: who, what and when it runs (start and end are local `YYYY-MM-DDTHH:mm`). */
 export interface OverlapInfo { id: string; label: string; what: string; start: string; end: string }
 export interface Entry { appt: Appointment; label: string; service: Service | null; minutes: number; color: ServiceColor; amountCents: number | null }
@@ -377,36 +382,49 @@ export function createRepo(db: VizitaiDB) {
 
     /**
      * The contacts list, in the order she needs it: clients waiting for an amount first (the longest-waiting
-     * first), then those who already paid this month (latest first), then those with a coming visit (soonest
-     * first), then everybody else A-Z. "Paid" shows until the end of the month, then the row falls back to
-     * the next visit or nothing.
+     * first), then those whose payment she entered in the last two weeks (latest first), then those with a coming
+     * visit (soonest first), then everybody else A-Z. The "paid" status shows for two weeks after the visit, then
+     * the row falls back to the next visit or the last visit.
      */
     async listClients(now_: string = nowLocal()): Promise<ClientRow[]> {
       const clients = await db.clients.toArray();
       const appts = await db.appointments.toArray();
-      const month = now_.slice(0, 7);
-      const by = new Map<string, ClientRow & { paidLast: string }>();
-      for (const client of clients) by.set(client.id, { client, lastVisit: null, pending: null, paidCents: 0, nextVisit: null, paidLast: '' });
+      const paidFrom = addDays(datePart(now_), -PAID_PILL_DAYS);
+      const by = new Map<string, ClientRow>();
+      for (const client of clients) by.set(client.id, { client, lastVisit: null, pending: null, paid: null, visitCount: 0, spentCents: 0, nextVisit: null });
       for (const a of appts) {
         const r = a.clientId ? by.get(a.clientId) : undefined;
         if (!r || a.status === 'cancelled') continue;
         if (a.start <= now_) {
           if (a.status === 'noshow') continue;
+          r.visitCount++;
           if (!r.lastVisit || a.start > r.lastVisit) r.lastVisit = a.start;
           if (isValidCents(a.amountCents)) {
-            if (a.start.startsWith(month)) { r.paidCents += a.amountCents; if (a.start > r.paidLast) r.paidLast = a.start; }
+            r.spentCents += a.amountCents;
+            if (datePart(a.start) >= paidFrom && (!r.paid || a.start > r.paid.start)) r.paid = { id: a.id, cents: a.amountCents, start: a.start };
           } else if (!r.pending || a.start < r.pending.start) r.pending = { id: a.id, start: a.start };
         } else if (a.status === 'booked' && (!r.nextVisit || a.start < r.nextVisit)) r.nextVisit = a.start;
       }
-      const group = (r: ClientRow) => (r.pending ? 0 : r.paidCents > 0 ? 1 : r.nextVisit ? 2 : 3);
+      const group = (r: ClientRow) => (r.pending ? 0 : r.paid ? 1 : r.nextVisit ? 2 : 3);
       return [...by.values()]
-        .map((r): ClientRow & { paidLast: string } => ({ ...r, lastVisit: r.lastVisit ? datePart(r.lastVisit) : null }))
+        .map((r): ClientRow => ({ ...r, lastVisit: r.lastVisit ? datePart(r.lastVisit) : null }))
         .sort((a, b) => group(a) - group(b)
           || (group(a) === 0 ? a.pending!.start.localeCompare(b.pending!.start)
-            : group(a) === 1 ? b.paidLast.localeCompare(a.paidLast)
+            : group(a) === 1 ? b.paid!.start.localeCompare(a.paid!.start)
             : group(a) === 2 ? a.nextVisit!.localeCompare(b.nextVisit!) : 0)
-          || ltCollator.compare(a.client.name, b.client.name))
-        .map((r): ClientRow => ({ client: r.client, lastVisit: r.lastVisit, pending: r.pending, paidCents: r.paidCents, nextVisit: r.nextVisit }));
+          || ltCollator.compare(a.client.name, b.client.name));
+    },
+    /** Everything the Analizė page needs, as plain records (the maths is in logic/analytics). */
+    async analyticsInput(now_: string = nowLocal()): Promise<AnalyticsInput> {
+      const [appts, clients, services, settings] = await Promise.all([db.appointments.toArray(), db.clients.toArray(), serviceMap(), this.getSettings()]);
+      const visits: VisitRec[] = [];
+      const off: OffRec[] = [];
+      for (const a of appts) {
+        if (a.kind === 'client' && a.clientId) {
+          visits.push({ clientId: a.clientId, start: a.start, status: a.status, minutes: minutesFor(a, services), cents: isValidCents(a.amountCents) ? a.amountCents : null, service: (a.serviceId ? services.get(a.serviceId)?.name : null) ?? t('service.default.other') });
+        } else if (a.kind === 'personal' && a.status === 'booked' && a.title === t('off.title')) off.push({ start: a.start, minutes: a.durationMinutes ?? PERSONAL_MINUTES });
+      }
+      return { now: now_, visits, off, clients: clients.map((c) => ({ id: c.id, name: c.name })), dayStart: settings.dayStart, dayEnd: settings.dayEnd };
     },
     async clientDetail(id: string, now_: string = nowLocal()) {
       const client = await db.clients.get(id);

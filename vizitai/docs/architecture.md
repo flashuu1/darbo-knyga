@@ -412,3 +412,25 @@ In Savaitė, holding a lifted entry at the left or right edge of the screen (36 
 ## Entries behind "+N" can be dragged
 
 Press and hold the "+N" chip (what does not fit side by side) to lift the first of the hidden entries out of it: the card in her hand is that entry (name and time, a proper size, held by its middle), the chip counts one less (and disappears when none is left), and the entry can be dropped anywhere, turn the day or week at the edge, and be undone, like any other. A plain tap on the chip still opens the list of what is hidden. The chip's element stays mounted during the drag (a hidden anchor in the same keyed list), so the gesture survives a day or week turning.
+
+## Klientai: list, filter, and analysis (designed in a mockup first)
+
+The tab has a segmented control **Sąrašas | Analizė** (a white thumb slides between them), a blue **+** (a client without a visit: name and optional phone), and keeps its state (view, filter, sort, analysis page, period) while she visits another tab.
+
+**Sąrašas**
+- **Search** by name (no diacritics) or by the digits of the phone (from three digits); the **filter button** (icon, with a red count of what is changed) opens "Filtruoti ir rūšiuoti": *Automatiškai* (everybody, in the app's own order), *Laukia sumos*, *Ateina šią savaitę* (a visit in the next 7 days), *Seniai nebuvo* (60+ days, nothing waiting), *Neseniai buvo* (14 days), each with its count; and sorting: Automatiškai / Pagal abėcėlę / Paskutinis vizitas / Daugiausiai išleidusios / Daugiausiai vizitų. No A–Ž side index.
+- **Automatiškai = the order the app has always used** (`repo.listClients`): waiting for an amount first (longest waiting first), then clients whose amount she entered in the last 14 days (latest first), then those with a coming visit (soonest first), then everybody else A–Z. Cancelled visits stay at the bottom (only in that default view).
+- **Four tiles** (Laukia sumos, Ateina šią savaitę, Seniai nebuvo, Neseniai buvo) show their count and filter the list below them in place (no other screen); pressing the active tile again, or "Rodyti visus", returns to Automatiškai.
+- **A row** is a name and one line: the visit that waits ("Vizitas spalio 31 d."), the next visit ("Kitas: …", blue), or how long ago ("Buvo prieš 3 sav."); under the money sorts "Iš viso 640 € · vizitų: 7". Swipe left = delete (only).
+- **The pills**: orange **Laukia sumos** (34 px tall, opens Suma straight from the list), green **✓ 45,00 € · spalio 31 d.** (the amount and the visit it was paid for; lasts **14 days** after the visit, a tap edits the amount). Rows that have neither show a chevron.
+
+**Analizė** has four pages (Nauji, Dažniausi, Pelningiausi, Laikas) and one **period** for all of them: a grey bar of the 24 months with a window that is dragged, stretched by its edges or tapped to move, plus floating **"glass" buttons** (3 / 6 / 12 mėn. / Visi, blurred and translucent, kept above the tab bar; the thumb slides). The arrows ("↑ 12%") compare with the period of the same length right before it and are left out when there is none.
+- **Nauji**: new clients per month (line + area), all clients over time, and how many of the new ones came back (what share reached their 1st, 2nd, 3rd … visit).
+- **Dažniausi**: visits per month, **Kas kiek ateina** (the average gap between visits and clients who are past their own rhythm and have nothing booked: "kas 3 sav., jau 7 sav."; the groundwork for "Kas turėtų grįžti"), a weekday × time-of-day heat map, a ranking with a small trend line per client (a row opens its details).
+- **Pelningiausi**: records (busiest month, most profitable month, best weekday), income per month, average per visit, **money lost** to no-shows and cancellations (approximate, at the usual amount; cancelled visits are kept only for a week, so mostly no-shows show up), a ring by service, a ranking by money.
+- **Laikas**: share of the available time that was booked (Monday–Saturday of the month up to today × her working day, minus Nedirbu), hours worked / free / off, a worked-vs-free hours chart, earnings per worked hour.
+- All the maths is `logic/analytics.ts` (pure, covered by unit tests); `repo.analyticsInput()` supplies plain records. Only past, kept visits count.
+
+**Motion** (transform and opacity, nothing that forces layout; Reduce Motion makes everything jump): cards and rows rise in one after another; the segmented thumbs and the glass thumb slide; chart lines, areas, big numbers and ring slices *glide from what is on screen to the new data* (an SVG chart is drawn by `ui/components/charts.tsx` straight into attributes, so about 30 attributes change per frame and Preact is not involved); a touched chart reads out a month with a pin; heat-map cells change colour softly.
+
+**Test data**: `tests/support/demo.ts` makes believable books (52 clients, two years, five visits waiting, some paid lately, bookings ahead, no-shows, days off, expenses). `DEMO_OUT=file.json npx vitest run tests/unit/demo-backup.test.ts` writes it as a backup file; Nustatymai > Atsarginė kopija > Atkurti iš failo loads it (replacing everything on that phone).

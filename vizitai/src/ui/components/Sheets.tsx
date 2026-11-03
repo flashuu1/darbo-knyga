@@ -2,6 +2,7 @@ import { ActionSheet } from './ActionSheet';
 import { AmountSheet } from './AmountSheet';
 import { AppointmentSheet } from './AppointmentSheet';
 import { SummarySheet } from './SummarySheet';
+import { ClientFilterSheet, NewClientSheet } from './ClientSheets';
 import { DragGhost } from './DragGhost';
 import { MoveSheet } from './MoveSheet';
 import { NewFlow } from './NewFlow';
@@ -10,7 +11,7 @@ import { ClientCard } from '../screens/ClientCard';
 import { usePresence } from '../presence';
 import { ui, useStore, type Sheet } from '../store';
 
-const keyOf = (s: Sheet) => (s.type === 'new' ? `new${s.start}${s.clientId ?? ''}${s.screen ?? ''}` : s.type === 'summary' ? `summary${s.scope}${s.date}` : `${s.type}${s.id}`);
+const keyOf = (s: Sheet) => (s.type === 'new' ? `new${s.start}${s.clientId ?? ''}${s.screen ?? ''}` : s.type === 'summary' ? `summary${s.scope}${s.date}` : s.type === 'cfilter' || s.type === 'cnew' ? s.type : `${s.type}${s.id}`);
 
 export function Sheets() {
   const { sheet, client } = useStore(ui);
@@ -26,6 +27,8 @@ export function Sheets() {
           {shown.type === 'move' && <MoveSheet id={shown.id} />}
           {shown.type === 'amount' && <AmountSheet id={shown.id} />}
           {shown.type === 'summary' && <SummarySheet scope={shown.scope} date={shown.date} />}
+          {shown.type === 'cfilter' && <ClientFilterSheet />}
+          {shown.type === 'cnew' && <NewClientSheet />}
         </div>
       )}
       <ActionSheet />

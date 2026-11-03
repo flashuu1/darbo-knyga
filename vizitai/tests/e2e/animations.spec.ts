@@ -28,6 +28,7 @@ async function watch(page: Page) {
 const report = (page: Page) => page.evaluate(() => { const a = (window as any).__anim; return { props: [...a.props] as string[], longest: a.longest as number, seen: a.seen as number }; });
 
 test('sheets, pages, tabs and view changes only animate transform and opacity-type properties, and none take longer than 0.7 s', async ({ page }) => {
+  test.setTimeout(90_000); // it walks through the whole app
   await openApp(page, '2026-10-14T10:40:00');
   await seedOptions(page);
   const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T09:00' }, { name: 'Rasa', start: '2026-10-14T15:00' }]);
@@ -60,6 +61,23 @@ test('sheets, pages, tabs and view changes only animate transform and opacity-ty
   await page.getByTestId('seg-day').click();
   await page.waitForTimeout(450);
   for (const tab of ['clients', 'expenses', 'calendar']) { await page.getByTestId(`tab-${tab}`).click(); await page.waitForTimeout(200); }
+  // Klientai: the list, its tiles and filter sheet, and every page of the analysis with the glass period buttons
+  await page.getByTestId('tab-clients').click();
+  await page.getByTestId('tile-due').click();
+  await page.waitForTimeout(450);
+  await page.getByTestId('tile-due').click();
+  await page.getByTestId('client-filter').click();
+  await page.waitForTimeout(450);
+  await page.getByTestId('sort-az').click();
+  await page.waitForTimeout(450);
+  await page.getByTestId('clients-seg-stats').click();
+  await page.waitForTimeout(500);
+  for (const s of ['freq', 'profit', 'time', 'new']) { await page.getByTestId(`stat-seg-${s}`).click(); await page.waitForTimeout(500); }
+  await page.getByTestId('glass-3').click();
+  await page.waitForTimeout(500);
+  await page.getByTestId('clients-seg-list').click();
+  await page.waitForTimeout(450);
+  await page.getByTestId('tab-calendar').click();
   await openSettings(page, 'services');
   await page.getByTestId('settings-back').click();
   await page.waitForTimeout(450);

@@ -29,9 +29,10 @@ test('pending payment first, then paid this month in green, then the next visit'
   void pending; void next;
   await page.getByTestId('tab-clients').click();
   await expect(page.getByTestId('client-row-0')).toContainText('Aaa Laukia');
-  await expect(page.getByTestId('client-pending-0')).toHaveText('Pridėti sumą');
+  await expect(page.getByTestId('client-pending-0')).toHaveText('Laukia sumos');
   await expect(page.getByTestId('client-row-1')).toContainText('Bbb Sumokėjo');
-  await expect(page.getByTestId('client-paid-1')).toContainText('Sumokėta 45,00');
+  await expect(page.getByTestId('client-paid-1')).toContainText('45,00');
+  await expect(page.getByTestId('client-paid-1')).toContainText('spalio 13 d.'); // the visit it was paid for
   await expect(page.getByTestId('client-next-1')).toContainText('spalio 30 d.');
   await expect(page.getByTestId('client-row-2')).toContainText('Ccc Netrukus');
   await expect(page.getByTestId('client-next-2')).toContainText('spalio 20 d.');
@@ -49,7 +50,7 @@ test('entering the amount turns the pending client green and moves them below th
   await expect(page.getByTestId('client-row-0')).toContainText('Bbb'); // still waiting: now first
   await expect(page.getByTestId('client-pending-0')).toBeVisible();
   await expect(page.getByTestId('client-row-1')).toContainText('Aaa');
-  await expect(page.getByTestId('client-paid-1')).toContainText('Sumokėta 30,00');
+  await expect(page.getByTestId('client-paid-1')).toContainText('30,00');
   void b;
 });
 

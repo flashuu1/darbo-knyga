@@ -1,12 +1,14 @@
 import type { CSSProperties } from 'preact';
 import { useMemo } from 'preact/hooks';
+import { lowFps } from '../perf';
 
 const BURST_COLORS = ['green', 'yellow', 'orange', 'pink', 'blue', 'teal'];
 
 /** A short burst of confetti: transform and opacity only, over in about 0.65 s. Put it in a positioned box (see `.yay`). */
 export function Burst() {
-  const parts = useMemo(() => Array.from({ length: 26 }, (_, i) => {
-    const a = (i / 26) * Math.PI * 2 + Math.random() * 0.4, d = 70 + Math.random() * 90;
+  const count = lowFps() ? 14 : 26; // fewer pieces at 30 Hz
+  const parts = useMemo(() => Array.from({ length: count }, (_, i) => {
+    const a = (i / count) * Math.PI * 2 + Math.random() * 0.4, d = 70 + Math.random() * 90;
     return { dx: Math.cos(a) * d, dy: Math.sin(a) * d - 24, rot: Math.round((Math.random() - 0.5) * 540), c: BURST_COLORS[i % BURST_COLORS.length]!, s: 6 + Math.round(Math.random() * 5), delay: Math.round(Math.random() * 50), round: i % 3 !== 0 };
   }), []);
   return (

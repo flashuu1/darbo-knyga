@@ -1,3 +1,5 @@
+import { motionScale } from './perf';
+
 /** True when iOS "Reduce Motion" is on: numbers and charts then jump instead of gliding. */
 export const prefersReduced = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 const ease = (t: number) => 1 - (1 - t) ** 3;
@@ -7,7 +9,8 @@ const ease = (t: number) => 1 - (1 - t) ** 3;
  * frame (the first call is immediate). Returns a function that stops it. Used for charts, which draw into SVG
  * attributes directly instead of re-rendering the component sixty times a second.
  */
-export function tween(from: number[], to: number[], ms: number, frame: (v: number[]) => void): () => void {
+export function tween(from: number[], to: number[], msNormal: number, frame: (v: number[]) => void): () => void {
+  const ms = msNormal * motionScale(); // shorter in Low Power Mode (30 Hz); unchanged otherwise
   if (prefersReduced() || ms <= 0 || from.every((v, i) => v === to[i])) { frame(to); return () => {}; }
   let raf = 0;
   const t0 = performance.now();

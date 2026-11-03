@@ -16,7 +16,10 @@ export interface ChangeEntry {
 }
 
 export const CHANGELOG: ChangeEntry[] = [
-  { date: '2026-11-03', items: [
+  { date: '2026-11-04', items: [
+    { kind: 'feature', text: 'Mažos energijos režimas (iPhone ekranas 30 Hz): programa jį pati pastebi ir supaprastina animacijas: trumpesnės, be neryškinimo, mažiau konfeti ir blizgesių. Įprastame režime niekas nesikeičia.' },
+  ] },
+  { build: '70f1036', date: '2026-11-03', items: [
     { kind: 'change', text: 'Palaikymo kortelės nubraukimas: paleidus kortelė nesustoja, o išlaiko piršto greitį ir tarsi spyruoklė įsitraukia į nuotrauką ar mygtuką, palaipsniui mažėdama; išnyksta tik pačioje pabaigoje.' },
   ] },
   { build: '12b491b', date: '2026-11-03', items: [

@@ -6,6 +6,7 @@ import { BootErrorScreen, InstallScreen } from './ui/screens/Install';
 import { initUpdates } from './pwa/updates';
 import { isBusy, ui } from './ui/store';
 import { lockDocument } from './pwa/lock';
+import { startFrameMonitor } from './ui/perf';
 
 const root = document.getElementById('app')!;
 lockDocument();
@@ -34,6 +35,7 @@ async function boot() {
   tidy();
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') tidy(); });
   render(<App />, root);
+  startFrameMonitor(); // notices Low Power Mode (30 Hz) and simplifies the animations while it lasts
   initUpdates(isBusy);
 }
 boot().catch((e) => {

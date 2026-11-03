@@ -102,7 +102,7 @@ export function VisitPeek({ peek, leaving }: { peek: PeekState; leaving: boolean
     el.style.transition = 'none';
     if (back.current) back.current.style.transition = 'none';
     const step = (now: number) => {
-      const dt = Math.min(0.032, (now - last) / 1000); last = now;
+      const dt = Math.min(0.05, (now - last) / 1000); last = now; // the cap allows 30 Hz frames (33 ms) without slowing the motion
       sx += (K * (tx - x) - C * sx) * dt; sy += (K * (ty - y) - C * sy) * dt;
       x += sx * dt; y += sy * dt;
       const p = Math.min(1, Math.max(0, 1 - Math.hypot(tx - x, ty - y) / total));

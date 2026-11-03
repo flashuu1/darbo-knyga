@@ -803,3 +803,25 @@ p.link-name { color: var(--label); }
 /* the client card: swiped away to the right, it follows the finger */
 .card-root { touch-action: pan-y; will-change: auto; }
 .card-root .scroll, .card-root .chrome { touch-action: pan-y; }
+
+/* ==========================================================================
+   Low Power Mode (the screen runs at 30 Hz): fewer, shorter and cheaper animations. The page is marked
+   html[data-fps='low'] by ui/perf.ts only while frames really arrive 33 ms apart. Nothing here applies at 60 or 120 Hz.
+   ========================================================================== */
+html[data-fps='low'] { --t-press: 70ms; --t-fast: 100ms; --t-med: 160ms; --t-sheet: 230ms; }
+/* blur is the dearest thing to draw each frame: a plain, more solid fill instead */
+html[data-fps='low'] .glass, html[data-fps='low'] .peek-back { -webkit-backdrop-filter: none; backdrop-filter: none; }
+html[data-fps='low'] .glass { background: rgba(255, 255, 255, .88); }
+html[data-fps='low'] .peek-back { background: var(--backdrop); }
+@media (prefers-color-scheme: dark) { html[data-fps='low'] .glass { background: rgba(58, 58, 64, .94); } }
+/* shorter entrances, less stagger, fewer things moving at once */
+html[data-fps='low'] .rise, html[data-fps='low'] .client-list.anim > li, html[data-fps='low'] .anim .row { animation-duration: .26s; animation-delay: calc(var(--i, 0) * 16ms); }
+html[data-fps='low'] .peek-card[data-ready] { animation-duration: .3s; }
+html[data-fps='low'] .peek-card > * { animation-duration: .24s; animation-delay: 0s; }
+html[data-fps='low'] .glass { animation-duration: .3s; }
+html[data-fps='low'] .gapline i { animation-duration: .5s; }
+html[data-fps='low'] .pillseg .thumb, html[data-fps='low'] .glass .thumb { transition-duration: .22s; }
+html[data-fps='low'] .tile, html[data-fps='low'] .heat button, html[data-fps='low'] .donut path { transition-duration: .18s; }
+/* the glow keeps breathing, but without its sparks, and the flowers are three instead of five */
+html[data-fps='low'] .entry-glow i { display: none; }
+html[data-fps='low'] .entry-bloom i:nth-child(n+4) { display: none; }

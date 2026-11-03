@@ -96,9 +96,9 @@ test('holding at the screen edge for 600 ms flips the day', async ({ page }) => 
   const { y } = await lift(page, id);
   await page.mouse.move(3, y, { steps: 6 });
   await expect.poll(() => page.evaluate(() => (window as any).__vizitai.ui.get().date)).toBe('2026-10-13'); // eslint-disable-line @typescript-eslint/no-explicit-any
+  await page.mouse.move(200, y, { steps: 6 }); // away from the edge at once: held there it would turn another day (a slow machine must not get that far)
   await expect(page.getByTestId(`entry-${other}`)).toBeVisible();
   await expect(page.getByTestId('drag-ghost')).toBeVisible();
-  await page.mouse.move(200, y, { steps: 6 });
   await page.mouse.up();
   await expect.poll(async () => (await start(page, id)()).slice(0, 10)).toBe('2026-10-13');
 });

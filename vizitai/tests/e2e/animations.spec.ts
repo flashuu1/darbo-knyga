@@ -110,3 +110,69 @@ test('a long list of swipe rows does not give every row its own compositor layer
   const layers = await page.locator('.swipe-content').evaluateAll((els) => els.filter((e) => getComputedStyle(e).willChange !== 'auto').length);
   expect(layers).toBe(0);
 });
+
+test.describe('Low Power Mode (30 Hz)', () => {
+  const open = async (page: Page, fps: 'low' | 'full') => {
+    await page.clock.install({ time: new Date('2026-10-14T12:00:00') });
+    await page.goto(`/?fps=${fps}`);
+    await expect(page.getByTestId('app')).toBeVisible();
+    await page.waitForFunction(() => !!(window as any).__vizitai);
+  };
+  const data = (page: Page) => page.evaluate(async () => {
+    const { repo } = (window as any).__vizitai;
+    const svc = await repo.listServices(true);
+    const a = await repo.createAppointment({ kind: 'client', name: 'Ona', serviceId: svc[0].id, start: '2026-10-13T10:00' });
+    await repo.setAmount(a.id, 4000);
+  });
+
+  test('in the low mode the page is marked, animations are shorter and the blur is gone; at full speed nothing changes', async ({ page }) => {
+    await open(page, 'full');
+    await expect(page.locator('html')).toHaveAttribute('data-fps', 'full');
+    const seconds = (v: string) => (v.endsWith('ms') ? parseFloat(v) / 1000 : parseFloat(v)); // the browser may write 220ms as .22s
+    const med = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--t-med').trim());
+    expect(seconds(med)).toBeCloseTo(0.22);
+    await data(page);
+    await page.getByTestId('tab-expenses').click();
+    await page.getByTestId('expenses-seg-stats').click();
+    await expect(page.getByTestId('glass')).toBeVisible();
+    expect(await page.getByTestId('glass').evaluate((el) => getComputedStyle(el).backdropFilter || (getComputedStyle(el) as any).webkitBackdropFilter)).toContain('blur');
+
+    await open(page, 'low');
+    await expect(page.locator('html')).toHaveAttribute('data-fps', 'low');
+    expect(seconds(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--t-med').trim()))).toBeCloseTo(0.16);
+    await data(page);
+    await page.getByTestId('tab-expenses').click();
+    await page.getByTestId('expenses-seg-stats').click();
+    await expect(page.getByTestId('glass')).toBeVisible();
+    expect(await page.getByTestId('glass').evaluate((el) => getComputedStyle(el).backdropFilter || (getComputedStyle(el) as any).webkitBackdropFilter)).toBe('none');
+    // still works: a hold card opens and can be let go
+    await page.getByTestId('tab-clients').click();
+    const b = (await page.getByTestId('client-row-0').boundingBox())!;
+    await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.mouse.down(); await page.waitForTimeout(700); await page.mouse.up();
+    await expect(page.getByTestId('peek')).toBeVisible();
+    await page.getByTestId('peek-back').click({ position: { x: 12, y: 12 } });
+    await expect(page.getByTestId('peek')).toHaveCount(0);
+  });
+
+  test('the monitor itself: frames arriving 33 ms apart switch the app to the low mode, and it stays full at normal speed', async ({ page }) => {
+    test.setTimeout(60_000);
+    await page.addInitScript(() => { // a screen held at 30 Hz: frames come on a 33.3 ms beat and carry the time of the beat, as the real ones do
+      const beat = 1000 / 30;
+      window.requestAnimationFrame = (cb: FrameRequestCallback) => {
+        const at = Math.ceil((performance.now() + 1) / beat) * beat;
+        return window.setTimeout(() => cb(at), Math.max(0, at - performance.now()));
+      };
+    });
+    await page.goto('/');
+    await expect(page.getByTestId('app')).toBeVisible();
+    await expect(page.locator('html')).toHaveAttribute('data-fps', 'low', { timeout: 25_000 });
+  });
+
+  test('at normal speed the monitor leaves the app in the full mode', async ({ page }) => {
+    test.setTimeout(60_000);
+    await page.goto('/');
+    await expect(page.getByTestId('app')).toBeVisible();
+    await page.waitForTimeout(8000); // longer than the first two looks
+    await expect(page.locator('html')).toHaveAttribute('data-fps', 'full');
+  });
+});

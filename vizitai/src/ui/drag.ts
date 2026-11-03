@@ -2,6 +2,7 @@ import type { Entry } from '../db/repo';
 import { AUTOSCROLL_ZONE_PX, CHIP_DWELL_MS, EDGE_HOLD_MS, EDGE_REPEAT_MS, edgeSide, exceedsThreshold, HOLD_MS, startFromY, WEEK_EDGE_HOLD_MS, WEEK_EDGE_REPEAT_MS, WEEK_EDGE_ZONE_PX } from '../logic/drag';
 import { addDays, timePart, weekStart } from '../logic/time';
 import { moveWithToast } from './actions';
+import { lowFps } from './perf';
 import { ui } from './store';
 
 /** Long-press (400 ms) then drag. Listeners live on the entry element so the gesture survives day flips
@@ -69,13 +70,18 @@ export function bindEntryDrag(el: HTMLElement, getEntry: () => Entry, chipKey?: 
     };
     edgeTimer = window.setTimeout(flip, week ? WEEK_EDGE_HOLD_MS : EDGE_HOLD_MS);
   }
+  let lastFrame = 0;
   function loop() {
+    const now = performance.now();
+    // at 30 Hz each frame must carry more, so the scrolling keeps its speed (at 60 or 120 Hz: exactly as before)
+    const k = lowFps() ? Math.min(4, Math.max(1, (now - (lastFrame || now - 8.33)) / 8.33)) : 1;
+    lastFrame = now;
     const sc = el.closest<HTMLElement>('.grid-scroll');
     if (sc) {
       const r = sc.getBoundingClientRect();
       const before = sc.scrollTop;
-      if (ly < r.top + AUTOSCROLL_ZONE_PX) sc.scrollTop -= 8;
-      else if (ly > r.bottom - AUTOSCROLL_ZONE_PX) sc.scrollTop += 8;
+      if (ly < r.top + AUTOSCROLL_ZONE_PX) sc.scrollTop -= 8 * k;
+      else if (ly > r.bottom - AUTOSCROLL_ZONE_PX) sc.scrollTop += 8 * k;
       if (sc.scrollTop !== before) dirty = true;
     }
     // Finger still: only re-hit-test every ~10 frames (catches the grid re-laying out after a day flip loads).

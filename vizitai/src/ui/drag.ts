@@ -6,7 +6,7 @@ import { ui } from './store';
 
 /** Long-press (400 ms) then drag. Listeners live on the entry element so the gesture survives day flips
  *  (TimelineGrid keeps this element mounted while a drag is active). */
-export function bindEntryDrag(el: HTMLElement, getEntry: () => Entry): () => void {
+export function bindEntryDrag(el: HTMLElement, getEntry: () => Entry, chipKey?: string): () => void {
   let timer = 0, edgeTimer = 0, dwellTimer = 0, dwellKey = '', raf = 0;
   let pid = -1, sx = 0, sy = 0, lx = 0, ly = 0, grabDY = 0, grabDX = 0, side = 0;
   let lifted = false, justDragged = false, dirty = false, idle = 0;
@@ -87,10 +87,12 @@ export function bindEntryDrag(el: HTMLElement, getEntry: () => Entry): () => voi
     const entry = getEntry();
     const r = el.getBoundingClientRect();
     lifted = true;
-    grabDY = sy - r.top;
-    grabDX = sx - r.left;
+    // a "+N" chip is small: what is lifted out of it is a card of a proper size, held by its middle
+    const width = chipKey ? Math.min(Math.max(r.width, 170), window.innerWidth - 24) : r.width;
+    grabDY = chipKey ? Math.min(sy - r.top, 22) : sy - r.top;
+    grabDX = chipKey ? width / 2 : sx - r.left;
     try { el.setPointerCapture(pid); } catch { /* pointer already gone */ }
-    ui.set({ drag: { entry, label: entry.appt.start, x: lx, y: ly, grabDY, grabDX, left: r.left, width: r.width, over: null } });
+    ui.set({ drag: { entry, label: entry.appt.start, x: lx, y: ly, grabDY, grabDX, left: r.left, width, over: null, ...(chipKey ? { chipKey } : {}) } });
     update();
     loop();
   }

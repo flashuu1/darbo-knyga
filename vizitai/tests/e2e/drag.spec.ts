@@ -347,3 +347,55 @@ test('dragging an entry next to or onto another only says it moved: no overlap t
   await page.getByTestId('toast-undo').click();
   await expect.poll(start(page, id)).toBe('2026-10-14T10:00');
 });
+
+test('an entry hidden behind the "+N" chip can be lifted straight out of it: the card in her hand is that entry, and the chip counts one less', async ({ page }) => {
+  await openApp(page);
+  // two fit side by side, the rest are gathered in "+2"; Jonas is the first of the hidden
+  const ids = await seedAppts(page, [
+    { name: 'Ona', start: '2026-10-14T14:00' }, { name: 'Rasa', start: '2026-10-14T14:00' }, { name: 'Jonas', start: '2026-10-14T14:00' }, { name: 'Egle', start: '2026-10-14T14:00' },
+  ]);
+  const chip = page.getByTestId('more-2026-10-14T14:00');
+  await expect(chip).toHaveText('+2');
+  await page.evaluate(() => { // the middle of the timeline, away from the auto-scroll zones at its edges
+    const el = document.querySelector('[data-testid="more-2026-10-14T14:00"]')!, sc = document.querySelector('[data-testid="timeline"]')!;
+    sc.scrollTop += el.getBoundingClientRect().top - (sc.getBoundingClientRect().top + sc.getBoundingClientRect().height * 0.4);
+  });
+  await page.waitForTimeout(300);
+  const row = await rowHeight(page);
+  const box = (await chip.boundingBox())!;
+  const x = box.x + box.width / 2, y = box.y + box.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.waitForTimeout(450);
+  await expect(page.getByTestId('drag-ghost')).toBeVisible();
+  await expect(page.getByTestId('drag-ghost')).toContainText('Jonas'); // not "+2": the entry itself
+  expect((await page.getByTestId('drag-ghost').boundingBox())!.width).toBeGreaterThan(150); // a card of a proper size
+  await expect(chip).toHaveText('+1'); // one of the two is in her hand
+  await page.mouse.move(x, y + 4 * row + 3, { steps: 8 });
+  await expect(page.getByTestId('drag-ghost')).toContainText('15:00');
+  await page.mouse.up();
+  await expect(page.getByTestId('toast')).toContainText('Perkelta');
+  await expect.poll(start(page, ids[2]!)).toBe('2026-10-14T15:00');
+  await expect(chip).toHaveCount(0); // Ona, Rasa and Egle fit side by side now: no chip
+  await page.getByTestId('toast-undo').click();
+  await expect.poll(start(page, ids[2]!)).toBe('2026-10-14T14:00');
+  await expect(chip).toHaveText('+2');
+});
+
+test('lifting the last hidden entry makes the chip go away; a plain tap on the chip still opens the list', async ({ page }) => {
+  await openApp(page);
+  const ids = await seedAppts(page, [
+    { name: 'Ona', start: '2026-10-14T14:00' }, { name: 'Rasa', start: '2026-10-14T14:00' }, { name: 'Jonas', start: '2026-10-14T14:00' }, { name: 'Egle', start: '2026-10-14T14:00' },
+  ]);
+  await page.evaluate(async (x) => (window as any).__vizitai.repo.cancelAppointment(x, null), ids[2]); // eslint-disable-line @typescript-eslint/no-explicit-any
+  // Ona, Rasa and Egle fit in three lanes: no chip. Put a fourth live one back so exactly one stays hidden
+  await page.evaluate(async () => { const { repo } = (window as any).__vizitai; const s = await repo.listServices(true); await repo.createAppointment({ kind: 'client', name: 'Mantas', serviceId: s[0].id, start: '2026-10-14T14:00' }); }); // eslint-disable-line @typescript-eslint/no-explicit-any
+  const chip = page.getByTestId('more-2026-10-14T14:00');
+  await expect(chip).toHaveText('+2');
+  await chip.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(300);
+  await chip.click(); // a tap, not a hold: the list of what is hidden
+  await expect(page.getByTestId('action-title')).toBeVisible();
+  await page.evaluate(() => (window as any).__vizitai.ui.set({ action: null })); // eslint-disable-line @typescript-eslint/no-explicit-any
+  await page.waitForTimeout(400);
+});

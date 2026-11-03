@@ -17,6 +17,9 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   { date: '2026-11-03', items: [
+    { kind: 'bugfix', text: 'Įrašus, paslėptus už „+N“, dabar galima nutempti: palaikius „+N“ pakeliamas pats įrašas, o skaičius sumažėja.' },
+  ] },
+  { build: '00dd7be', date: '2026-11-03', items: [
     { kind: 'feature', text: 'Apie programą: pakeitimų istorija su klaidų taisymais, pakeitimais ir naujomis funkcijomis kiekvienam leidimui.' },
   ] },
   { build: '4910400', date: '2026-11-03', items: [

@@ -408,3 +408,7 @@ In Savaitė, holding a lifted entry at the left or right edge of the screen (36 
 - **Dragging in the calendar never talks about overlaps**: the toast only says "Perkelta: ..." with Anuliuoti for a few seconds, as before.
 - **Nedirbu is one screen with two steps**: the same picker, with a Nuo / Iki header in grey-blue (the entry in the calendar stays red). The chip being set glows faintly; "Toliau" moves the glow from Nuo to Iki on the same screen (the calendar is dimmed and locked, only the time wheel works, same day) and the button becomes "Išsaugoti".
 - No choice card is red or pink (Daktaras is blue, Masažas purple), so red means Asmeninis only.
+
+## Entries behind "+N" can be dragged
+
+Press and hold the "+N" chip (what does not fit side by side) to lift the first of the hidden entries out of it: the card in her hand is that entry (name and time, a proper size, held by its middle), the chip counts one less (and disappears when none is left), and the entry can be dropped anywhere, turn the day or week at the edge, and be undone, like any other. A plain tap on the chip still opens the list of what is hidden. The chip's element stays mounted during the drag (a hidden anchor in the same keyed list), so the gesture survives a day or week turning.

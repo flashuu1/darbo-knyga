@@ -9,6 +9,10 @@ The order below is a suggestion; the owner decides after testing what is built. 
 - [ ] **3. Client reminders in one tap.** A "Rytojaus klientai" list with a button that opens a ready-made SMS or WhatsApp message (no backend: the phone sends it).
 - [ ] **4. "Kas turėtų grįžti".** Learn each client's rhythm (for example every 6 weeks), list who is overdue, rebook in one tap. First real assistant step.
 
+## Klientai tab redesign (to plan together)
+
+The main view is plain: a search box and a list. Ideas to choose from (see the conversation): filters (Visi, Skolingi, Šią savaitę, Seniai nebuvę, Nauji), sorting (smart, A–Ž, last visit, most spent), an A–Ž index with sticky letters, richer rows (last visit, next visit, lifetime total, badges), quick actions (call, message, book again), a richer client card (history, total spent, rhythm, favourite service, notes, phone), a "needs a reminder" list, duplicates merge, manual add.
+
 ## Also worth doing
 
 - [ ] Client notes (hair formula, allergies, preferences), shown when she opens an entry.

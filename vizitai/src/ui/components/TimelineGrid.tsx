@@ -12,6 +12,7 @@ import { CalendarIcon } from '../icons';
 import { ui, useStore } from '../store';
 import { clampZoom, densityFor, labelStep, pinchZoom, saveZoom, snapZoom } from '../../logic/zoom';
 import { EntryBlock } from './EntryBlock';
+import { MoreChip } from './MoreChip';
 
 const toMin = (hm: string) => +hm.slice(0, 2) * 60 + +hm.slice(3, 5);
 /** Most lanes side by side before the rest collapse into a "+N" chip. */
@@ -332,14 +333,24 @@ export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; com
                       ? [<EntryBlock key={drag.entry.appt.id} e={drag.entry} startMin={startMin} col={0} cols={1} compact={false} anchor />]
                       : []),
                   ]}
-                  {lay.overflow.map((g) => (
-                    <button key={`more-${g.start}`} class="entry-more" data-testid={`more-${d}T${hhmm(g.start)}`} data-entry-box=""
-                      aria-label={t('overflow.aria', { n: g.ids.length })}
-                      style={{ '--top': (g.start - startMin) / 15, '--len': 1, '--c': g.col, '--n': g.cols } as CSSProperties}
-                      onClick={() => showOverflow(g.ids.map((id) => byId.get(id)!).filter(Boolean))}>
-                      {t('overflow.more', { n: g.ids.length })}
-                    </button>
-                  ))}
+                  {/* The "+N" chips, and an anchor for one that is lifted, in one keyed list: the lifted chip's element (and her gesture) survives the day or week turning, like the entry anchor. */}
+                  {[
+                    ...lay.overflow.map((g) => {
+                      const key = `more-${g.start}`;
+                      const hiddenEntries = g.ids.map((id) => byId.get(id)!).filter(Boolean);
+                      const lifted = drag?.chipKey === key && hiddenEntries.some((e) => e.appt.id === drag.entry.appt.id);
+                      const n = g.ids.length - (lifted ? 1 : 0); // the one in her hand no longer counts
+                      return (
+                        <MoreChip key={key} chipKey={key} testId={`more-${d}T${hhmm(g.start)}`} first={hiddenEntries[0]!} hidden={n <= 0}
+                          ariaLabel={t('overflow.aria', { n: g.ids.length })} label={t('overflow.more', { n })}
+                          style={{ '--top': (g.start - startMin) / 15, '--len': 1, '--c': g.col, '--n': g.cols } as CSSProperties}
+                          onOpen={() => showOverflow(hiddenEntries)} />
+                      );
+                    }),
+                    ...(drag?.chipKey && (dates.length === 1 || idx === dragIdx) && !lay.overflow.some((g) => `more-${g.start}` === drag.chipKey)
+                      ? [<MoreChip key={drag.chipKey} chipKey={drag.chipKey} testId="more-anchor" first={drag.entry} hidden ariaLabel="" label="" style={{ '--top': 0, '--len': 1, '--c': 0, '--n': 1 } as CSSProperties} onOpen={() => {}} />]
+                      : []),
+                  ]}
                   {d === today && showNow && <div class="now-line" data-testid="now-line" style={rowStyle(nowMin)} />}
                 </div>
               );

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
 import { repo } from '../../db/repo';
 import { formatDayShort, formatEuro, formatEuroRound, monthAbbr, monthYear, weekdayAbbr, weekdayName } from '../../i18n/format';
@@ -10,7 +10,7 @@ import {
 import { BigNumber, Delta, Donut, HeatMap, LineChart, PeriodBar, type LineCfg } from '../components/charts';
 import { Segmented } from '../components/Segmented';
 import { useLive } from '../hooks';
-import { clientsUi, type StatTab } from '../clientsUi';
+import { clientsUi, goPage, slideClass, STAT_TABS, type StatTab } from '../clientsUi';
 import { ui, useStore } from '../store';
 
 const num = new Intl.NumberFormat('lt-LT', { maximumFractionDigits: 1 });
@@ -47,7 +47,9 @@ function Rank({ rows, unit, detail, color }: { rows: RankRow[]; unit: (v: number
 }
 
 export function ClientStats() {
-  const { stat, win, top } = useStore(clientsUi);
+  const { stat, win, top, dir } = useStore(clientsUi);
+  const shown = useRef(false); // the first page comes in with the whole screen; later pages slide by themselves
+  useEffect(() => { shown.current = true; }, []);
   const a = useLive(async () => buildAnalytics(await repo.analyticsInput()), [], null as Analytics | null);
   const labels = useMemo(() => (a ? a.keys.slice(win.from, win.to + 1).map(monthAbbr) : []), [a, win.from, win.to]);
   const tipL = (i: number) => (a ? monthYear(a.keys[win.from + i]!) : '');
@@ -55,7 +57,7 @@ export function ClientStats() {
   return (
     <>
       <div class="scroll list-body stats-body" data-testid="stats">
-        <Segmented small testId="stat-seg" value={stat} onChange={(v: StatTab) => clientsUi.set({ stat: v })}
+        <Segmented small testId="stat-seg" value={stat} onChange={(v: StatTab) => goPage(1 + STAT_TABS.indexOf(v))}
           items={[{ id: 'new', label: t('st.new') }, { id: 'freq', label: t('st.freq') }, { id: 'profit', label: t('st.profit') }, { id: 'time', label: t('st.time') }]} />
         {empty ? <p class="empty-note" data-testid="stats-empty">{t('st.empty')}</p> : (
           <>
@@ -64,7 +66,7 @@ export function ClientStats() {
               <PeriodBar bars={a.visits} win={win} label={t('st.period')} onChange={(w) => clientsUi.set({ win: w })} />
               <p class="hint">{t('st.deltaHint')}</p>
             </section>
-            <div class="stat-pane" key={stat}>
+            <div class={`stat-pane ${shown.current ? slideClass(dir) : ''}`} key={stat}>
               {stat === 'new' && <NewTab a={a} win={win} labels={labels} tipL={tipL} />}
               {stat === 'freq' && <FreqTab a={a} win={win} labels={labels} tipL={tipL} top={top} />}
               {stat === 'profit' && <ProfitTab a={a} win={win} labels={labels} tipL={tipL} top={top} />}

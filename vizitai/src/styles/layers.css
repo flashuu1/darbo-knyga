@@ -704,3 +704,5 @@ p.link-name { color: var(--label); }
   .glass .thumb { background: rgba(255, 255, 255, .2); box-shadow: 0 2px 8px rgba(0, 0, 0, .4), inset 0 1px 0 rgba(255, 255, 255, .2); }
 }
 @media (prefers-reduced-motion: reduce) { .rise, .client-list.anim > li, .glass, .gapline i, .rk .more { animation: none; } }
+.clients .scroll, .clients .chrome { touch-action: pan-y; } /* sideways drags go to the page swipe */
+@media (prefers-reduced-motion: reduce) { .clients .slide-in-next, .clients .slide-in-prev { animation: none; } }

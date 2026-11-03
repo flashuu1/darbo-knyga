@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+import { openApp, seedAppts } from './helpers';
 
 test('standalone launch shows the three Lithuanian tabs', async ({ page }) => {
   await page.goto('/');
@@ -69,4 +70,17 @@ test.describe('the document is locked like a native app', () => {
       expect(r.headerTop).toBe(0); // the header owns the very top edge (it pads the safe area itself)
     });
   }
+});
+
+test('nothing in the app can be selected by pressing and holding, but fields stay editable', async ({ page }) => {
+  await openApp(page);
+  await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T10:00' }]);
+  const sel = (loc: ReturnType<Page['getByTestId']>) => loc.evaluate((el) => { const c = getComputedStyle(el) as CSSStyleDeclaration & { webkitUserSelect: string }; return c.webkitUserSelect || c.userSelect; });
+  expect(await sel(page.getByTestId('app'))).toBe('none');
+  await page.getByTestId('tab-clients').click();
+  expect(await sel(page.getByTestId('client-row-0'))).toBe('none');
+  expect(await sel(page.getByTestId('tile-due'))).toBe('none');
+  expect(await sel(page.getByTestId('client-search'))).toBe('text');
+  await page.getByTestId('tab-settings').click();
+  expect(await sel(page.getByTestId('settings-row-services'))).toBe('none');
 });

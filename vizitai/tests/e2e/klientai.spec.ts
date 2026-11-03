@@ -223,4 +223,39 @@ test.describe('Klientai analysis', () => {
     await expect(page.getByTestId('stats')).toBeVisible();
     await expect(page.getByTestId('stat-seg-profit')).toHaveClass(/on/);
   });
+
+  test('a sideways swipe turns the pages: list, the four analysis pages, and back', async ({ page }) => {
+    await openApp(page, NOW);
+    await seedBooks(page);
+    await page.getByTestId('tab-clients').click();
+    // a left swipe starts on the right of the screen, a right swipe on the left, so the finger stays on the screen
+    const swipe = async (dx: number, startAt: 'tiles' | 'stats') => {
+      const box = (await page.getByTestId(startAt === 'tiles' ? 'tile-week' : 'stat-seg').boundingBox())!;
+      const y = box.y + box.height / 2, x = dx < 0 ? 360 : 70;
+      await page.mouse.move(x, y); await page.mouse.down(); await page.mouse.move(x + dx, y, { steps: 8 }); await page.mouse.up();
+    };
+    await swipe(-170, 'tiles'); // left: to Analizė, its first page; the tile pressed at the start is not toggled
+    await expect(page.getByTestId('stats')).toBeVisible();
+    await expect(page.getByTestId('stat-seg-new')).toHaveClass(/on/);
+    for (const next of ['freq', 'profit', 'time']) { await swipe(-170, 'stats'); await expect(page.getByTestId(`stat-seg-${next}`)).toHaveClass(/on/); }
+    await swipe(-170, 'stats'); // nothing after the last page
+    await expect(page.getByTestId('stat-seg-time')).toHaveClass(/on/);
+    for (const prev of ['profit', 'freq', 'new']) { await swipe(170, 'stats'); await expect(page.getByTestId(`stat-seg-${prev}`)).toHaveClass(/on/); }
+    await swipe(170, 'stats'); // from the first analysis page back to the list
+    await expect(page.getByTestId('tile-due')).toBeVisible();
+    await expect(page.getByTestId('tile-week')).not.toHaveClass(/on/);
+    await expect(page.getByTestId('clients-seg-list')).toHaveClass(/on/);
+  });
+
+  test('a short drag or a vertical scroll does not turn the page', async ({ page }) => {
+    await openApp(page, NOW);
+    await seedBooks(page);
+    await page.getByTestId('tab-clients').click();
+    const box = (await page.getByTestId('tile-due').boundingBox())!;
+    const x = box.x + box.width / 2, y = box.y + box.height / 2;
+    await page.mouse.move(x, y); await page.mouse.down(); await page.mouse.move(x - 30, y, { steps: 4 }); await page.mouse.up();
+    await page.mouse.move(x, y); await page.mouse.down(); await page.mouse.move(x - 120, y + 160, { steps: 6 }); await page.mouse.up();
+    await expect(page.getByTestId('clients-seg-list')).toHaveClass(/on/);
+    await expect(page.getByTestId('stats')).toHaveCount(0);
+  });
 });

@@ -75,7 +75,10 @@ html {
   -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
 }
-html, body { position: fixed; inset: 0; overflow: hidden; overscroll-behavior: none; touch-action: pan-x pan-y; }
+/* Nothing in the app is text to select: a press and hold must never highlight words or open the iOS callout. Fields stay editable. */
+input, textarea, [contenteditable='true'] { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
+html, body { position: fixed; inset: 0; overflow: hidden; overscroll-behavior: none; touch-action: pan-x pan-y;
+  -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 body { margin: 0; background: var(--chrome); }
 #app { position: absolute; inset: 0; }
 button { font: inherit; color: inherit; background: none; border: 0; padding: 0; min-height: 44px; min-width: 44px; cursor: pointer; touch-action: manipulation; }

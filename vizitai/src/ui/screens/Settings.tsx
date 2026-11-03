@@ -6,6 +6,7 @@ import { formatBuildTime, formatDayShort } from '../../i18n/format';
 import { t, type Key } from '../../i18n/lt';
 import { snapClock, todayStr } from '../../logic/time';
 import { chooseImport, confirmDeleteService, primeKeyboard, runBackup, showToast } from '../actions';
+import { Changelog } from '../components/Changelog';
 import { OptionList } from '../components/OptionList';
 import { SwipeRow } from '../components/SwipeRow';
 import { useNeedsBackup, useOptions, useServices, useSettings } from '../hooks';
@@ -264,6 +265,7 @@ function AboutPage() {
       </div>
       <p class="section-foot center" data-testid="app-version">{t('settings.version')}: {__APP_VERSION__}</p>
       <p class="section-foot center" data-testid="app-build">{t('settings.build', { data: formatBuildTime(__BUILD_TIME__), id: __BUILD_ID__ })}</p>
+      <Changelog />
     </>
   );
 }

@@ -238,3 +238,33 @@ test('the backup row shows the last backup and a red dot when one is due', async
   await page.getByTestId('settings-row-backup').click();
   await expect(page.getByTestId('btn-export')).toBeVisible();
 });
+
+test('Apie programą has the changelog: the running build on top and highlighted, older builds below in a box that scrolls', async ({ page }) => {
+  await openApp(page);
+  await openSettings(page, 'about');
+  const build = (await page.getByTestId('app-build').textContent())!;
+  const cur = page.getByTestId('changelog-current');
+  await expect(cur).toBeVisible();
+  // the newest entry carries the same build id as the one shown above it
+  const id = (await cur.getByTestId('changelog-build').textContent())!;
+  expect(build).toContain(id);
+  await expect(cur).toContainText('Ši versija');
+  await expect(cur.getByTestId('changelog-date')).not.toHaveText('');
+  // above the older entries
+  const c = (await cur.boundingBox())!, o = (await page.getByTestId('changelog-older').boundingBox())!;
+  expect(c.y).toBeLessThan(o.y);
+  // three kinds of change, with their own words
+  const kinds = await page.getByTestId('changelog-older').getByTestId('changelog-kind').allTextContents();
+  expect(new Set(kinds)).toEqual(new Set(['Klaidos taisymas', 'Pakeitimas', 'Naujiena']));
+  // older ones are smaller and tighter, and the box scrolls
+  const sizes = await page.evaluate(() => [
+    parseFloat(getComputedStyle(document.querySelector('[data-testid="changelog-current"] .cl-text')!).fontSize),
+    parseFloat(getComputedStyle(document.querySelector('[data-testid="changelog-older"] .cl-text')!).fontSize),
+  ]);
+  expect(sizes[0]).toBeGreaterThan(sizes[1]!);
+  const scroll = await page.getByTestId('changelog-older').evaluate((el) => ({ scrollable: el.scrollHeight > el.clientHeight, overflow: getComputedStyle(el).overflowY }));
+  expect(scroll).toEqual({ scrollable: true, overflow: 'auto' });
+  // an older entry shows its own build id
+  const olderId = await page.getByTestId('changelog-older').getByTestId('changelog-build').first().textContent();
+  expect(olderId).toMatch(/^[0-9a-f]{7}$/);
+});

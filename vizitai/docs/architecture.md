@@ -369,6 +369,10 @@ Vestuvės is one of the services in Paslaugos (pink, 4 hours to start from, list
 
 - **The glow and the flowers scale with the entry.** Both are layers exactly the size of the entry, and the ring, blur, sparks and flowers are sized from that layer's own height (container query units), so they follow the pinch live and are there at every zoom (a long visit gets big soft flowers, a quarter-hour sliver gets small ones). They are hidden only with Reduce Motion.
 
+## Pakeitimų istorija (changelog)
+
+Nustatymai > Apie programą ends with the changelog: what changed in each build, newest on top, in three kinds only: Klaidos taisymas (bugfix), Pakeitimas (change), Naujiena (feature). The newest entry is the build that is running: it is highlighted ("Ši versija"), roomy, and carries the build id shown above it. Older builds follow in a smaller, tighter list in a box that scrolls, each with its date and its own build id. Every build that is pushed gets an entry (date and items, no time); the rule and the routine are in AGENTS.md.
+
 ## Suvestinė: day, week and month
 
 The calendar header carries one quiet button, "Dienos suvestinė" / "Savaitės suvestinė" / "Mėnesio suvestinė" according to the view (Diena, Savaitė, Mėnuo), with an orange badge for how many client visits anywhere still wait for their amount. It opens the books of what is on screen: the money (in, out, net) and a progress bar ("Sumokėta 2 iš 5"); the visits waiting for their amount, each with the amounts this client paid before as one-tap chips (a tap records the amount at once, with Anuliuoti) and "Kita suma" (opens Suma and returns to the page); when the period contains today also the earlier visits that never got an amount; the paid ones (a week or month lists the newest 30) each with "Užregistruoti dar kartą"; how many visits are still to come. Settling the last waiting visit shows "Viskas suvesta!" with confetti. A day is never a future day. The all-time balance is no longer shown on the calendar.

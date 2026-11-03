@@ -83,6 +83,7 @@ export const lt = {
   'option.minutes': 'Trukmė (min.)',
   'drag.nextWeek': 'Kita savaitė', 'drag.prevWeek': 'Ankstesnė savaitė', 'drag.thisWeek': 'Ši savaitė', 'drag.today': 'Šiandien', 'drag.nextDay': 'Kita diena', 'drag.prevDay': 'Ankstesnė diena',
   'off.title': 'Nedirbu', 'off.sub': 'Nuo – iki', 'off.from': 'Nuo kada nedirbi', 'off.to': 'Iki kada nedirbi', 'off.fromLabel': 'Nuo', 'off.toLabel': 'Iki',
+  'settings.changelog': 'Pakeitimų istorija', 'changelog.bugfix': 'Klaidos taisymas', 'changelog.change': 'Pakeitimas', 'changelog.feature': 'Naujiena', 'changelog.current': 'Ši versija',
   'balance.label': 'Balansas', 'balance.in': 'Gauta', 'balance.out': 'Išlaidos',
 } as const;
 

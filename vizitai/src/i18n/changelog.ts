@@ -1,0 +1,143 @@
+/**
+ * What changed in each build, newest first. Shown in Nustatymai > Apie programą > Pakeitimų istorija.
+ *
+ * Rules (also in AGENTS.md): every build that is pushed gets an entry, with the date of the change and items of three
+ * kinds only: bugfix, change, feature. The newest entry has no `build` yet: it describes the build that is running, and
+ * the app shows that build's id on it. When the next build is prepared, the id of the build that was just shipped
+ * (`git rev-parse --short HEAD`) is written into that entry first, and the new entry goes on top.
+ */
+export type ChangeKind = 'bugfix' | 'change' | 'feature';
+export interface ChangeEntry {
+  /** The short commit id of the build this shipped in. Absent only on the newest entry (the running build). */
+  build?: string;
+  /** The day the change was made or shipped, YYYY-MM-DD. */
+  date: string;
+  items: { kind: ChangeKind; text: string }[];
+}
+
+export const CHANGELOG: ChangeEntry[] = [
+  { date: '2026-11-03', items: [
+    { kind: 'feature', text: 'Apie programą: pakeitimų istorija su klaidų taisymais, pakeitimais ir naujomis funkcijomis kiekvienam leidimui.' },
+  ] },
+  { build: '4910400', date: '2026-11-03', items: [
+    { kind: 'feature', text: 'Persidengimo langas su detalėmis: kas, kokia paslauga ir nuo kada iki kada, ir ar vis tiek išsaugoti.' },
+    { kind: 'change', text: 'Nedirbu viename ekrane: Nuo ir Iki šviečia pilkai mėlynai, įrašas kalendoriuje lieka raudonas.' },
+    { kind: 'change', text: 'Tempiant įrašą kalendoriuje rodoma tik „Perkelta“, be perspėjimų apie persidengimą.' },
+    { kind: 'change', text: 'Daktaras ir Masažas nebe raudoni ar rožiniai: raudona tik Asmeninis.' },
+  ] },
+  { build: '9ef66df', date: '2026-11-03', items: [
+    { kind: 'feature', text: 'Asmeninis > Nedirbu: nuo kada iki kada nedirbi.' },
+    { kind: 'bugfix', text: 'Nustatymuose naujas pasirinkimas apačioje nebelieka po klaviatūra, galima iškart rašyti.' },
+  ] },
+  { build: '553fd19', date: '2026-10-23', items: [
+    { kind: 'change', text: 'Asmeninis įrašai ryškiai raudoni ir švyti.' },
+  ] },
+  { build: '718a04d', date: '2026-10-22', items: [
+    { kind: 'change', text: 'Tempiant įrašą atgal į dabartinę savaitę užrašas sako „Ši savaitė“.' },
+  ] },
+  { build: 'f8e2096', date: '2026-10-22', items: [
+    { kind: 'feature', text: 'Įrašą galima nutempti į kitą ar ankstesnę savaitę Savaitės rodinyje, su švytinčiu kraštu ir užrašu.' },
+  ] },
+  { build: '09bf329', date: '2026-10-22', items: [
+    { kind: 'change', text: 'Pasirinkimai kortelėmis su paveikslėliais ir savo spalva.' },
+  ] },
+  { build: '91fbe66', date: '2026-10-22', items: [
+    { kind: 'change', text: 'Iš Asmeninis pašalinti „Pertrauka“ ir „Vaikų reikalai“.' },
+  ] },
+  { build: '9e8e54c', date: '2026-10-22', items: [
+    { kind: 'bugfix', text: 'Ilgi sąrašai (Asmeninis, vardų pasiūlymai) nebesutrumpėja ir slenka iki galo.' },
+  ] },
+  { build: '53f3b2c', date: '2026-10-22', items: [
+    { kind: 'feature', text: 'Asmeninis: paruošti žodžiai (psichologas, daktaras ir kiti), pagal nutylėjimą 30 min.' },
+    { kind: 'change', text: 'Laiko ratukai laisvesni: greitas pasukimas rieda toliau, o skaičius šviečia sukantis.' },
+  ] },
+  { build: 'ce41f88', date: '2026-10-22', items: [
+    { kind: 'feature', text: 'Dienos, savaitės ir mėnesio suvestinė po vienu mygtuku.' },
+    { kind: 'feature', text: 'Sumos pakeitimai užrašomi vizite.' },
+    { kind: 'change', text: 'Įvedus 0 klausiama, ar nunulinti sumą.' },
+  ] },
+  { build: 'fd151ad', date: '2026-10-22', items: [
+    { kind: 'feature', text: 'Dienos suvestinė: dienos pabaigos puslapis su sumomis vienu bakstelėjimu.' },
+  ] },
+  { build: '21cba3a', date: '2026-10-21', items: [
+    { kind: 'bugfix', text: 'Švytėjimas ir gėlės matomi bet kokiu mastelio lygiu ir keičiasi suspaudžiant.' },
+  ] },
+  { build: 'cceef42', date: '2026-10-21', items: [
+    { kind: 'feature', text: 'Vestuvės kaip paslauga su gėlių efektu prieš vizitą ir kol laukiama apmokėjimo.' },
+  ] },
+  { build: '4f612e8', date: '2026-10-21', items: [
+    { kind: 'bugfix', text: 'Ilgi vizitai išlaiko vardą, net kai kalendorius nutolintas.' },
+  ] },
+  { build: '3f0dabb', date: '2026-10-21', items: [
+    { kind: 'change', text: 'Įrašo langas pertvarkytas: kas ir kada, suma, veiksmai ir pavojingi veiksmai atskirai.' },
+    { kind: 'feature', text: 'Bakstelėjus šalia plono įrašo atidaromas jis, o ne kuriamas naujas.' },
+    { kind: 'feature', text: 'Ankstesnės sumos kaip greiti pasiūlymai ir konfeti išsaugojus sumą.' },
+    { kind: 'change', text: 'Mygtukas „Ne“ gerai matomas.' },
+  ] },
+  { build: '7a770c4', date: '2026-10-21', items: [
+    { kind: 'change', text: 'Greitesnės ir sklandesnės animacijos.' },
+    { kind: 'feature', text: 'Palaikomas iOS „Sumažinti judėjimą“.' },
+  ] },
+  { build: '9424dfc', date: '2026-10-21', items: [
+    { kind: 'change', text: 'Išlaidos: pirmiausia likutis, dienų diagrama ir kas sumokėjo; išlaidoms ramios spalvos.' },
+  ] },
+  { build: 'b2eac1f', date: '2026-10-21', items: [
+    { kind: 'change', text: 'Nustatymai kaip iOS kategorijų sąrašas su atskirais puslapiais.' },
+  ] },
+  { build: '3834d57', date: '2026-10-14', items: [
+    { kind: 'feature', text: 'Neapmokėti vizitai švyti oranžine spalva.' },
+    { kind: 'feature', text: 'Sumą galima įvesti iš Klientų, po jos klausiama „Užregistruoti dar kartą?“.' },
+  ] },
+  { build: '8f4137d', date: '2026-10-13', items: [
+    { kind: 'change', text: 'Sumos mygtukas be pilko rėmelio ir tiksliai virš klaviatūros.' },
+  ] },
+  { build: '5e32455', date: '2026-10-13', items: [
+    { kind: 'feature', text: 'Sumos langas atidaro skaičių klaviatūrą, o „Patvirtinti“ yra virš jos.' },
+  ] },
+  { build: '1f11f43', date: '2026-10-13', items: [
+    { kind: 'change', text: 'Pasirinkimai su iOS tipo apskritimais, kurie užsipildo paspaudus.' },
+  ] },
+  { build: 'f8c638a', date: '2026-10-13', items: [
+    { kind: 'change', text: 'Našumas: sklandesnis slinkimas, kalendorius lieka atmintyje pereinant tarp skirtukų.' },
+  ] },
+  { build: '3f810ee', date: '2026-10-13', items: [
+    { kind: 'feature', text: 'Išlaidų skirtukas su mėnesio apžvalga.' },
+    { kind: 'change', text: 'Išlaida nebe vizitas: keičiama tik suma, data ir laikas. Šablonų nebėra, pasirinkimus susikuri pati.' },
+    { kind: 'bugfix', text: 'Išlaida nebe žalia ir nebedaro įtakos balansui klaidingai.' },
+  ] },
+  { build: '5178242', date: '2026-10-13', items: [
+    { kind: 'feature', text: 'Asmeninis ir išlaidų pasirinkimai nustatymuose; išlaidos ir balansas.' },
+    { kind: 'bugfix', text: 'Vardų pasiūlymai telpa virš klaviatūros ir slenka.' },
+    { kind: 'bugfix', text: 'Atšauktų klientų piktograma nebe didelė ir ovali.' },
+  ] },
+  { build: '67cd758', date: '2026-10-13', items: [
+    { kind: 'change', text: 'Suspaudimas kaip žemėlapyje: pirštai skečiasi – didėja, suglaudžiami – mažėja.' },
+    { kind: 'change', text: 'Nutolinus rodoma mažiau valandų ir linijų; sklandesnis Dienos ir Savaitės perjungimas.' },
+  ] },
+  { build: '1c9d9a0', date: '2026-10-13', items: [
+    { kind: 'feature', text: 'Suspaudimu keičiamas kalendoriaus mastelis.' },
+    { kind: 'change', text: 'Slinkimas tarp dienų ir savaičių seka pirštą.' },
+    { kind: 'bugfix', text: 'Užrašas „Šią dieną vizitų nėra“ nebelieka ekrane.' },
+  ] },
+  { build: '3979b42', date: '2026-10-13', items: [
+    { kind: 'feature', text: 'Klientus ir paslaugas galima ištrinti brūkštelėjus į kairę.' },
+    { kind: 'feature', text: 'Atšaukti vizitai rodomi Klientuose; būsenos Laukiama, Nepatvirtinta, Įvyko.' },
+    { kind: 'change', text: 'Pagrindinis mėlynas mygtukas visada vienoje vietoje, virš klaviatūros.' },
+  ] },
+  { build: '3936ace', date: '2026-10-13', items: [
+    { kind: 'bugfix', text: '„Atgal“ iš „Užregistruoti į priekį“ grįžta ten, iš kur pradėta.' },
+    { kind: 'change', text: 'Atšaukti vizitai saugomi savaitę, juos galima atnaujinti ar pakeisti.' },
+  ] },
+  { build: '2661d39', date: '2026-10-13', items: [
+    { kind: 'feature', text: 'Laiko ratukai (bet kuri minutė) ir laisvas tempimas į bet kurią datą.' },
+    { kind: 'feature', text: 'Vardų pasiūlymai po 2–3 raidžių; klientų sąrašas su apmokėjimo būsena.' },
+    { kind: 'change', text: 'Visos paslaugos pagal nutylėjimą 15 min.; vizito atšaukimas tik su patvirtinimu.' },
+  ] },
+  { build: 'f72eb05', date: '2026-10-13', items: [
+    { kind: 'feature', text: 'Naujas registravimo srautas (klientas, paslauga, laikas) ir sumos įvedimas.' },
+    { kind: 'feature', text: 'Langai, kuriuos galima nustumti žemyn, su animacijomis.' },
+  ] },
+  { build: 'e9cde7e', date: '2026-10-13', items: [
+    { kind: 'feature', text: 'Nustatymuose rodoma programos versija ir sukūrimo laikas.' },
+  ] },
+];

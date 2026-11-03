@@ -268,3 +268,17 @@ test('Apie programą has the changelog: the running build on top and highlighted
   const olderId = await page.getByTestId('changelog-older').getByTestId('changelog-build').first().textContent();
   expect(olderId).toMatch(/^[0-9a-f]{7}$/);
 });
+
+test('Darbo laikas: the weekdays she works can be switched, at least one stays on, and it is saved', async ({ page }) => {
+  await openApp(page);
+  await openSettings(page, 'hours');
+  for (let i = 0; i < 7; i++) await expect(page.getByTestId(`work-day-${i}`)).toHaveAttribute('aria-pressed', 'true'); // every day to begin with
+  await page.getByTestId('work-day-6').click(); // Sekmadienis
+  await page.getByTestId('work-day-0').click(); // Pirmadienis
+  await expect(page.getByTestId('work-day-6')).toHaveAttribute('aria-pressed', 'false');
+  await expect.poll(() => page.evaluate(async () => (await (window as any).__vizitai.repo.getSettings()).workDays)).toEqual([1, 2, 3, 4, 5]); // eslint-disable-line @typescript-eslint/no-explicit-any
+  for (const i of [1, 2, 3, 4]) await page.getByTestId(`work-day-${i}`).click();
+  await page.getByTestId('work-day-5').click(); // the last one cannot be switched off
+  await expect(page.getByTestId('work-day-5')).toHaveAttribute('aria-pressed', 'true');
+  await expect.poll(() => page.evaluate(async () => (await (window as any).__vizitai.repo.getSettings()).workDays)).toEqual([5]); // eslint-disable-line @typescript-eslint/no-explicit-any
+});

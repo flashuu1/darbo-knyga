@@ -17,6 +17,9 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   { date: '2026-11-03', items: [
+    { kind: 'feature', text: 'Nustatymai > Darbo laikas: galima pasirinkti, kuriomis savaitės dienomis dirbi; kitos dienos neįtraukiamos į dirbtas valandas.' },
+  ] },
+  { build: '6f6511e', date: '2026-11-03', items: [
     { kind: 'change', text: 'Dirbtos valandos: skaičiuojama visa darbo diena (pagal Darbo laiką) kiekvieną dieną, minus „Nedirbu“ laikas; vizitų trukmė nebenaudojama. „Užimtumas“ pakeistas dienomis su vizitais.' },
   ] },
   { build: 'ce22382', date: '2026-11-03', items: [

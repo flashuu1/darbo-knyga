@@ -2,7 +2,7 @@ import type { ComponentChildren, CSSProperties } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { repo } from '../../db/repo';
 import { SERVICE_COLORS } from '../../db/types';
-import { formatBuildTime, formatDayShort } from '../../i18n/format';
+import { formatBuildTime, formatDayShort, weekdayAbbr, weekdayName } from '../../i18n/format';
 import { t, type Key } from '../../i18n/lt';
 import { snapClock, todayStr } from '../../logic/time';
 import { chooseImport, confirmDeleteService, primeKeyboard, runBackup, showToast } from '../actions';
@@ -212,6 +212,7 @@ function ServicesPage() {
   );
 }
 
+let dayChain: Promise<void> = Promise.resolve();
 function HoursPage() {
   const settings = useSettings();
   const [tick, setTick] = useState(0);
@@ -223,13 +224,33 @@ function HoursPage() {
     if (next.dayStart >= next.dayEnd) { showToast(t('hours.invalid')); setTick((x) => x + 1); return; }
     try { await repo.updateSettings({ [field]: v }); } catch (e) { console.error(e); }
   }
+  const days = settings.workDays ?? [0, 1, 2, 3, 4, 5, 6];
+  // Each tap reads what is saved (not what was last drawn), one after another, so quick taps never undo each other
+  function toggleDay(i: number) {
+    dayChain = dayChain.then(async () => {
+      const cur = (await repo.getSettings()).workDays ?? [0, 1, 2, 3, 4, 5, 6];
+      const next = cur.includes(i) ? cur.filter((d) => d !== i) : [...cur, i].sort();
+      if (next.length === 0) return; // at least one day stays
+      await repo.updateSettings({ workDays: next });
+    }).catch((e) => console.error(e));
+  }
   return (
+    <>
     <div class="group">
       <label class="group-row"><span>{t('hours.start')}</span>
         <input class="inline time" type="time" step={900} key={`s${settings.dayStart}${tick}`} defaultValue={settings.dayStart} data-testid="hours-start" onChange={(e) => void setHour('dayStart', (e.target as HTMLInputElement).value)} /></label>
       <label class="group-row"><span>{t('hours.end')}</span>
         <input class="inline time" type="time" step={900} key={`e${settings.dayEnd}${tick}`} defaultValue={settings.dayEnd} data-testid="hours-end" onChange={(e) => void setHour('dayEnd', (e.target as HTMLInputElement).value)} /></label>
     </div>
+    <h2 class="section-head">{t('hours.days')}</h2>
+    <div class="days-row" data-testid="work-days">
+      {Array.from({ length: 7 }, (_, i) => (
+        <button key={i} class={days.includes(i) ? 'day-btn on' : 'day-btn'} aria-pressed={days.includes(i)} aria-label={t('hours.dayAria', { diena: weekdayName(i).toLowerCase() })}
+          data-testid={`work-day-${i}`} onClick={() => toggleDay(i)}>{weekdayAbbr(i)}</button>
+      ))}
+    </div>
+    <p class="section-foot">{t('hours.daysNote')}</p>
+    </>
   );
 }
 

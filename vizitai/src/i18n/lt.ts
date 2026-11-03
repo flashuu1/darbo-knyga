@@ -30,7 +30,7 @@ export const lt = {
   'service.hidden': 'Paslėpta', 'service.minutes': 'Trukmė (min.)', 'service.lastActive': 'Turi likti bent viena paslauga',
   'service.default.cut': 'Kirpimas', 'service.default.color': 'Dažymas', 'service.default.cutColor': 'Kirpimas ir dažymas',
   'service.default.highlights': 'Sruogelės', 'service.default.style': 'Šukuosena', 'service.default.other': 'Kita', 'service.default.wedding': 'Vestuvės',
-  'hours.start': 'Pradžia', 'hours.end': 'Pabaiga', 'hours.invalid': 'Pabaiga turi būti vėlesnė už pradžią',
+  'hours.days': 'Darbo dienos', 'hours.daysNote': 'Neįjungtos dienos neįtraukiamos į dirbtas valandas ir uždarbį už valandą. „Nedirbu“ skirta vienkartinėms laisvoms valandoms.', 'hours.dayAria': 'Darbo diena: {diena}', 'hours.start': 'Pradžia', 'hours.end': 'Pabaiga', 'hours.invalid': 'Pabaiga turi būti vėlesnė už pradžią',
   'backup.export': 'Eksportuoti duomenis', 'backup.import': 'Atkurti iš failo',
   'backup.confirm': 'Pakeisti visus esamus duomenis?', 'backup.replace': 'Pakeisti',
   'backup.imported': 'Duomenys atkurti', 'backup.exported': 'Kopija sukurta',

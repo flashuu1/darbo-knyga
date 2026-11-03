@@ -714,3 +714,9 @@ p.link-name { color: var(--label); }
 .month-stats .hint.center { text-align: center; margin: var(--s2) 0 var(--s2); }
 .month-stats .recs { margin-bottom: var(--s1); }
 .month-stats .card { margin: var(--s3) 0 0; }
+
+/* working weekdays (Nustatymai > Darbo laikas) */
+.days-row { display: flex; justify-content: space-between; gap: 6px; margin: 0 var(--s4) var(--s3); }
+.day-btn { flex: 1; min-width: 0; height: 44px; border-radius: 22px; background: var(--fill); color: var(--label-2); font-size: .85rem; font-weight: 650; transition: background-color var(--t-med), color var(--t-med), transform var(--t-press) var(--ease-out); }
+.day-btn.on { background: var(--accent); color: var(--on-accent); }
+.day-btn:active { transform: scale(.94); }

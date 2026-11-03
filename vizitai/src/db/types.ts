@@ -20,5 +20,6 @@ export type OptionGroup = 'personal' | 'expense';
 export interface Option { id: string; group: OptionGroup; name: string; order: number; /** Personal choices: how long the entry is (default 30). */ minutes?: number }
 /** `floral`: visits of this service get flowers while they are coming up or waiting for their payment (Vestuvės). Unindexed. */
 export interface Service { id: string; name: string; color: ServiceColor; minutes: number; order: number; active: boolean; floral?: boolean }
-export interface Settings { id: 'settings'; dayStart: string; dayEnd: string; slotMinutes: number; lastBackupAt: string | null; persistGranted: boolean | null }
+/** `workDays`: the weekdays she works (0 = Monday ... 6 = Sunday); absent = every day. Only the statistics use it. Unindexed. */
+export interface Settings { id: 'settings'; dayStart: string; dayEnd: string; slotMinutes: number; lastBackupAt: string | null; persistGranted: boolean | null; workDays?: number[] }
 export const SERVICE_COLORS: ServiceColor[] = ['blue', 'green', 'indigo', 'orange', 'pink', 'purple', 'red', 'teal', 'yellow', 'gray'];

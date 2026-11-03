@@ -424,7 +424,7 @@ export function createRepo(db: VizitaiDB) {
           visits.push({ clientId: a.clientId, start: a.start, status: a.status, cents: isValidCents(a.amountCents) ? a.amountCents : null, service: (a.serviceId ? services.get(a.serviceId)?.name : null) ?? t('service.default.other') });
         } else if (a.kind === 'personal' && a.status === 'booked' && a.title === t('off.title')) off.push({ start: a.start, minutes: a.durationMinutes ?? PERSONAL_MINUTES });
       }
-      return { now: now_, visits, off, clients: clients.map((c) => ({ id: c.id, name: c.name })), dayStart: settings.dayStart, dayEnd: settings.dayEnd };
+      return { now: now_, visits, off, clients: clients.map((c) => ({ id: c.id, name: c.name })), dayStart: settings.dayStart, dayEnd: settings.dayEnd, workDays: settings.workDays };
     },
     async clientDetail(id: string, now_: string = nowLocal()) {
       const client = await db.clients.get(id);

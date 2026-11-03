@@ -6,6 +6,8 @@ export interface VisitRec { clientId: string; start: string; status: 'booked' | 
 export interface OffRec { start: string; minutes: number }
 export interface AnalyticsInput {
   now: string; visits: VisitRec[]; off: OffRec[]; clients: { id: string; name: string }[]; dayStart: string; dayEnd: string;
+  /** Weekdays she works (0 = Monday ... 6 = Sunday); a missing list means every day. */
+  workDays?: number[];
 }
 
 export const MONTHS = 24;
@@ -119,7 +121,7 @@ export function buildAnalytics(input: AnalyticsInput): Analytics {
     const last = k === cur ? +today.slice(8, 10) : new Date(Date.UTC(+k.slice(0, 4), +k.slice(5, 7), 0)).getUTCDate();
     for (let d = 1; d <= last; d++) {
       const date = `${k}-${pad2(d)}`, a0 = ws, b0 = date === today ? Math.min(we, nowMin) : we;
-      if (b0 <= a0) continue;
+      if (b0 <= a0 || (input.workDays && !input.workDays.includes(weekdayOf(date)))) continue; // a weekday she does not work is no working time at all
       const iv = (offByDate.get(date) ?? []).map(([x, y]) => [Math.max(a0, x), Math.min(b0, y)] as [number, number]).filter(([x, y]) => y > x).sort((p, q) => p[0] - q[0]);
       let away = 0, end = a0; // the union of her days off, so two overlapping entries are not counted twice
       for (const [x, y] of iv) { const from = Math.max(x, end); if (y > from) { away += y - from; end = y; } }

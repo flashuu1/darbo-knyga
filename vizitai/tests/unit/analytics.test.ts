@@ -106,6 +106,16 @@ describe('hours: the whole working day, minus Nedirbu', () => {
     expect(a.hours[MONTHS - 3]).toBe(0); // September, before the first entry
     expect(a.hours[MONTHS - 2]).toBe(31 * 12);
   });
+  it('does not count weekdays she does not work (Sunday and Monday off), visits there still count as visits', () => {
+    // October 2026: 31 days, Sundays 4, 11, 18, 25 and Mondays 5, 12, 19, 26 -> 23 days of 12 h
+    const a = buildAnalytics(input([v('a', '2026-10-05T10:00', 1000)], { workDays: [1, 2, 3, 4, 5] }));
+    expect(a.hours[MONTHS - 2]).toBe(23 * 12);
+    expect(a.visits[MONTHS - 2]).toBe(1);
+    // Nedirbu on a day she does not work changes nothing
+    const b = buildAnalytics(input([v('a', '2026-10-05T10:00', 1000)], { workDays: [1, 2, 3, 4, 5], off: [{ start: '2026-10-04T09:00', minutes: 240 }] }));
+    expect(b.off[MONTHS - 2]).toBe(0);
+    expect(b.hours[MONTHS - 2]).toBe(23 * 12);
+  });
   it('counts the days that had visits', () => {
     const a = buildAnalytics(input([v('a', '2026-10-06T10:00', 1), v('b', '2026-10-06T12:00', 1), v('a', '2026-10-13T10:00', 1)]));
     expect(a.visitDays[MONTHS - 2]).toBe(2);

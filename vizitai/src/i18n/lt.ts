@@ -86,7 +86,7 @@ export const lt = {
   'settings.changelog': 'Pakeitimų istorija', 'changelog.bugfix': 'Klaidos taisymas', 'changelog.change': 'Pakeitimas', 'changelog.feature': 'Naujiena', 'changelog.current': 'Ši versija',
   'balance.label': 'Balansas', 'balance.in': 'Gauta', 'balance.out': 'Išlaidos',
   // --- Klientai: list, filter, new client ---
-  'cl.seg.list': 'Sąrašas', 'cl.seg.stats': 'Analizė', 'cl.search': 'Ieškoti pagal vardą ar telefoną', 'cl.filterAria': 'Filtruoti ir rūšiuoti', 'cl.addAria': 'Naujas klientas',
+  'ex.seg.month': 'Mėnuo', 'ex.seg.stats': 'Analizė', 'cl.search': 'Ieškoti pagal vardą ar telefoną', 'cl.filterAria': 'Filtruoti ir rūšiuoti', 'cl.addAria': 'Naujas klientas',
   'cl.tile.due': 'Laukia sumos', 'cl.tile.week': 'Ateina šią savaitę', 'cl.tile.old': 'Seniai nebuvo', 'cl.tile.recent': 'Neseniai buvo',
   'cl.sub.due': 'paspauskite ir įveskite', 'cl.sub.week': 'artimiausias: {kada}', 'cl.sub.old': '60+ dienų', 'cl.sub.recent': 'per 2 savaites',
   'cl.f.auto': 'Automatiškai', 'cl.f.autoHint': 'kam reikia dėmesio',

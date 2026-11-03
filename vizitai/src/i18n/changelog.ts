@@ -17,6 +17,9 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   { date: '2026-11-03', items: [
+    { kind: 'change', text: 'Analizė perkelta iš Klientų į Išlaidas (Mėnuo | Analizė), o Klientai skirti tik klientams. Braukimas į šonus Išlaidose perjungia mėnesį ir keturis Analizės puslapius.' },
+  ] },
+  { build: '3884463', date: '2026-11-03', items: [
     { kind: 'change', text: 'Paslaugų nustatymuose pašalintas gėlių efekto jungiklis; gėlių efektas lieka Vestuvėms.' },
   ] },
   { build: '857b0ea', date: '2026-11-03', items: [

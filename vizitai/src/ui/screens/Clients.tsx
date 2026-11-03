@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { useMemo, useState } from 'preact/hooks';
 import { repo, type ClientRow } from '../../db/repo';
 import { formatDayShort, formatEuro, formatEuroRound } from '../../i18n/format';
 import { confirmDeleteClient, openCancelled } from '../actions';
 import { SwipeRow } from '../components/SwipeRow';
-import { Segmented } from '../components/Segmented';
 import { t } from '../../i18n/lt';
 import { agoParts } from '../../logic/analytics';
 import { applyClients, filterTest, TILE_FILTERS, type ClientFilter } from '../../logic/clientlist';
@@ -13,8 +12,7 @@ import { useLive } from '../hooks';
 import { FilterIcon, NextIcon, PlusIcon, SearchIcon } from '../icons';
 import { openAmount } from '../amount';
 import { ui, useStore } from '../store';
-import { clientsUi, goPage, pageIndex, slideClass } from '../clientsUi';
-import { ClientStats } from './ClientStats';
+import { clientsUi } from '../clientsUi';
 
 /** Monogram for a client: the first letters of the first two words. */
 export const initials = (name: string) => name.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join('');
@@ -28,9 +26,7 @@ const agoText = (date: string | null, now: string) => {
 };
 
 export function ClientsScreen() {
-  const { view, filter, sort, dir } = useStore(clientsUi);
-  const root = useRef<HTMLElement>(null);
-  usePager(root);
+  const { filter, sort } = useStore(clientsUi);
   const [q, setQ] = useState('');
   const now = nowLocal();
   const all = useLive(() => repo.listClients(), [], [] as ClientRow[]);
@@ -39,31 +35,25 @@ export function ClientsScreen() {
   const changed = (filter !== 'auto' ? 1 : 0) + (sort !== 'auto' ? 1 : 0);
   const key = q.trim().toLowerCase();
   const cancelledRows = filter === 'auto' && sort === 'auto' ? (key ? cancelled.filter((e) => e.label.toLowerCase().includes(key)) : cancelled) : [];
-  const stats = view === 'stats';
   return (
-    <section ref={root} class="list-screen clients" data-testid="clients">
+    <section class="list-screen clients" data-testid="clients">
       <header class="chrome">
         <div class="titlebar">
           <h1 class="large-title top">{t('tab.clients')}</h1>
           <button class="add-btn press" data-testid="client-add" aria-label={t('cl.addAria')} onClick={() => ui.set({ sheet: { type: 'cnew' } })}><PlusIcon /></button>
         </div>
-        <Segmented testId="clients-seg" value={view} onChange={(v) => goPage(v === 'list' ? 0 : Math.max(1, pageIndex({ view: 'stats', stat: clientsUi.get().stat })))}
-          items={[{ id: 'list', label: t('cl.seg.list') }, { id: 'stats', label: t('cl.seg.stats') }]} />
-        {!stats && (
-          <div class="searchrow">
-            <label class="searchbar">
-              <SearchIcon />
-              <input type="search" data-testid="client-search" placeholder={t('cl.search')} value={q} autocomplete="off"
-                onInput={(e) => setQ((e.target as HTMLInputElement).value)} />
-            </label>
-            <button class={changed ? 'filter-btn on press' : 'filter-btn press'} data-testid="client-filter" aria-label={t('cl.filterAria')} onClick={() => ui.set({ sheet: { type: 'cfilter' } })}>
-              <FilterIcon /><span class="filter-dot" data-testid="filter-count">{changed}</span>
-            </button>
-          </div>
-        )}
+        <div class="searchrow">
+          <label class="searchbar">
+            <SearchIcon />
+            <input type="search" data-testid="client-search" placeholder={t('cl.search')} value={q} autocomplete="off"
+              onInput={(e) => setQ((e.target as HTMLInputElement).value)} />
+          </label>
+          <button class={changed ? 'filter-btn on press' : 'filter-btn press'} data-testid="client-filter" aria-label={t('cl.filterAria')} onClick={() => ui.set({ sheet: { type: 'cfilter' } })}>
+            <FilterIcon /><span class="filter-dot" data-testid="filter-count">{changed}</span>
+          </button>
+        </div>
       </header>
-      {stats ? <ClientStats /> : (
-        <div class={`scroll list-body ${slideClass(dir)}`}>
+        <div class="scroll list-body">
           {all.length === 0 && <p class="empty-note" data-testid="clients-empty">{t('clients.empty')}</p>}
           {all.length > 0 && (
             <div class="tiles" data-testid="tiles">
@@ -117,7 +107,6 @@ export function ClientsScreen() {
             </>
           )}
         </div>
-      )}
     </section>
   );
 }
@@ -150,43 +139,3 @@ function ClientRowView({ r, i, sort, now }: { r: ClientRow; i: number; sort: str
   );
 }
 
-const NO_PAGE_SWIPE = '.lc, .ov, .swipe-row, input, textarea, .glass, [data-no-page-swipe]'; // things that use a sideways drag themselves
-/**
- * A sideways swipe on the Klientai tab turns the page: Sąrašas, then the four pages of Analizė, and back. Charts, the
- * period bar and the rows (swipe left = delete) keep their own drags. A page turn eats the click that would follow.
- */
-function usePager(ref: { current: HTMLElement | null }) {
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    let g: { id: number; x0: number; y0: number; t0: number; state: 'maybe' | 'yes' } | null = null;
-    const down = (e: PointerEvent) => {
-      g = null;
-      if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0) || (e.target as HTMLElement).closest(NO_PAGE_SWIPE)) return;
-      g = { id: e.pointerId, x0: e.clientX, y0: e.clientY, t0: performance.now(), state: 'maybe' };
-    };
-    const move = (e: PointerEvent) => {
-      if (!g || e.pointerId !== g.id || g.state === 'yes') return;
-      const dx = e.clientX - g.x0, dy = e.clientY - g.y0;
-      if (Math.abs(dy) > 14 && Math.abs(dy) > Math.abs(dx)) g = null; // she is scrolling
-      else if (Math.abs(dx) > 14 && Math.abs(dx) > Math.abs(dy) * 1.5) g.state = 'yes';
-    };
-    const up = (e: PointerEvent) => {
-      const s = g;
-      g = null;
-      if (!s || e.pointerId !== s.id || s.state !== 'yes') return;
-      const dx = e.clientX - s.x0, fast = Math.abs(dx) / Math.max(1, performance.now() - s.t0) > 0.5;
-      if (Math.abs(dx) < (fast ? 36 : 64)) return;
-      goPage(pageIndex(clientsUi.get()) + (dx < 0 ? 1 : -1));
-      const eat = (c: Event) => { c.stopPropagation(); c.preventDefault(); };
-      el.addEventListener('click', eat, { capture: true, once: true });
-      window.setTimeout(() => el.removeEventListener('click', eat, true), 120);
-    };
-    const cancel = () => { g = null; };
-    el.addEventListener('pointerdown', down, { passive: true });
-    el.addEventListener('pointermove', move, { passive: true });
-    el.addEventListener('pointerup', up, { passive: true });
-    el.addEventListener('pointercancel', cancel, { passive: true });
-    return () => { el.removeEventListener('pointerdown', down); el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', cancel); };
-  }, []);
-}

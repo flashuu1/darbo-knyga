@@ -93,6 +93,7 @@ test('Settings lists her own choices; she can add, rename and swipe-delete them,
   await page.getByTestId('opt-personal-name-12').blur();
   await expect.poll(() => page.evaluate(async () => (await (window as any).__vizitai.repo.listOptions('personal')).map((o: any) => o.name))).toContain('Sporto salė');
   await page.getByTestId('settings-back').click();
+  await page.waitForTimeout(450); // the list slides back; a row pressed while it moves does not open
   await page.getByTestId('settings-row-expenses').click();
   await page.waitForTimeout(450); // the page slides in
   await expect(page.getByTestId('opt-expense-row-3')).toBeAttached({ timeout: 15000 });

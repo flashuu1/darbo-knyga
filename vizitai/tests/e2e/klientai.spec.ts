@@ -122,19 +122,19 @@ async function seedBooks(page: Page) {
   });
 }
 
-test.describe('Klientai analysis', () => {
+test.describe('Išlaidos > Analizė', () => {
   test('says so when there is nothing to analyse yet', async ({ page }) => {
     await openApp(page, NOW);
-    await page.getByTestId('tab-clients').click();
-    await page.getByTestId('clients-seg-stats').click();
+    await page.getByTestId('tab-expenses').click();
+    await page.getByTestId('expenses-seg-stats').click();
     await expect(page.getByTestId('stats-empty')).toBeVisible();
   });
 
   test('new clients: the numbers count up, a chart reads out a month when touched, the period can be changed', async ({ page }) => {
     await openApp(page, NOW);
     await seedBooks(page);
-    await page.getByTestId('tab-clients').click();
-    await page.getByTestId('clients-seg-stats').click();
+    await page.getByTestId('tab-expenses').click();
+    await page.getByTestId('expenses-seg-stats').click();
     await expect(page.getByTestId('card-new')).toBeVisible();
     await expect(page.getByTestId('win-text')).toContainText('spalis 2026');
     await expect(page.getByTestId('card-new').getByTestId('chart-tip')).toContainText('Braukite');
@@ -155,8 +155,8 @@ test.describe('Klientai analysis', () => {
   test('the period bar can be dragged to move the window', async ({ page }) => {
     await openApp(page, NOW);
     await seedBooks(page);
-    await page.getByTestId('tab-clients').click();
-    await page.getByTestId('clients-seg-stats').click();
+    await page.getByTestId('tab-expenses').click();
+    await page.getByTestId('expenses-seg-stats').click();
     const before = await page.getByTestId('win-text').textContent();
     const box = (await page.getByTestId('period-bar').boundingBox())!;
     const y = box.y + box.height / 2;
@@ -170,8 +170,8 @@ test.describe('Klientai analysis', () => {
   test('frequent: rhythm card, the when-they-come map, and a ranking whose rows open', async ({ page }) => {
     await openApp(page, NOW);
     await seedBooks(page);
-    await page.getByTestId('tab-clients').click();
-    await page.getByTestId('clients-seg-stats').click();
+    await page.getByTestId('tab-expenses').click();
+    await page.getByTestId('expenses-seg-stats').click();
     await page.getByTestId('stat-seg-freq').click();
     await expect(page.getByTestId('card-gap')).toBeVisible();
     await expect(page.getByTestId('rank-0')).toContainText('Ona Petraitė');
@@ -187,8 +187,8 @@ test.describe('Klientai analysis', () => {
   test('profitable: records, income, lost money, the ring by service and its legend', async ({ page }) => {
     await openApp(page, NOW);
     await seedBooks(page);
-    await page.getByTestId('tab-clients').click();
-    await page.getByTestId('clients-seg-stats').click();
+    await page.getByTestId('tab-expenses').click();
+    await page.getByTestId('expenses-seg-stats').click();
     await page.getByTestId('stat-seg-profit').click();
     await expect(page.getByTestId('rec-day')).toHaveText('Antradienis');
     await expect(page.getByTestId('rec-rich')).toContainText('spalis 2026');
@@ -205,57 +205,64 @@ test.describe('Klientai analysis', () => {
   test('time: utilisation and hours', async ({ page }) => {
     await openApp(page, NOW);
     await seedBooks(page);
-    await page.getByTestId('tab-clients').click();
-    await page.getByTestId('clients-seg-stats').click();
+    await page.getByTestId('tab-expenses').click();
+    await page.getByTestId('expenses-seg-stats').click();
     await page.getByTestId('stat-seg-time').click();
     await expect(page.getByTestId('card-util')).toContainText('darbo laiko užimta');
     await expect(page.getByTestId('card-util').locator('.bignum span').first()).toHaveText(/\d+%/, { timeout: 4000 });
   });
 
-  test('the Klientai tab remembers the view and the filter after a visit to another tab', async ({ page }) => {
+  test('Išlaidos remembers the analysis page after a visit to another tab', async ({ page }) => {
     await openApp(page, NOW);
     await seedBooks(page);
-    await page.getByTestId('tab-clients').click();
-    await page.getByTestId('clients-seg-stats').click();
+    await page.getByTestId('tab-expenses').click();
+    await page.getByTestId('expenses-seg-stats').click();
     await page.getByTestId('stat-seg-profit').click();
     await page.getByTestId('tab-calendar').click();
-    await page.getByTestId('tab-clients').click();
+    await page.getByTestId('tab-expenses').click();
     await expect(page.getByTestId('stats')).toBeVisible();
     await expect(page.getByTestId('stat-seg-profit')).toHaveClass(/on/);
   });
 
-  test('a sideways swipe turns the pages: list, the four analysis pages, and back', async ({ page }) => {
+  test('a sideways swipe turns the pages: the month, the four analysis pages, and back', async ({ page }) => {
     await openApp(page, NOW);
     await seedBooks(page);
-    await page.getByTestId('tab-clients').click();
+    await page.getByTestId('tab-expenses').click();
     // a left swipe starts on the right of the screen, a right swipe on the left, so the finger stays on the screen
-    const swipe = async (dx: number, startAt: 'tiles' | 'stats') => {
-      const box = (await page.getByTestId(startAt === 'tiles' ? 'tile-week' : 'stat-seg').boundingBox())!;
+    const swipe = async (dx: number) => {
+      const box = (await page.getByTestId('expenses-seg').boundingBox())!;
       const y = box.y + box.height / 2, x = dx < 0 ? 360 : 70;
       await page.mouse.move(x, y); await page.mouse.down(); await page.mouse.move(x + dx, y, { steps: 8 }); await page.mouse.up();
     };
-    await swipe(-170, 'tiles'); // left: to Analizė, its first page; the tile pressed at the start is not toggled
+    await swipe(-170); // left: to Analizė, its first page
     await expect(page.getByTestId('stats')).toBeVisible();
     await expect(page.getByTestId('stat-seg-new')).toHaveClass(/on/);
-    for (const next of ['freq', 'profit', 'time']) { await swipe(-170, 'stats'); await expect(page.getByTestId(`stat-seg-${next}`)).toHaveClass(/on/); }
-    await swipe(-170, 'stats'); // nothing after the last page
+    for (const next of ['freq', 'profit', 'time']) { await swipe(-170); await expect(page.getByTestId(`stat-seg-${next}`)).toHaveClass(/on/); }
+    await swipe(-170); // nothing after the last page
     await expect(page.getByTestId('stat-seg-time')).toHaveClass(/on/);
-    for (const prev of ['profit', 'freq', 'new']) { await swipe(170, 'stats'); await expect(page.getByTestId(`stat-seg-${prev}`)).toHaveClass(/on/); }
-    await swipe(170, 'stats'); // from the first analysis page back to the list
-    await expect(page.getByTestId('tile-due')).toBeVisible();
-    await expect(page.getByTestId('tile-week')).not.toHaveClass(/on/);
-    await expect(page.getByTestId('clients-seg-list')).toHaveClass(/on/);
+    for (const prev of ['profit', 'freq', 'new']) { await swipe(170); await expect(page.getByTestId(`stat-seg-${prev}`)).toHaveClass(/on/); }
+    await swipe(170); // from the first analysis page back to the month
+    await expect(page.getByTestId('exp-net')).toBeVisible();
+    await expect(page.getByTestId('expenses-seg-main')).toHaveClass(/on/);
   });
 
   test('a short drag or a vertical scroll does not turn the page', async ({ page }) => {
     await openApp(page, NOW);
     await seedBooks(page);
-    await page.getByTestId('tab-clients').click();
-    const box = (await page.getByTestId('tile-due').boundingBox())!;
-    const x = box.x + box.width / 2, y = box.y + box.height / 2;
+    await page.getByTestId('tab-expenses').click();
+    const box = (await page.getByTestId('exp-net').boundingBox())!;
+    const x = 300, y = box.y + box.height / 2;
     await page.mouse.move(x, y); await page.mouse.down(); await page.mouse.move(x - 30, y, { steps: 4 }); await page.mouse.up();
     await page.mouse.move(x, y); await page.mouse.down(); await page.mouse.move(x - 120, y + 160, { steps: 6 }); await page.mouse.up();
-    await expect(page.getByTestId('clients-seg-list')).toHaveClass(/on/);
+    await expect(page.getByTestId('expenses-seg-main')).toHaveClass(/on/);
     await expect(page.getByTestId('stats')).toHaveCount(0);
+  });
+
+  test('Klientai is only about clients: no analysis there', async ({ page }) => {
+    await openApp(page, NOW);
+    await seedBooks(page);
+    await page.getByTestId('tab-clients').click();
+    await expect(page.getByTestId('clients-seg')).toHaveCount(0);
+    await expect(page.getByTestId('tile-due')).toBeVisible();
   });
 });

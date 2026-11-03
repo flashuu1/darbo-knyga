@@ -5,8 +5,12 @@ import { formatDayShort, formatEuro, monthName } from '../../i18n/format';
 import { t } from '../../i18n/lt';
 import { timePart, todayStr } from '../../logic/time';
 import { openAppt } from '../actions';
+import { Segmented } from '../components/Segmented';
 import { useLive } from '../hooks';
-import { ui } from '../store';
+import { usePager } from '../pager';
+import { goPage, pageIndex, slideClass, statsUi } from '../statsUi';
+import { ui, useStore } from '../store';
+import { ClientStats } from './ClientStats';
 import { initials } from './Clients';
 
 type Day = { date: string; inCents: number; outCents: number; paid: number };
@@ -51,6 +55,9 @@ function FlowChart({ days, sel, onSel }: { days: Day[]; sel: number | null; onSe
 
 /** Išlaidos: the month's money, month by month. What came in leads; what went out is calm and secondary. */
 export function ExpensesScreen() {
+  const { view, dir } = useStore(statsUi);
+  const root = useRef<HTMLElement>(null);
+  usePager(root);
   const [ym, setYm] = useState(todayStr().slice(0, 7));
   const [sel, setSel] = useState<number | null>(null);
   const o = useLive(() => repo.monthOverview(ym), [ym], { entries: [], inCents: 0, outCents: 0, byKind: [], days: [], payers: [] });
@@ -60,16 +67,18 @@ export function ExpensesScreen() {
   const go = (dir: -1 | 1) => { setSel(null); setYm(shiftMonth(ym, dir)); };
   const picked = sel !== null ? o.days[sel] : undefined;
   return (
-    <section class="list-screen" data-testid="expenses">
+    <section ref={root} class="list-screen pager" data-testid="expenses">
       <header class="chrome">
         <h1 class="large-title top">{t('tab.expenses')}</h1>
-        <div class="month-nav">
+        <Segmented testId="expenses-seg" value={view} onChange={(v) => goPage(v === 'main' ? 0 : Math.max(1, pageIndex({ view: 'stats', stat: statsUi.get().stat })))}
+          items={[{ id: 'main', label: t('ex.seg.month') }, { id: 'stats', label: t('ex.seg.stats') }]} />
+        {view === 'main' && <div class="month-nav">
           <button class="picker-nav" data-testid="exp-prev" aria-label={t('picker.prev')} onClick={() => go(-1)}>‹</button>
           <span data-testid="exp-month">{monthName(day)} {ym.slice(0, 4)}</span>
           <button class="picker-nav" data-testid="exp-next" aria-label={t('picker.next')} onClick={() => go(1)}>›</button>
-        </div>
+        </div>}
       </header>
-      <div class="scroll list-body">
+      {view === 'stats' ? <ClientStats /> : <div class={`scroll list-body ${slideClass(dir)}`}>
         <div class="money-hero">
           <p class="hero-label">{t('expenses.left')}</p>
           <p class={net < 0 ? 'hero-num neg' : net > 0 ? 'hero-num pos' : 'hero-num'} data-testid="exp-net">{formatEuro(net)}</p>
@@ -136,7 +145,7 @@ export function ExpensesScreen() {
             </ul>
           </>
         )}
-      </div>
+      </div>}
     </section>
   );
 }

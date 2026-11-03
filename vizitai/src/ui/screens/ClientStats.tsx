@@ -10,7 +10,7 @@ import {
 import { BigNumber, Delta, Donut, HeatMap, LineChart, PeriodBar, type LineCfg } from '../components/charts';
 import { Segmented } from '../components/Segmented';
 import { useLive } from '../hooks';
-import { clientsUi, goPage, slideClass, STAT_TABS, type StatTab } from '../clientsUi';
+import { goPage, slideClass, STAT_TABS, statsUi, type StatTab } from '../statsUi';
 import { ui, useStore } from '../store';
 
 const num = new Intl.NumberFormat('lt-LT', { maximumFractionDigits: 1 });
@@ -28,7 +28,7 @@ function Spark({ vals, color }: { vals: number[]; color: string }) {
 /** A ranked list; tapping a row opens a line with its details. */
 function Rank({ rows, unit, detail, color }: { rows: RankRow[]; unit: (v: number) => string; detail: (r: RankRow) => string; color: string }) {
   const [open, setOpen] = useState<string | null>(null);
-  const top = clientsUi.get().top;
+  const top = statsUi.get().top;
   return (
     <>
       <div class="rank" data-testid="rank">
@@ -40,14 +40,14 @@ function Rank({ rows, unit, detail, color }: { rows: RankRow[]; unit: (v: number
         ))}
       </div>
       <div class="chips">
-        {([5, 10, 20] as const).map((n) => <button key={n} class={top === n ? 'on' : ''} data-testid={`top-${n}`} onClick={() => clientsUi.set({ top: n })}>{t('st.top', { n })}</button>)}
+        {([5, 10, 20] as const).map((n) => <button key={n} class={top === n ? 'on' : ''} data-testid={`top-${n}`} onClick={() => statsUi.set({ top: n })}>{t('st.top', { n })}</button>)}
       </div>
     </>
   );
 }
 
 export function ClientStats() {
-  const { stat, win, top, dir } = useStore(clientsUi);
+  const { stat, win, top, dir } = useStore(statsUi);
   const shown = useRef(false); // the first page comes in with the whole screen; later pages slide by themselves
   useEffect(() => { shown.current = true; }, []);
   const a = useLive(async () => buildAnalytics(await repo.analyticsInput()), [], null as Analytics | null);
@@ -63,7 +63,7 @@ export function ClientStats() {
           <>
             <section class="card rise" style={{ '--i': 0 }}>
               <div class="winhead"><h5>{t('st.period')}</h5><b data-testid="win-text">{monthYear(a.keys[win.from]!)} – {monthYear(a.keys[win.to]!)}</b></div>
-              <PeriodBar bars={a.visits} win={win} label={t('st.period')} onChange={(w) => clientsUi.set({ win: w })} />
+              <PeriodBar bars={a.visits} win={win} label={t('st.period')} onChange={(w) => statsUi.set({ win: w })} />
               <p class="hint">{t('st.deltaHint')}</p>
             </section>
             <div class={`stat-pane ${shown.current ? slideClass(dir) : ''}`} key={stat}>
@@ -79,7 +79,7 @@ export function ClientStats() {
         <div class={`glass${winLen(win) === 3 || winLen(win) === 6 || winLen(win) === 12 || winLen(win) === MONTHS ? '' : ' free'}`} data-testid="glass" style={{ '--idx': [3, 6, 12, MONTHS].indexOf(winLen(win)) }}>
           <i class="thumb" />
           {([[3, 'st.p3'], [6, 'st.p6'], [12, 'st.p12'], [MONTHS, 'st.pAll']] as const).map(([n, k]) => (
-            <button key={n} class={winLen(win) === n && win.to === MONTHS - 1 ? 'on' : ''} data-testid={`glass-${n}`} onClick={() => clientsUi.set({ win: presetWin(n) })}>{t(k)}</button>
+            <button key={n} class={winLen(win) === n && win.to === MONTHS - 1 ? 'on' : ''} data-testid={`glass-${n}`} onClick={() => statsUi.set({ win: presetWin(n) })}>{t(k)}</button>
           ))}
         </div>
       )}

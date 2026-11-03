@@ -17,6 +17,9 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   { date: '2026-11-03', items: [
+    { kind: 'change', text: 'Paslaugų nustatymuose pašalintas gėlių efekto jungiklis; gėlių efektas lieka Vestuvėms.' },
+  ] },
+  { build: '857b0ea', date: '2026-11-03', items: [
     { kind: 'bugfix', text: 'Palaikius pirštą ekrane nebežymimas tekstas jokiame puslapyje (laukai lieka redaguojami).' },
     { kind: 'feature', text: 'Klientai: braukiant į šonus perjungiami puslapiai: Sąrašas, keturi Analizės puslapiai ir atgal.' },
   ] },

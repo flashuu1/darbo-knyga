@@ -52,22 +52,14 @@ test('flowers drift up while a floral visit is coming up; when its payment is du
   await expect(page.getByTestId(`bloom-${coming}`)).toHaveCount(0);
 });
 
-test('the flowers are a switch per service in Paslaugos, and any service can have them', async ({ page }) => {
+test('only Vestuvės has the flowers, and Paslaugos has no switch for them', async ({ page }) => {
   await openApp(page, '2026-10-14T12:00:00');
   const id = await book(page, '2026-10-14T15:00', 'Kirpimas', 'Ona');
   await expect(page.getByTestId(`bloom-${id}`)).toHaveCount(0);
   await openSettings(page, 'services');
-  await expect(page.getByTestId('svc-floral-5')).toHaveAttribute('aria-checked', 'true'); // Vestuvės
-  await expect(page.getByTestId('svc-floral-0')).toHaveAttribute('aria-checked', 'false'); // Kirpimas
-  await page.getByTestId('svc-floral-0').click();
-  await expect(page.getByTestId('svc-floral-0')).toHaveAttribute('aria-checked', 'true');
-  await page.getByTestId('settings-back').click();
-  await page.getByTestId('tab-calendar').click();
-  await expect(page.getByTestId(`bloom-${id}`)).toBeAttached();
-  await openSettings(page, 'services');
-  await page.getByTestId('svc-floral-5').click(); // switch the wedding's flowers off
-  await expect.poll(async () => (await wedding(page)).floral).toBeFalsy();
-  expect((await wedding(page)).minutes).toBe(240); // only the flowers changed
+  await expect(page.getByTestId('svc-minutes-5')).toBeVisible(); // the service rows are there ...
+  await expect(page.locator('[data-testid^="svc-floral-"]')).toHaveCount(0); // ... without a switch for the flowers
+  expect((await wedding(page)).floral).toBe(true); // the effect itself stays on Vestuvės
 });
 
 test('a service can be made long: half-hour steps from two hours, up to fourteen hours', async ({ page }) => {

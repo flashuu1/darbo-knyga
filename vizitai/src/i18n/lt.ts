@@ -29,7 +29,7 @@ export const lt = {
   'service.add': 'Pridėti paslaugą', 'service.new': 'Nauja paslauga', 'service.hide': 'Paslėpti', 'service.show': 'Rodyti',
   'service.hidden': 'Paslėpta', 'service.minutes': 'Trukmė (min.)', 'service.lastActive': 'Turi likti bent viena paslauga',
   'service.default.cut': 'Kirpimas', 'service.default.color': 'Dažymas', 'service.default.cutColor': 'Kirpimas ir dažymas',
-  'service.default.highlights': 'Sruogelės', 'service.default.style': 'Šukuosena', 'service.default.other': 'Kita', 'service.default.wedding': 'Vestuvės', 'service.floral': 'Gėlių efektas',
+  'service.default.highlights': 'Sruogelės', 'service.default.style': 'Šukuosena', 'service.default.other': 'Kita', 'service.default.wedding': 'Vestuvės',
   'hours.start': 'Pradžia', 'hours.end': 'Pabaiga', 'hours.invalid': 'Pabaiga turi būti vėlesnė už pradžią',
   'backup.export': 'Eksportuoti duomenis', 'backup.import': 'Atkurti iš failo',
   'backup.confirm': 'Pakeisti visus esamus duomenis?', 'backup.replace': 'Pakeisti',

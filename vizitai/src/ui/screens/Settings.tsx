@@ -191,11 +191,6 @@ function ServicesPage() {
                 </span>
                 <button class="toggle" data-testid={`svc-toggle-${i}`} onClick={() => void toggle(s.id, !s.active)}>{s.active ? t('service.hide') : t('service.show')}</button>
               </div>
-              <div class="svc-line sub">
-                <span class="sub-label">{t('service.floral')} 🌸</span>
-                <button class={s.floral ? 'switch on' : 'switch'} role="switch" aria-checked={s.floral === true} aria-label={t('service.floral')} data-testid={`svc-floral-${i}`}
-                  onClick={() => void repo.updateService(s.id, { floral: !s.floral })}><span class="knob" /></button>
-              </div>
               {openColor === s.id && (
                 <div class="svc-line swatches">
                   {SERVICE_COLORS.map((c) => (

@@ -740,9 +740,10 @@ p.link-name { color: var(--label); }
   box-shadow: 0 24px 60px rgba(0, 0, 0, .34), inset 0 0 0 .5px rgba(255, 255, 255, .5);
   top: clamp(calc(env(safe-area-inset-top) + 12px), calc(var(--peek-center) - var(--peek-h) / 2), calc(100dvh - var(--peek-h) - 14px - env(safe-area-inset-bottom)));
   transform-origin: 50% calc(var(--peek-center) - clamp(calc(env(safe-area-inset-top) + 12px), calc(var(--peek-center) - var(--peek-h) / 2), calc(100dvh - var(--peek-h) - 14px - env(safe-area-inset-bottom))));
-  opacity: 0; }
-.peek-card[data-ready] { animation: peek-in .42s var(--ease-spring) both; }
+  opacity: 0; touch-action: none; }
+.peek-card[data-ready] { opacity: 1; animation: peek-in .42s var(--ease-spring) backwards; } /* backwards: once it has come in, a drag can move it */
 .peek-layer[data-leaving] .peek-card { animation: peek-out var(--t-fast) var(--ease-in) both; }
+.peek-layer[data-leaving] .peek-card[data-flying] { animation: none; }
 @keyframes peek-in { from { opacity: 0; transform: scale(.82) translateY(10px); } to { opacity: 1; transform: none; } }
 @keyframes peek-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: scale(.94); } }
 .peek-card > * { animation: rise .4s var(--ease-spring) both; }
@@ -798,3 +799,7 @@ p.link-name { color: var(--label); }
 .peek-side em.paid { color: var(--green-ink); } .peek-side em.due { color: var(--due-ink); }
 .peek-edit { flex: none; min-height: 34px; min-width: 0; padding: 0 14px; border-radius: 17px; background: var(--fill); color: var(--accent); font-size: .86rem; font-weight: 650; }
 .peek-edit:active { background: var(--fill-2); }
+
+/* the client card: swiped away to the right, it follows the finger */
+.card-root { touch-action: pan-y; will-change: auto; }
+.card-root .scroll, .card-root .chrome { touch-action: pan-y; }

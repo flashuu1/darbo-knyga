@@ -145,7 +145,9 @@ function ClientRowView({ r, i, sort, now }: { r: ClientRow; i: number; sort: str
     if (!id || (e.pointerType === 'mouse' && e.button !== 0)) return;
     const row = e.currentTarget as HTMLElement;
     row.classList.add('holding');
-    hold.current = { x: e.clientX, y: e.clientY, timer: window.setTimeout(() => { hold.current = null; held.current = true; row.classList.remove('holding'); const b = row.getBoundingClientRect(); ui.set({ peek: { id, top: b.top, height: b.height } }); }, HOLD_SHOW_MS) };
+    hold.current = { x: e.clientX, y: e.clientY, timer: window.setTimeout(() => { hold.current = null; held.current = true; row.classList.remove('holding'); const b = row.getBoundingClientRect();
+      const src = ((e.target as HTMLElement).closest('.pill-btn') ?? row.querySelector('.avatar') ?? row).getBoundingClientRect();
+      ui.set({ peek: { id, top: b.top, height: b.height, from: { x: src.left + src.width / 2, y: src.top + src.height / 2 } } }); }, HOLD_SHOW_MS) };
   };
   const moveHold = (e: PointerEvent) => { const h = hold.current; if (h && Math.hypot(e.clientX - h.x, e.clientY - h.y) > 8) { cancelHold(); (e.currentTarget as HTMLElement).classList.remove('holding'); } };
   const endHold = (e: PointerEvent) => { cancelHold(); (e.currentTarget as HTMLElement).classList.remove('holding'); };

@@ -26,7 +26,8 @@ export type Sheet = { type: 'new'; start: string; clientId?: string; serviceId?:
   | { type: 'amount'; id: string } | { type: 'move'; id: string } | { type: 'summary'; scope: 'day' | 'week' | 'month'; date: string }
   | { type: 'cfilter' } | { type: 'cnew' };
 /** The card shown while a client's row is held: which visit, and where the row is (the card is centred on it). */
-export interface PeekState { id: string; top: number; height: number }
+/** `from`: where it came from (the avatar or the pill that was held): the card flies back into it when it is swiped away. */
+export interface PeekState { id: string; top: number; height: number; from: { x: number; y: number } }
 export interface ToastState { id: number; text: string; undo?: () => Promise<void> }
 export interface DragState { entry: Entry; label: string; x: number; y: number; grabDY: number; grabDX: number; left: number; width: number; over: { date: string; start: string } | null; /** Lifted from a "+N" chip: the key of that chip (the chip stays mounted, counting one less, while the entry is in her hand). */ chipKey?: string; /** Held at the left (-1) or right (1) edge: the calendar is about to turn to the previous / next day or week. */ edge?: -1 | 0 | 1 }
 export interface ActionItem { label: string; role?: 'destructive' | 'cancel'; onPress: () => void }

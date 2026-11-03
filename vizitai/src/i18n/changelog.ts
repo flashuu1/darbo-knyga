@@ -17,6 +17,10 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   { date: '2026-11-03', items: [
+    { kind: 'feature', text: 'Klientų kortelė: braukiant į dešinę bet kur ji nuseka pirštą ir grįžtama į sąrašą (ne tik mygtuku „Atgal“).' },
+    { kind: 'feature', text: 'Palaikymo kortelę galima nubraukti bet kuria kryptimi: ji sugrįžta į nuotrauką ar mygtuką, iš kurio atsirado, ir iškart galima tikrinti kitą eilutę.' },
+  ] },
+  { build: '7038e3c', date: '2026-11-03', items: [
     { kind: 'change', text: 'Klientų eilutė pasako viską, kas aktualu: pinigai (mygtukas), kitas vizitas ir kaip praėjo paskutinis kartas (suma ir kada), net kai žalias mygtukas jau nebeberodomas.' },
     { kind: 'change', text: 'Palaikymo kortelėje rodomas ir kitas, ir paskutinis vizitas; apmokėto vizito sumą galima pakeisti („Keisti sumą“).' },
   ] },

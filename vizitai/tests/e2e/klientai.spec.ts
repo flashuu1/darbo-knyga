@@ -228,6 +228,51 @@ test.describe('Klientai list', () => {
     await expect(page.getByTestId('client-paid-0')).toHaveText('✓ 35 € · 10-12');
   });
 
+  test('the hold card can be flicked away in any direction (it flies back into the avatar), so the next row can be checked straight away', async ({ page }) => {
+    await openApp(page, NOW);
+    await seedList(page);
+    await page.getByTestId('tab-clients').click();
+    const hold = async (id: string) => { const b = (await page.getByTestId(id).boundingBox())!; await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.mouse.down(); await page.waitForTimeout(700); await page.mouse.up(); };
+    const drag = async (dx: number, dy: number) => {
+      const c = (await page.getByTestId('peek-date').boundingBox())!;
+      const x = c.x + 60, y = c.y + 8;
+      await page.mouse.move(x, y); await page.mouse.down(); await page.mouse.move(x + dx, y + dy, { steps: 8 }); await page.mouse.up();
+    };
+    await hold('client-row-0');
+    await expect(page.getByTestId('peek-name')).toHaveText('Zzz Laukia');
+    await drag(20, 10); // not far enough: it stays
+    await page.waitForTimeout(500);
+    await expect(page.getByTestId('peek')).toBeVisible();
+    await expect(page.getByTestId('peek')).toHaveCSS('transform', 'none');
+    await drag(-170, -120); // up and to the left
+    await expect(page.getByTestId('peek')).toHaveCount(0);
+    await expect(page.getByTestId('client-row-0')).toBeVisible();
+    await hold('client-row-1'); // the next one, straight away
+    await expect(page.getByTestId('peek-name')).toHaveText('Mmm Ateis');
+    await drag(0, 240); // downwards
+    await expect(page.getByTestId('peek')).toHaveCount(0);
+    await hold('client-row-2');
+    await expect(page.getByTestId('peek')).toBeVisible();
+    await page.keyboard.press('Escape'); // Escape and a tap outside also fly it back
+    await expect(page.getByTestId('peek')).toHaveCount(0);
+  });
+
+  test('a swipe to the right anywhere on the client card goes back to the list, like the button', async ({ page }) => {
+    await openApp(page, NOW);
+    await seedList(page);
+    await page.getByTestId('tab-clients').click();
+    await page.getByTestId('client-row-1').click();
+    await expect(page.getByTestId('client-card')).toBeVisible();
+    const c = (await page.getByTestId('card-visits').boundingBox())!;
+    const y = c.y + c.height / 2;
+    await page.mouse.move(80, y); await page.mouse.down(); await page.mouse.move(110, y + 2, { steps: 4 }); await page.mouse.up(); // short: stays
+    await page.waitForTimeout(500);
+    await expect(page.getByTestId('client-card')).toBeVisible();
+    await page.mouse.move(60, y); await page.mouse.down(); await page.mouse.move(300, y + 6, { steps: 8 }); await page.mouse.up();
+    await expect(page.getByTestId('client-card')).toHaveCount(0);
+    await expect(page.getByTestId('client-row-1')).toBeVisible();
+  });
+
   test('the orange pill adds the amount straight from the list, then the row turns green for two weeks', async ({ page }) => {
     await openApp(page, NOW);
     await seedList(page);

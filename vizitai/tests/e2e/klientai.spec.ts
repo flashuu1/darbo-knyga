@@ -94,6 +94,27 @@ test.describe('Klientai list', () => {
     await expect.poll(() => page.evaluate(async () => (await (window as any).__vizitai.db.clients.toArray())[0].phone)).toBe('+370 611 22233');
   });
 
+  test('press and hold on a row shows the visit its line talks about; a tap still opens the client', async ({ page }) => {
+    await openApp(page, NOW);
+    await seedList(page);
+    await page.getByTestId('tab-clients').click();
+    const hold = async (id: string, ms: number) => {
+      const b = (await page.getByTestId(id).boundingBox())!;
+      await page.mouse.move(b.x + 120, b.y + b.height / 2); await page.mouse.down(); await page.waitForTimeout(ms); await page.mouse.up();
+    };
+    await hold('client-row-1', 700); // Mmm Ateis: the next visit, 17 October 10:00
+    await expect(page.getByTestId('appt-when')).toContainText('spalio 17 d.');
+    await expect(page.getByTestId('appt-when')).toContainText('10:00');
+    await expect(page.getByTestId('card-name')).toHaveCount(0); // the client card did not open behind it
+    await page.getByTestId('btn-close').click();
+    await expect(page.getByTestId('appt-when')).toHaveCount(0);
+    await hold('client-row-0', 700); // Zzz Laukia: the visit that waits for its amount
+    await expect(page.getByTestId('appt-when')).toContainText('spalio 13 d.');
+    await page.getByTestId('btn-close').click();
+    await hold('client-row-2', 80); // a short press is a tap
+    await expect(page.getByTestId('card-name')).toBeVisible();
+  });
+
   test('the orange pill adds the amount straight from the list, then the row turns green for two weeks', async ({ page }) => {
     await openApp(page, NOW);
     await seedList(page);

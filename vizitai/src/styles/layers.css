@@ -729,3 +729,4 @@ p.link-name { color: var(--label); }
 .suggest .suggest-row .chev { flex: none; display: inline-flex; color: var(--label-3); }
 .mini-pill { flex: none; display: inline-flex; align-items: center; height: 24px; padding: 0 9px; border-radius: 12px; font-size: .72rem; font-weight: 700; white-space: nowrap; }
 .mini-pill.due { background: color-mix(in srgb, var(--due) 22%, transparent); color: var(--due-ink); }
+.client-row.holding { background: var(--fill); }

@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'preact/hooks';
+import { useMemo, useRef, useState } from 'preact/hooks';
 import { repo, type ClientRow } from '../../db/repo';
 import { formatDayShort, formatEuro, formatEuroRound } from '../../i18n/format';
-import { confirmDeleteClient, openCancelled } from '../actions';
+import { confirmDeleteClient, openAppt, openCancelled } from '../actions';
 import { SwipeRow } from '../components/SwipeRow';
 import { t } from '../../i18n/lt';
 import { agoParts } from '../../logic/analytics';
@@ -111,14 +111,32 @@ export function ClientsScreen() {
   );
 }
 
+const HOLD_SHOW_MS = 450; // how long a row is held before its visit opens
 function ClientRowView({ r, i, sort, now }: { r: ClientRow; i: number; sort: string; now: string }) {
   const line = sort === 'spent' ? t('cl.totalLine', { suma: formatEuroRound(r.spentCents), n: r.visitCount })
     : sort === 'visits' ? t('cl.visitsLine', { n: r.visitCount, ago: agoText(r.lastVisit, now) })
     : r.pending ? t('cl.visitOn', { data: formatDayShort(r.pending.start) })
     : r.nextVisit ? t('cl.nextShort', { kada: formatDayShort(r.nextVisit) })
     : agoText(r.lastVisit, now);
+  // Press and hold shows the visit the line talks about (the one waiting for its amount, the next one, the one paid for,
+  // or the last one), with all its details; a tap still opens the client.
+  const hold = useRef<{ timer: number; x: number; y: number } | null>(null);
+  const held = useRef(false);
+  const entryId = r.pending?.id ?? r.nextId ?? r.paid?.id ?? r.lastId;
+  const cancelHold = () => { if (hold.current) { clearTimeout(hold.current.timer); hold.current = null; } };
+  const startHold = (e: PointerEvent) => {
+    cancelHold();
+    held.current = false;
+    if (!entryId || (e.pointerType === 'mouse' && e.button !== 0) || (e.target as HTMLElement).closest('.pill-btn')) return;
+    const row = e.currentTarget as HTMLElement;
+    row.classList.add('holding');
+    hold.current = { x: e.clientX, y: e.clientY, timer: window.setTimeout(() => { hold.current = null; held.current = true; row.classList.remove('holding'); openAppt(entryId); }, HOLD_SHOW_MS) };
+  };
+  const moveHold = (e: PointerEvent) => { const h = hold.current; if (h && Math.hypot(e.clientX - h.x, e.clientY - h.y) > 8) { cancelHold(); (e.currentTarget as HTMLElement).classList.remove('holding'); } };
+  const endHold = (e: PointerEvent) => { cancelHold(); (e.currentTarget as HTMLElement).classList.remove('holding'); };
   return (
-    <button class="client-row" data-testid={`client-row-${i}`} onClick={() => ui.set({ client: r.client.id })}>
+    <button class="client-row" data-testid={`client-row-${i}`} onPointerDown={startHold} onPointerMove={moveHold} onPointerUp={endHold} onPointerCancel={endHold} onContextMenu={(e) => e.preventDefault()}
+      onClick={() => { if (held.current) { held.current = false; return; } ui.set({ client: r.client.id }); }}>
       <span class="avatar" aria-hidden="true">{initials(r.client.name)}</span>
       <span class="client-text">
         <b>{r.client.name}</b>

@@ -6,7 +6,7 @@ const NOW = '2026-11-03T10:24';
 let n = 0;
 const row = (name: string, p: Partial<ClientRow> = {}, phone?: string): ClientRow => ({
   client: { id: `c${n++}`, name, nameKey: name.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase(), phone, createdAt: '', updatedAt: '' },
-  lastVisit: null, pending: null, paid: null, visitCount: 0, spentCents: 0, nextVisit: null, ...p,
+  lastVisit: null, pending: null, paid: null, visitCount: 0, spentCents: 0, nextVisit: null, nextId: null, lastId: null, ...p,
 });
 // in the order listClients gives them: waiting, paid lately, next visit, the rest A-Z
 const rows = [

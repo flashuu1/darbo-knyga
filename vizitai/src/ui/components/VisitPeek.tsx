@@ -15,7 +15,6 @@ import { ui, type PeekState } from '../store';
 const dayGap = (from: string, to: string) => Math.round((Date.parse(`${to}T12:00:00Z`) - Date.parse(`${from}T12:00:00Z`)) / 86_400_000);
 const close = () => ui.set({ peek: null });
 const reduced = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-const FLY_MS = 340;
 
 /**
  * A small card that floats over the list while a client's row is held (like holding an app icon on the Home Screen): what
@@ -36,6 +35,9 @@ export function VisitPeek({ peek, leaving }: { peek: PeekState; leaving: boolean
   const busy = useRef(false);
   const flying = useRef(false);
   const drag = useRef<{ id: number; x0: number; y0: number; t0: number; on: boolean } | null>(null);
+  const off = useRef({ x: 0, y: 0 });       // how far the card is dragged from its place
+  const scaleNow = useRef(1);
+  const samples = useRef<{ t: number; x: number; y: number }[]>([]);
   const [h, setH] = useState(0);
   // The card is placed once its height is known: centred on the row that was held, kept clear of the screen edges.
   useLayoutEffect(() => { if (card.current) setH(card.current.offsetHeight); }, [kind, suggest.length, !!client?.phone, !!detail]);
@@ -76,22 +78,44 @@ export function VisitPeek({ peek, leaving }: { peek: PeekState; leaving: boolean
     } catch (e) { console.error(e); } finally { busy.current = false; }
   }
   function other() { openAmount(appt!.id); close(); } // synchronously, so the number keyboard comes up (also to change an amount that is already in)
-  /** The card shrinks and flies back into the avatar or pill it came out of, then it is gone. */
-  function flyAway() {
+  /**
+   * The card is let go: it keeps the speed of the finger and is drawn into the avatar or pill it came out of, like a
+   * spring pulling it home; it shrinks as it gets there and only disappears in the last moment, when it is "inside".
+   * (Tap outside and Escape do the same from rest.) vx, vy: the speed of the finger, px per millisecond.
+   */
+  function flyAway(vx = 0, vy = 0) {
     const el = card.current;
     if (flying.current) return;
     flying.current = true;
     if (!el || reduced()) { close(); return; }
-    const r = el.getBoundingClientRect();
-    const dx = peek.from.x - (r.left + r.width / 2), dy = peek.from.y - (r.top + r.height / 2);
     el.setAttribute('data-flying', '');
-    el.style.transition = `transform ${FLY_MS}ms cubic-bezier(.5, 0, .75, 0), opacity ${FLY_MS}ms ease-in`;
-    el.style.transform = `translate(${dx}px, ${dy}px) scale(.12)`;
-    el.style.opacity = '0';
-    if (back.current) { back.current.style.transition = `opacity ${FLY_MS}ms ease-out`; back.current.style.opacity = '0'; }
-    window.setTimeout(close, FLY_MS);
+    const r = el.getBoundingClientRect(), o = off.current;
+    const tx = peek.from.x - (r.left + r.width / 2 - o.x), ty = peek.from.y - (r.top + r.height / 2 - o.y); // offset that puts the card's centre on the source
+    const startScale = scaleNow.current, backStart = back.current ? Number(back.current.style.opacity || 1) : 1;
+    const total = Math.max(1, Math.hypot(tx - o.x, ty - o.y));
+    const K = 300, C = 2 * Math.sqrt(K) * 0.88; // a firm spring that hardly overshoots
+    const t0 = performance.now();
+    let x = o.x, y = o.y, sx = vx * 1000, sy = vy * 1000, last = t0;
+    // a flick away from the source is only partly kept (most of that speed is taken out), so the card curves home instead of swinging out and back
+    const ux = (tx - x) / total, uy = (ty - y) / total, along = sx * ux + sy * uy;
+    if (along < 0) { sx -= along * ux * 0.7; sy -= along * uy * 0.7; }
+    el.style.transition = 'none';
+    if (back.current) back.current.style.transition = 'none';
+    const step = (now: number) => {
+      const dt = Math.min(0.032, (now - last) / 1000); last = now;
+      sx += (K * (tx - x) - C * sx) * dt; sy += (K * (ty - y) - C * sy) * dt;
+      x += sx * dt; y += sy * dt;
+      const p = Math.min(1, Math.max(0, 1 - Math.hypot(tx - x, ty - y) / total));
+      const sc = startScale + (0.16 - startScale) * (p * p * (3 - 2 * p));
+      el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) scale(${sc.toFixed(3)})`;
+      el.style.opacity = String(p < 0.78 ? 1 : Math.max(0, 1 - (p - 0.78) / 0.2));
+      if (back.current) back.current.style.opacity = String(backStart * Math.max(0, 1 - p * 1.15));
+      if (p >= 0.985 || now - t0 > 700) { close(); return; }
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
   }
-  const down = (e: PointerEvent) => { if (!flying.current && e.isPrimary) drag.current = { id: e.pointerId, x0: e.clientX, y0: e.clientY, t0: performance.now(), on: false }; };
+  const down = (e: PointerEvent) => { if (!flying.current && e.isPrimary) { drag.current = { id: e.pointerId, x0: e.clientX, y0: e.clientY, t0: performance.now(), on: false }; samples.current = []; } };
   const move = (e: PointerEvent) => {
     const d = drag.current, el = card.current;
     if (!d || !el || e.pointerId !== d.id) return;
@@ -102,18 +126,26 @@ export function VisitPeek({ peek, leaving }: { peek: PeekState; leaving: boolean
       try { el.setPointerCapture(e.pointerId); } catch { /* gone */ }
       el.style.transition = 'none';
     }
-    el.style.transform = `translate(${dx}px, ${dy}px) scale(${1 - Math.min(0.1, dist / 2200)})`;
+    const sc = 1 - Math.min(0.1, dist / 2200);
+    off.current = { x: dx, y: dy }; scaleNow.current = sc;
+    el.style.transform = `translate(${dx}px, ${dy}px) scale(${sc})`;
     if (back.current) { back.current.style.transition = 'none'; back.current.style.opacity = String(1 - Math.min(0.7, dist / 420)); }
+    const smp = samples.current; smp.push({ t: performance.now(), x: dx, y: dy }); if (smp.length > 6) smp.shift();
   };
   const up = (e: PointerEvent) => {
     const d = drag.current, el = card.current;
     drag.current = null;
     if (!d || !el || e.pointerId !== d.id || !d.on) return;
-    const dist = Math.hypot(e.clientX - d.x0, e.clientY - d.y0), v = dist / Math.max(1, performance.now() - d.t0);
+    const dist = Math.hypot(e.clientX - d.x0, e.clientY - d.y0);
+    // the speed of the finger over its last moments
+    const smp = samples.current, a = smp[0], z = smp[smp.length - 1];
+    const dtv = a && z ? Math.max(1, z.t - a.t) : 1, vx = a && z ? (z.x - a.x) / dtv : 0, vy = a && z ? (z.y - a.y) / dtv : 0;
+    const speed = Math.hypot(vx, vy);
     const eat = (c: Event) => { c.stopPropagation(); c.preventDefault(); }; // the tap that would follow a drag
     el.addEventListener('click', eat, { capture: true, once: true });
     window.setTimeout(() => el.removeEventListener('click', eat, true), 120);
-    if (dist > 90 || (v > 0.6 && dist > 40)) { flyAway(); return; } // far enough, or a quick flick
+    if (dist > 90 || (speed > 0.6 && dist > 40)) { flyAway(vx, vy); return; } // far enough, or a quick flick
+    off.current = { x: 0, y: 0 }; scaleNow.current = 1;
     el.style.transition = 'transform .4s var(--ease-spring)'; // not far enough: back to its place
     el.style.transform = '';
     if (back.current) { back.current.style.transition = 'opacity .3s'; back.current.style.opacity = ''; }
@@ -122,7 +154,7 @@ export function VisitPeek({ peek, leaving }: { peek: PeekState; leaving: boolean
 
   return (
     <div class="layer peek-layer" data-leaving={leaving ? '' : undefined} data-testid="peek-layer">
-      <div ref={back} class="peek-back" onMouseDown={(e) => e.preventDefault()} onClick={flyAway} data-testid="peek-back" />
+      <div ref={back} class="peek-back" onMouseDown={(e) => e.preventDefault()} onClick={() => flyAway()} data-testid="peek-back" />
       <div ref={card} class={`peek-card peek-${kind}`} role="dialog" aria-label={name} data-testid="peek" data-state={kind} data-ready={h > 0 ? '' : undefined}
         onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
         style={{ '--peek-center': `${center}px`, '--peek-h': `${h}px`, '--svc': `var(--c-${service?.color ?? 'gray'})` } as CSSProperties}>

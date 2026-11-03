@@ -17,6 +17,9 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   { date: '2026-11-03', items: [
+    { kind: 'change', text: 'Palaikymo kortelės nubraukimas: paleidus kortelė nesustoja, o išlaiko piršto greitį ir tarsi spyruoklė įsitraukia į nuotrauką ar mygtuką, palaipsniui mažėdama; išnyksta tik pačioje pabaigoje.' },
+  ] },
+  { build: '12b491b', date: '2026-11-03', items: [
     { kind: 'feature', text: 'Klientų kortelė: braukiant į dešinę bet kur ji nuseka pirštą ir grįžtama į sąrašą (ne tik mygtuku „Atgal“).' },
     { kind: 'feature', text: 'Palaikymo kortelę galima nubraukti bet kuria kryptimi: ji sugrįžta į nuotrauką ar mygtuką, iš kurio atsirado, ir iškart galima tikrinti kitą eilutę.' },
   ] },

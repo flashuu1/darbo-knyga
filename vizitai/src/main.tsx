@@ -7,9 +7,11 @@ import { initUpdates } from './pwa/updates';
 import { isBusy, ui } from './ui/store';
 import { lockDocument } from './pwa/lock';
 import { startFrameMonitor } from './ui/perf';
+import { keepAmountCaretAtEnd } from './ui/caret';
 
 const root = document.getElementById('app')!;
 lockDocument();
+keepAmountCaretAtEnd();
 // iOS Safari only shows :active (the pressed look of every button) when the page has a touch listener
 document.addEventListener('touchstart', () => {}, { passive: true });
 

@@ -35,6 +35,8 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
   const [kind, setKind] = useState<Kind>('client');
   const [slide, setSlide] = useState<'next' | 'prev' | ''>(''); // which way the choices of the new type slide in from
   const pane0 = useRef<HTMLElement>(null);
+  const amountBlock = useRef<HTMLDivElement>(null);
+  const [amountFocus, setAmountFocus] = useState(false);
   const [optionId, setOptionId] = useState<string | null>(null);
   const [amountText, setAmountText] = useState('');
   const [off, setOff] = useState(false); // Asmeninis > Nedirbu: from a time to a time, nothing else
@@ -82,6 +84,19 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
   };
   // a swipe on the first screen moves between Klientas, Asmeninis and Išlaidos (and the glass drop follows)
   useSideSwipe(pane0, (dir) => { const k = KINDS[KINDS.indexOf(kind) + dir]; if (k && screen === 0) chooseKind(k); });
+  // The amount field is the last thing under a long list of kinds. When the keyboard comes up the first screen shrinks to what is above
+  // the keyboard and the blue button: the field (and its note) is scrolled into that part, not left under the button.
+  useEffect(() => {
+    if (!amountFocus) return;
+    const h = window.setTimeout(() => {
+      const p = pane0.current, b = amountBlock.current;
+      if (!p || !b) return;
+      const pr = p.getBoundingClientRect(), br = b.getBoundingClientRect();
+      const d = br.bottom > pr.bottom - 12 ? br.bottom - (pr.bottom - 12) : br.top < pr.top + 8 ? br.top - (pr.top + 8) : 0;
+      if (Math.abs(d) > 1) p.scrollBy({ top: d, behavior: 'smooth' });
+    }, 140);
+    return () => clearTimeout(h);
+  }, [amountFocus, kb]);
   const touch = <T,>(set: (v: T) => void) => (v: T) => { set(v); };
   const go = (s: Screen) => { if (s !== 0) input.current?.blur(); setScreen(s); };
   const next = () => { if (canNext) go(kind === 'client' ? 1 : 2); };
@@ -188,17 +203,19 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
                   )}
                 </div>
                 {kind === 'expense' && (
+                  <div ref={amountBlock}>
                   <label class="amount-field">
                     <input data-testid="expense-amount" inputMode="decimal" enterKeyHint="done" autocomplete="off" aria-label={t('expense.amount')} placeholder="0" value={amountText}
-                      onInput={(e) => { setAmountText((e.target as HTMLInputElement).value); }}
+                      onInput={(e) => { setAmountText((e.target as HTMLInputElement).value); }} onFocus={() => setAmountFocus(true)} onBlur={() => setAmountFocus(false)}
                       onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLInputElement).blur(); } }} />
                     <span class="amount-eur" aria-hidden="true">{euroSign}</span>
                   </label>
-                )}
-                {kind === 'expense' && usual !== null && (
-                  <p class="amount-hint" data-testid="amount-hint">
-                    {cents === usual || cents === null ? <><i>{t('cost.usual')}</i>{formatEuroShort(usual)}. {t('cost.hint')}</> : <><i class="chg">{t('cost.changed', { suma: formatEuroShort(usual) })}</i></>}
-                  </p>
+                  {usual !== null && (
+                    <p class="amount-hint" data-testid="amount-hint">
+                      {cents === usual || cents === null ? <><i>{t('cost.usual')}</i>{formatEuroShort(usual)}. {t('cost.hint')}</> : <><i class="chg">{t('cost.changed', { suma: formatEuroShort(usual) })}</i></>}
+                    </p>
+                  )}
+                  </div>
                 )}
               </>
             )}

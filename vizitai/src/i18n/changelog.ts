@@ -17,6 +17,10 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   { date: '2026-11-04', items: [
+    { kind: 'bugfix', text: 'Naujos išlaidos suma jau nebeslepiama po mėlynu mygtuku, kai pakyla klaviatūra: laukas ir jo pastaba nustumiami virš mygtuko.' },
+    { kind: 'bugfix', text: 'Visuose sumų laukuose žymeklis visada lieka gale, todėl apsirikus paskutinį skaitmenį galima ištrinti.' },
+  ] },
+  { build: '7f69c02', date: '2026-11-04', items: [
     { kind: 'change', text: 'Paslaugos naujame įraše dabar tokios pat kortelės kaip Asmeninių ir Išlaidų: su gradientu, paveikslėliu ir apvaliu žymėjimu.' },
     { kind: 'feature', text: 'Naujo įrašo pradžioje galima braukti į šoną: tarp Klientas, Asmeninis ir Išlaidos (stiklo lašas seka, turinys įslysta iš šono).' },
   ] },

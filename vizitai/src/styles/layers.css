@@ -104,17 +104,6 @@ p.link-name { color: var(--label); }
 .suggest .suggest-head { min-height: 0; padding: var(--s3) var(--s4) var(--s1); font-size: .75rem; font-weight: 600; text-transform: uppercase; color: var(--label-2); animation: none; }
 .suggest li .chev { color: var(--label-3); font-size: 1.4rem; }
 .flow-who { font-size: 1.6rem; font-weight: 700; margin: var(--s3) 0 var(--s4); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.svc-cards { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s3); }
-.svc-card { position: relative; min-height: 80px; padding: var(--s3) var(--s4) var(--s3) var(--s5); border-radius: var(--r-lg); text-align: left; display: flex; align-items: flex-end; overflow: hidden;
-  background: color-mix(in srgb, var(--svc) 14%, var(--sheet-card)); box-shadow: inset 0 0 0 2px transparent;
-  transition: transform var(--t-fast) var(--ease-spring), box-shadow var(--t-fast) var(--ease-out), background var(--t-fast); }
-.svc-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--svc); }
-.svc-name { font-weight: 650; font-size: 1.05rem; line-height: 1.2; }
-.svc-card.on { box-shadow: inset 0 0 0 2px var(--svc); background: color-mix(in srgb, var(--svc) 26%, var(--sheet-card)); transform: scale(1.015); }
-.svc-card:active { transform: scale(.97); }
-.svc-check { position: absolute; top: 10px; right: 12px; width: 24px; height: 24px; border-radius: 50%; background: var(--svc); color: #fff; font-size: .8rem; font-weight: 700;
-  display: flex; align-items: center; justify-content: center; transform: scale(0); transition: transform var(--t-med) var(--ease-spring); }
-.svc-card.on .svc-check { transform: scale(1); }
 .time-row { display: flex; align-items: center; gap: var(--s3); width: 100%; box-sizing: border-box; margin-top: var(--s4); min-height: 56px; padding: 0 var(--s4); border-radius: var(--r-lg); background: var(--sheet-card); text-align: left; }
 .time-row:active { background: var(--fill); }
 .time-row .label { margin: 0; color: var(--label); font-size: 1rem; }
@@ -972,3 +961,8 @@ html[data-fps='low'] .lq-drop { transition-duration: .24s; }
 .lq-seg.wide { display: grid; width: 100%; box-sizing: border-box; height: 46px; padding: 4px; border-radius: 23px; }
 .lq-seg.wide .lq-drop { top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / var(--n)); border-radius: 19px; }
 .lq-seg.wide .lq-opt { height: 38px; min-height: 38px; font-size: .95rem; border-radius: 19px; }
+
+/* the first screen of a new entry: a sideways swipe changes Klientas / Asmeninis / Išlaidos; what is under the switch slides in from that side */
+.flow-pane:first-child { touch-action: pan-y; }
+.kind-body { display: flex; flex-direction: column; }
+.kind-body > * { flex-shrink: 0; }

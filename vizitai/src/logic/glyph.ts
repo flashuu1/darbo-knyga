@@ -24,3 +24,16 @@ export function glyphFor(name: string): Glyph {
   for (const c of n) h = (h * 31 + c.charCodeAt(0)) >>> 0;
   return { glyph: letter, color: FALLBACK[h % FALLBACK.length]! };
 }
+
+// stems for the services of a hairdresser (she can name them anything: the rest get the first letter, like her other choices)
+const SERVICE_RULES: [string, string][] = [
+  ['sruogel', '✨'], ['šukuos', '👱‍♀️'], ['vestuv', '👰'], ['tiesin', '💫'], ['manik', '💅'], ['pedik', '🦶'], ['makiaž', '💄'],
+  ['kirp', '✂️'], ['daž', '🎨'], ['plauk', '💇'], ['ševel', '💇'],
+];
+/** The picture on the card of a service in the booking screen. */
+export function serviceGlyph(name: string): string {
+  const n = name.toLocaleLowerCase('lt');
+  if (n.includes('kirp') && n.includes('daž')) return '💇'; // "Kirpimas ir dažymas"
+  for (const [stem, g] of SERVICE_RULES) if (n.includes(stem)) return g;
+  return glyphFor(name).glyph;
+}

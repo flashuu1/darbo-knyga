@@ -4,7 +4,7 @@ import { repo, type ClientSuggestion } from '../../db/repo';
 import type { Client } from '../../db/types';
 import { euroSign, formatAmountInput, formatDayShort, formatEuroShort, formatWhen, parseAmountInput } from '../../i18n/format';
 import { t } from '../../i18n/lt';
-import { glyphFor } from '../../logic/glyph';
+import { glyphFor, serviceGlyph } from '../../logic/glyph';
 import { cleanName, foldName } from '../../logic/names';
 import { datePart, hhmm, minutesOfDay, nowLocal } from '../../logic/time';
 import { closeSheet, confirmOverlap, highlight } from '../actions';
@@ -12,6 +12,7 @@ import { useLive, useOptions, useServices } from '../hooks';
 import { CheckIcon, NextIcon } from '../icons';
 import { useKeyboardHeight } from '../keyboard';
 import { agoText, initials } from '../screens/Clients';
+import { useSideSwipe } from '../sideSwipe';
 import { ui, type Origin } from '../store';
 import { DateTimePicker } from './DateTimePicker';
 import { LiquidSeg } from './Segmented';
@@ -32,6 +33,8 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
   const kb = useKeyboardHeight();
   const [screen, setScreen] = useState<Screen>(prefill.screen === 'time' ? 2 : 0);
   const [kind, setKind] = useState<Kind>('client');
+  const [slide, setSlide] = useState<'next' | 'prev' | ''>(''); // which way the choices of the new type slide in from
+  const pane0 = useRef<HTMLElement>(null);
   const [optionId, setOptionId] = useState<string | null>(null);
   const [amountText, setAmountText] = useState('');
   const [off, setOff] = useState(false); // Asmeninis > Nedirbu: from a time to a time, nothing else
@@ -72,6 +75,13 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
     });
   }, []);
 
+  const KINDS = ['client', 'personal', 'expense'] as const;
+  const chooseKind = (k: Kind) => {
+    if (k !== kind) setSlide(KINDS.indexOf(k) > KINDS.indexOf(kind) ? 'next' : 'prev');
+    setKind(k); setOptionId(null); setOff(false); setOffStep('from'); setLinked(null);
+  };
+  // a swipe on the first screen moves between Klientas, Asmeninis and Išlaidos (and the glass drop follows)
+  useSideSwipe(pane0, (dir) => { const k = KINDS[KINDS.indexOf(kind) + dir]; if (k && screen === 0) chooseKind(k); });
   const touch = <T,>(set: (v: T) => void) => (v: T) => { set(v); };
   const go = (s: Screen) => { if (s !== 0) input.current?.blur(); setScreen(s); };
   const next = () => { if (canNext) go(kind === 'client' ? 1 : 2); };
@@ -145,81 +155,84 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
       >
       <div class={kb > 0 ? 'flow kb-open' : 'flow'} style={{ '--screen': screen, '--kb': `${kb}px` } as CSSProperties}>
         {/* 0 Klientas / Asmeninis / Išlaida */}
-        <section class="flow-pane" {...pane(0)} onTouchStart={(e) => { touchY.current = e.touches[0]!.clientY; }} onTouchMove={dismissOnDrag}>
+        <section class="flow-pane" ref={pane0} {...pane(0)} onTouchStart={(e) => { touchY.current = e.touches[0]!.clientY; }} onTouchMove={dismissOnDrag}>
           <LiquidSeg wide items={(['client', 'personal', 'expense'] as const).map((k) => ({ id: k, label: t(`type.${k}`) }))} value={kind} itemTestId={(k) => `type-${k}`}
-            onChange={(k) => { setKind(k); setOptionId(null); setOff(false); setOffStep('from'); setLinked(null); }} />
-          {kind === 'client' && (
-            <input ref={input} class="field" data-testid="field-name" value={name} autocomplete="off" autocapitalize="words" enterkeyhint="next" placeholder={t('field.name')}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); next(); } }}
-              onInput={(e) => { typed.current = true; setName((e.target as HTMLInputElement).value); setLinked(null); }} />
-          )}
-          {kind !== 'client' && (
-            <>
-              <div class="opt-grid" data-testid="option-list" role="group">
-                {options.length === 0 && <p class="opt-none" data-testid="option-none">{t('option.none')}</p>}
-                {options.map((o, i) => {
-                  const g = glyphFor(o.name);
-                  return (
-                    <button key={o.id} data-testid={`option-${i}`} class={o.id === optionId ? 'opt-card on' : 'opt-card'} aria-pressed={o.id === optionId}
-                      style={{ '--g': `var(--c-${g.color})` } as CSSProperties} onClick={() => { if (o.id !== optionId) setAmountText(kind === 'expense' && o.costCents != null ? formatAmountInput(o.costCents) : ''); setOptionId(o.id); setOff(false); }}>
-                      <span class="opt-ico" aria-hidden="true">{g.glyph}</span>
-                      <span class="opt-name">{o.name}</span>
+            onChange={chooseKind} />
+          <div key={kind} class={slide ? `kind-body slide-in-${slide}` : 'kind-body'}>
+            {kind === 'client' && (
+              <input ref={input} class="field" data-testid="field-name" value={name} autocomplete="off" autocapitalize="words" enterkeyhint="next" placeholder={t('field.name')}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); next(); } }}
+                onInput={(e) => { typed.current = true; setName((e.target as HTMLInputElement).value); setLinked(null); }} />
+            )}
+            {kind !== 'client' && (
+              <>
+                <div class="opt-grid" data-testid="option-list" role="group">
+                  {options.length === 0 && <p class="opt-none" data-testid="option-none">{t('option.none')}</p>}
+                  {options.map((o, i) => {
+                    const g = glyphFor(o.name);
+                    return (
+                      <button key={o.id} data-testid={`option-${i}`} class={o.id === optionId ? 'opt-card on' : 'opt-card'} aria-pressed={o.id === optionId}
+                        style={{ '--g': `var(--c-${g.color})` } as CSSProperties} onClick={() => { if (o.id !== optionId) setAmountText(kind === 'expense' && o.costCents != null ? formatAmountInput(o.costCents) : ''); setOptionId(o.id); setOff(false); }}>
+                        <span class="opt-ico" aria-hidden="true">{g.glyph}</span>
+                        <span class="opt-name">{o.name}</span>
+                        <span class="radio" aria-hidden="true"><CheckIcon /></span>
+                      </button>
+                    );
+                  })}
+                  {kind === 'personal' && (
+                    <button data-testid="option-off" class={off ? 'opt-card off on' : 'opt-card off'} aria-pressed={off} onClick={() => { setOff(true); setOffStep('from'); setOptionId(null); }}>
+                      <span class="opt-ico" aria-hidden="true">🌴</span>
+                      <span class="off-text"><span class="opt-name">{t('off.title')}</span><span class="off-sub">{t('off.sub')}</span></span>
                       <span class="radio" aria-hidden="true"><CheckIcon /></span>
                     </button>
-                  );
-                })}
-                {kind === 'personal' && (
-                  <button data-testid="option-off" class={off ? 'opt-card off on' : 'opt-card off'} aria-pressed={off} onClick={() => { setOff(true); setOffStep('from'); setOptionId(null); }}>
-                    <span class="opt-ico" aria-hidden="true">🌴</span>
-                    <span class="off-text"><span class="opt-name">{t('off.title')}</span><span class="off-sub">{t('off.sub')}</span></span>
-                    <span class="radio" aria-hidden="true"><CheckIcon /></span>
-                  </button>
+                  )}
+                </div>
+                {kind === 'expense' && (
+                  <label class="amount-field">
+                    <input data-testid="expense-amount" inputMode="decimal" enterKeyHint="done" autocomplete="off" aria-label={t('expense.amount')} placeholder="0" value={amountText}
+                      onInput={(e) => { setAmountText((e.target as HTMLInputElement).value); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLInputElement).blur(); } }} />
+                    <span class="amount-eur" aria-hidden="true">{euroSign}</span>
+                  </label>
                 )}
-              </div>
-              {kind === 'expense' && (
-                <label class="amount-field">
-                  <input data-testid="expense-amount" inputMode="decimal" enterKeyHint="done" autocomplete="off" aria-label={t('expense.amount')} placeholder="0" value={amountText}
-                    onInput={(e) => { setAmountText((e.target as HTMLInputElement).value); }}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLInputElement).blur(); } }} />
-                  <span class="amount-eur" aria-hidden="true">{euroSign}</span>
-                </label>
-              )}
-              {kind === 'expense' && usual !== null && (
-                <p class="amount-hint" data-testid="amount-hint">
-                  {cents === usual || cents === null ? <><i>{t('cost.usual')}</i>{formatEuroShort(usual)}. {t('cost.hint')}</> : <><i class="chg">{t('cost.changed', { suma: formatEuroShort(usual) })}</i></>}
-                </p>
-              )}
-            </>
-          )}
-          {kind === 'client' && (
-            <ul class="suggest">
-              {!name.trim() && matches.length > 0 && <li class="suggest-head">{t('suggest.recent')}</li>}
-              {matches.filter((s) => s.client.id !== linked?.id).slice(0, MAX_SUGGESTIONS).map((s, i) => (
-                <li key={s.client.id}>
-                  <button class="suggest-row" data-testid={`suggest-${i}`} onClick={() => void pick(s.client)}>
-                    <span class="avatar" aria-hidden="true">{initials(s.client.name)}</span>
-                    <span class="client-text">
-                      <b><Marked name={s.client.name} query={name} /></b>
-                      <span class="suggest-line">{suggestLine(s)}</span>
-                    </span>
-                    {s.waiting && <span class="mini-pill due" data-testid={`suggest-waiting-${i}`}>{t('client.pending')}</span>}
-                    <span class="chev"><NextIcon /></span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+                {kind === 'expense' && usual !== null && (
+                  <p class="amount-hint" data-testid="amount-hint">
+                    {cents === usual || cents === null ? <><i>{t('cost.usual')}</i>{formatEuroShort(usual)}. {t('cost.hint')}</> : <><i class="chg">{t('cost.changed', { suma: formatEuroShort(usual) })}</i></>}
+                  </p>
+                )}
+              </>
+            )}
+            {kind === 'client' && (
+              <ul class="suggest">
+                {!name.trim() && matches.length > 0 && <li class="suggest-head">{t('suggest.recent')}</li>}
+                {matches.filter((s) => s.client.id !== linked?.id).slice(0, MAX_SUGGESTIONS).map((s, i) => (
+                  <li key={s.client.id}>
+                    <button class="suggest-row" data-testid={`suggest-${i}`} onClick={() => void pick(s.client)}>
+                      <span class="avatar" aria-hidden="true">{initials(s.client.name)}</span>
+                      <span class="client-text">
+                        <b><Marked name={s.client.name} query={name} /></b>
+                        <span class="suggest-line">{suggestLine(s)}</span>
+                      </span>
+                      {s.waiting && <span class="mini-pill due" data-testid={`suggest-waiting-${i}`}>{t('client.pending')}</span>}
+                      <span class="chev"><NextIcon /></span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </section>
 
         {/* 1 Paslauga */}
         <section class="flow-pane" {...pane(1)}>
           <p class="flow-who" data-testid="flow-who">{cleanName(name)}</p>
-          <div class="svc-cards">
+          <div class="opt-grid" role="group">
             {services.map((s, i) => (
-              <button key={s.id} data-testid={`svc-${i}`} class={sid === s.id ? 'svc-card on' : 'svc-card'} style={{ '--svc': `var(--c-${s.color})` } as CSSProperties}
-                onClick={() => touch(setServiceId)(s.id)}>
-                <span class="svc-name">{s.name}{s.floral ? ' 🌸' : ''}</span>
-                <span class="svc-check" aria-hidden="true">✓</span>
+              <button key={s.id} data-testid={`svc-${i}`} class={sid === s.id ? 'opt-card on' : 'opt-card'} aria-pressed={sid === s.id}
+                style={{ '--g': `var(--c-${s.color})` } as CSSProperties} onClick={() => touch(setServiceId)(s.id)}>
+                <span class="opt-ico" aria-hidden="true">{serviceGlyph(s.name)}</span>
+                <span class="opt-name">{s.name}{s.floral ? ' 🌸' : ''}</span>
+                <span class="radio" aria-hidden="true"><CheckIcon /></span>
               </button>
             ))}
           </div>

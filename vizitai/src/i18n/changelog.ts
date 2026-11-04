@@ -17,6 +17,10 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   { date: '2026-11-04', items: [
+    { kind: 'change', text: 'Paslaugos naujame įraše dabar tokios pat kortelės kaip Asmeninių ir Išlaidų: su gradientu, paveikslėliu ir apvaliu žymėjimu.' },
+    { kind: 'feature', text: 'Naujo įrašo pradžioje galima braukti į šoną: tarp Klientas, Asmeninis ir Išlaidos (stiklo lašas seka, turinys įslysta iš šono).' },
+  ] },
+  { build: 'b2fbf94', date: '2026-11-04', items: [
     { kind: 'bugfix', text: 'Atidarius mėnesio tinklelį, rodyklė prie mėnesio pavadinimo dabar tvarkingai viduryje: vienodi tarpai abiejose pusėse ir stiklo lašas ją visą apglėbia.' },
   ] },
   { build: 'aafbf77', date: '2026-11-04', items: [

@@ -123,3 +123,20 @@ test('the client card: a swipe from the left part takes it back, from the middle
   await dragSideways(page, 40, y, 220, async () => { expect(await pageX(page, 'client-card')).toBeGreaterThan(100); });
   await expect(page.getByTestId('client-card')).toHaveCount(0);
 });
+
+test('the new entry: a swipe between Klientas / Asmeninis / Išlaidos is not taken from anything that scrolls sideways on its first screen', async ({ page }) => {
+  await openApp(page, '2026-10-14T12:00:00');
+  await page.getByTestId('btn-add').click();
+  await expect(page.getByTestId('type-client')).toBeVisible();
+  await page.waitForTimeout(600);
+  for (const k of ['client', 'personal', 'expense']) {
+    await page.getByTestId(`type-${k}`).click();
+    await page.waitForTimeout(500);
+    const scrollers = await sideScrollers(page, '.flow-pane:first-child');
+    const vw = page.viewportSize()!.width;
+    for (const b of scrollers) for (const sx of [b.x + 24, b.x + b.width / 2]) {
+      await dragSideways(page, sx, b.y + b.height / 2, sx > vw / 2 ? -180 : 180, async () => {});
+      await expect(page.getByTestId(`type-${k}`), `a drag that started on something that scrolls sideways switched the type (${k})`).toHaveAttribute('aria-pressed', 'true');
+    }
+  }
+});

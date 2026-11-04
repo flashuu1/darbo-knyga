@@ -17,6 +17,11 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   { date: '2026-11-04', items: [
+    { kind: 'change', text: 'Paslaugų, Asmeninių ir Išlaidų rūšių tvarka keičiama palaikius eilutę ir tempiant (rodyklių nebėra); puslapis pats slenka prie krašto.' },
+    { kind: 'feature', text: 'Tempiant eilutę apačioje pakyla šiukšlinė: numetus eilutę ji pašalinama, parodomas patvirtinimas „Ištrinta“ ir galima Anuliuoti.' },
+    { kind: 'change', text: 'Naujo įrašo pridėjimas dabar yra plius viršuje dešinėje, kaip kituose ekranuose.' },
+  ] },
+  { build: '4777b07', date: '2026-11-04', items: [
     { kind: 'bugfix', text: 'Paslaugų, Asmeninių ir Išlaidų rūšių eilutės atsidaro sklandžiai: judinamos tik transformacijomis, be aukščio ar tinklelio animacijų, ir atsidaro tik viena eilutė.' },
     { kind: 'bugfix', text: 'Fiksuotos sumos jungiklis vėl yra pailgas (buvo tapęs kvadratu) ir jį galima paspausti, kai rodoma skaičių klaviatūra: vienas paspaudimas išjungia.' },
     { kind: 'bugfix', text: 'Sumos laukas atsiranda kartu su klaviatūra, o klaviatūrą galima nuleisti mygtuku „Gerai“ arba patraukus puslapį.' },

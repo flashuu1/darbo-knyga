@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'preact/hooks';
 
+/** Set while something on the page is being dragged (a row being sorted): a sideways wobble must not take the page away. */
+export const swipeGuard = { locked: false };
 const IGNORE = 'input, textarea, select, .swipe-row, .wheel, [data-no-swipe-back]'; // things that use a sideways drag or a cursor themselves
 /**
  * A page that goes back when it is swiped to the right, anywhere on it. The page FOLLOWS the finger (what is behind it shows
@@ -19,6 +21,7 @@ export function useSwipeBack(ref: { current: HTMLElement | null }, onDone: () =>
     };
     const move = (e: PointerEvent) => {
       if (!g || e.pointerId !== g.id) return;
+      if (swipeGuard.locked) { g = null; return; }
       const dx = e.clientX - g.x0, dy = e.clientY - g.y0;
       if (!g.on) {
         if (Math.abs(dy) > 14 && Math.abs(dy) > Math.abs(dx)) { g = null; return; } // she is scrolling

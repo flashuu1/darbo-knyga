@@ -886,14 +886,6 @@ html[data-fps='low'] .entry-bloom i:nth-child(n+4) { display: none; }
 .er-foot { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
 .er-spacer { flex: 1; }
 .er-switch { display: flex; align-items: center; gap: 10px; font-size: .95rem; font-weight: 600; }
-.sq { width: 44px; height: 44px; border-radius: var(--r-md); display: grid; place-items: center; background: color-mix(in srgb, var(--label) 8%, transparent); transition: transform var(--t-press) var(--ease-out), opacity var(--t-fast); }
-.sq:active { transform: scale(.9); }
-.sq:disabled { opacity: .3; }
-.sq.up svg { transform: rotate(180deg); }
-.sq.red { background: color-mix(in srgb, var(--red) 15%, transparent); color: var(--red); }
-.er-add { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 62px; margin-top: 8px; border-radius: var(--r-xl); border: 2px dashed var(--label-3); color: var(--accent); font-size: 1rem; font-weight: 650; }
-.er-add:active { background: var(--fill); }
-.er-add svg { width: 18px; height: 18px; }
 /* Išlaidų rūšys: the fixed amount */
 .cost { margin-top: 12px; padding: 12px 14px; border-radius: var(--r-lg); background: color-mix(in srgb, var(--label) 6%, transparent); }
 .cost-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
@@ -921,4 +913,16 @@ html[data-fps='low'] .entry-bloom i:nth-child(n+4) { display: none; }
 .switch { min-width: 51px; min-height: 31px; width: 51px; height: 31px; padding: 0; }
 .er-switch .switch { flex: none; }
 
-.er-add + .section-foot { margin-top: var(--s3); }
+
+/* a row lifted by a long press, and the trash that rises while it is carried */
+.er-list.sorting { touch-action: none; }
+.er-list.sorting .er:not(.lift) { transition: transform 260ms var(--ease-spring), opacity var(--t-med); }
+.er.lift { z-index: 6; box-shadow: 0 14px 30px rgba(0,0,0,.24), 0 2px 6px rgba(0,0,0,.12); will-change: transform; }
+.er-note { margin-top: var(--s3); }
+.er-trash { position: fixed; left: 16px; right: 16px; bottom: 16px; z-index: 7; height: 64px; border-radius: var(--r-xl); display: flex; align-items: center; justify-content: center; gap: 10px; pointer-events: none;
+  background: color-mix(in srgb, var(--red) 14%, var(--card)); color: var(--red); font-weight: 650; font-size: 1rem; box-shadow: 0 6px 22px rgba(0,0,0,.18);
+  opacity: 0; transform: translate3d(0, 90px, 0) scale(.96); transition: transform 340ms var(--ease-spring), opacity var(--t-med), background var(--t-fast); }
+.er-trash svg { width: 24px; height: 24px; transition: transform 300ms var(--ease-spring); }
+.er-trash.on { opacity: 1; transform: none; }
+.er-trash.on.hot { background: var(--red); color: #fff; transform: scale(1.04); }
+.er-trash.hot svg { transform: scale(1.25) rotate(-10deg); }

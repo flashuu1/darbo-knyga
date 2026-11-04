@@ -5,15 +5,15 @@ import { SERVICE_COLORS } from '../../db/types';
 import { formatBuildTime, formatDayShort, weekdayAbbr, weekdayName } from '../../i18n/format';
 import { t, type Key } from '../../i18n/lt';
 import { nowLocal, snapClock, todayStr } from '../../logic/time';
-import { chooseImport, confirmDeleteService, restoreSnapshot, runBackup, showToast } from '../actions';
+import { chooseImport, removeService, restoreSnapshot, runBackup, showToast } from '../actions';
 import { backups, type Snap } from '../../db/backups';
 import { Changelog } from '../components/Changelog';
-import { Dur, DurationEditor, EditList, Switch } from '../components/EditList';
+import { AddSlotContext, Dur, DurationEditor, EditList, Switch, type AddSlot } from '../components/EditList';
 import { OptionList } from '../components/OptionList';
 import { useBooksFingerprint, useLive, useNeedsBackup, useOptions, useServices, useSettings } from '../hooks';
 import { useKeyboardHeight } from '../keyboard';
 import { useSwipeBack } from '../swipeBack';
-import { BackIcon, BackupIcon, CheckIcon, ClockIcon, InfoIcon, NextIcon, PersonIcon, RepeatIcon, ScissorsIcon, WalletIcon } from '../icons';
+import { BackIcon, BackupIcon, CheckIcon, ClockIcon, InfoIcon, NextIcon, PersonIcon, PlusIcon, RepeatIcon, ScissorsIcon, WalletIcon } from '../icons';
 
 type Page = 'services' | 'hours' | 'personal' | 'expenses' | 'backup' | 'about';
 const TITLE: Record<Page, Key> = {
@@ -91,6 +91,7 @@ export function SettingsScreen() {
 }
 
 /** A page pushed over the list: a back button named after the list, a large title, and a swipe to the right (the page follows the finger) to go back. */
+const ADD_TEST: Partial<Record<Page, string>> = { services: 'svc-add', personal: 'opt-personal-add', expenses: 'opt-expense-add' };
 function SubPage({ title, id, leaving, onBack, onSwiped, children }: { title: string; id: Page; leaving: boolean; onBack: () => void; onSwiped: () => void; children: ComponentChildren }) {
   const el = useRef<HTMLDivElement>(null);
   const kb = useKeyboardHeight();
@@ -120,6 +121,7 @@ function SubPage({ title, id, leaving, onBack, onSwiped, children }: { title: st
     node.addEventListener('focusin', focused);
     return () => { clearTimeout(timer); node.removeEventListener('focusin', focused); };
   }, []);
+  const [add, setAdd] = useState<AddSlot | null>(null); // what the list on this page adds: the "+" at the top right
   const touchY = useRef(0); // dragging the page with the keyboard up puts the keyboard away, like iOS lists
   useSwipeBack(el, onSwiped); // swipe to the right anywhere: the page follows the finger back to the list
   return (
@@ -127,11 +129,12 @@ function SubPage({ title, id, leaving, onBack, onSwiped, children }: { title: st
       <header class="chrome">
         <div class="navbar">
           <button class="nav-btn back" data-testid="settings-back" onClick={onBack}><BackIcon /><span>{t('tab.settings')}</span></button>
+          {add && <button class="add-btn press" data-testid={ADD_TEST[id]} aria-label={add.label} onClick={add.run}><PlusIcon /></button>}
         </div>
         <h1 class="large-title">{title}</h1>
       </header>
       <div class="scroll list-body settings-body" onTouchStart={(e) => { touchY.current = e.touches[0]!.clientY; }}
-        onTouchMove={(e) => { const a = document.activeElement; if (a instanceof HTMLInputElement && Math.abs(e.touches[0]!.clientY - touchY.current) > 10) a.blur(); }}>{children}</div>
+        onTouchMove={(e) => { const a = document.activeElement; if (a instanceof HTMLInputElement && Math.abs(e.touches[0]!.clientY - touchY.current) > 10) a.blur(); }}><AddSlotContext.Provider value={setAdd}>{children}</AddSlotContext.Provider></div>
     </div>
   );
 }
@@ -150,8 +153,8 @@ function ServicesPage() {
       items={services.map((s) => ({ id: s.id, name: s.name, tint: `var(--c-${s.color})`, lead: <span class="er-dot" />, value: <Dur m={s.minutes} />, off: !s.active }))}
       onAdd={async () => (await repo.addService(t('service.new'))).id}
       onRename={async (id, name) => { try { await repo.updateService(id, { name }); } catch (e) { console.error(e); } }}
-      onMove={(id, dir) => void repo.moveService(id, dir)}
-      onDelete={(id) => confirmDeleteService(by(id))}
+      onReorder={(ids) => repo.reorderServices(ids)}
+      onRemove={(id) => removeService(by(id))}
       extra={(id, i) => <span class="er-switch"><Switch on={by(id).active} label={t('edit.shown')} testId={`svc-toggle-${i}`} onChange={(on) => void toggle(id, on)} />{t('edit.shown')}</span>}
       editor={(id, i) => {
         const s = by(id);

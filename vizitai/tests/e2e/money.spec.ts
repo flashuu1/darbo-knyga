@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { apptState, openApp, openRow, openSettings, seedAppts, seedOptions } from './helpers';
+import { apptState, dragRow, openApp, openSettings, seedAppts, seedOptions } from './helpers';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const count = (page: Page, table: string) => page.evaluate((x) => (window as any).__vizitai.db[x].count(), table);
@@ -87,9 +87,8 @@ test('Settings lists her own choices; she can add, rename and delete them, and t
   await page.getByTestId('settings-row-expenses').click();
   await page.waitForTimeout(450); // the page slides in
   await expect(page.getByTestId('opt-expense-row-3')).toBeAttached({ timeout: 15000 });
-  await openRow(page, 'opt-expense', 0);
-  await page.getByTestId('opt-expense-delete-0').click();
-  await page.getByTestId('action-item-0').click();
+  await dragRow(page, 'opt-expense', 0, 'trash');
+  await expect(page.getByTestId('toast')).toContainText('Ištrinta: Medžiagos');
   await expect.poll(() => page.evaluate(async () => (await (window as any).__vizitai.repo.listOptions('expense')).length)).toBe(3);
   await page.getByTestId('toast-undo').click();
   await expect.poll(() => page.evaluate(async () => (await (window as any).__vizitai.repo.listOptions('expense')).length)).toBe(4);

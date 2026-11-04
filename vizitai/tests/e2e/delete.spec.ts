@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { apptState, openApp, seedAppts, openSettings, openRow } from './helpers';
+import { apptState, openApp, seedAppts, openSettings, dragRow } from './helpers';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const count = (page: Page, table: 'clients' | 'appointments' | 'services') => page.evaluate((t) => (window as any).__vizitai.db[t].count(), table);
@@ -62,25 +62,27 @@ test('a swipe never opens the client card', async ({ page }) => {
   await expect(page.getByTestId('client-card')).toHaveCount(0);
 });
 
-test('a service can be deleted from its opened row; one that has visits is hidden instead; the last one cannot go', async ({ page }) => {
+test('a service dropped on the trash is removed at once with Anuliuoti; one that has visits is hidden instead', async ({ page }) => {
   await openApp(page);
   const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-20T10:00', service: 0 }]);
   await openSettings(page, 'services');
   await page.getByTestId('svc-add').click();
   await expect(page.getByTestId('svc-row-7')).toBeVisible();
   expect(await count(page, 'services')).toBe(8);
-  await openRow(page, 'svc', 7);
-  await page.getByTestId('svc-delete-7').click();
-  await expect(page.getByTestId('action-title')).toContainText('Ištrinti paslaugą');
-  await page.getByTestId('action-item-0').click();
+  await expect(page.getByTestId('svc-open-7')).toHaveAttribute('aria-expanded', 'true');
+  await page.getByTestId('svc-open-7').click(); // fold the new one again
+  await page.waitForTimeout(450);
+  await dragRow(page, 'svc', 7, 'trash');
   await expect.poll(() => count(page, 'services')).toBe(7);
-  await expect(page.getByTestId('toast')).toContainText('Paslauga ištrinta');
+  await expect(page.getByTestId('toast')).toContainText('Ištrinta: Nauja paslauga');
+  await page.getByTestId('toast-undo').click();
+  await expect.poll(() => count(page, 'services')).toBe(8); // and it is back, in its place
+  await expect(page.getByTestId('svc-open-7')).toContainText('Nauja paslauga');
   // the first service has a visit: it is only hidden, so the visit keeps its label
-  await openRow(page, 'svc', 0);
-  await page.getByTestId('svc-delete-0').click();
-  await page.getByTestId('action-item-0').click();
+  await dragRow(page, 'svc', 0, 'trash');
   await expect(page.getByTestId('toast')).toContainText('tik paslėpta');
-  expect(await count(page, 'services')).toBe(7);
+  expect(await count(page, 'services')).toBe(8);
+  await expect(page.getByTestId('svc-open-0')).toBeVisible(); // the row came back from the trash
   expect((await apptState(page, id)).serviceId).not.toBeNull();
 });
 
@@ -93,10 +95,9 @@ test('the last active service cannot be deleted', async ({ page }) => {
   });
   await openSettings(page, 'services');
   await expect(page.getByTestId('svc-row-0')).toBeVisible();
-  await openRow(page, 'svc', 0);
-  await page.getByTestId('svc-delete-0').click();
-  await page.getByTestId('action-item-0').click();
+  await dragRow(page, 'svc', 0, 'trash');
   await expect(page.getByTestId('toast')).toContainText('Turi likti bent viena paslauga');
+  await expect(page.getByTestId('svc-open-0')).toBeVisible();
   expect(await count(page, 'services')).toBe(1);
 });
 

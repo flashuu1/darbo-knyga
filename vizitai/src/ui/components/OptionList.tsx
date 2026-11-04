@@ -3,7 +3,7 @@ import { repo } from '../../db/repo';
 import type { Option, OptionGroup } from '../../db/types';
 import { formatAmountInput, formatEuroShort, parseAmountInput, euroSign } from '../../i18n/format';
 import { t } from '../../i18n/lt';
-import { confirmDeleteOption, primeKeyboard } from '../actions';
+import { primeKeyboard, removeOption } from '../actions';
 import { useOptions } from '../hooks';
 import { ClockIcon, WalletIcon } from '../icons';
 import { Dur, DurationEditor, EditList, Switch, useRows } from './EditList';
@@ -26,8 +26,8 @@ export function OptionList({ group }: { group: OptionGroup }) {
       }))}
       onAdd={async () => (await repo.addOption(group, t('option.new'))).id}
       onRename={async (id, name) => { try { await repo.renameOption(id, name); } catch (e) { console.error(e); } }}
-      onMove={(id, dir) => void repo.moveOption(id, dir)}
-      onDelete={(id) => confirmDeleteOption(by(id))}
+      onReorder={(ids) => repo.reorderOptions(group, ids)}
+      onRemove={(id) => removeOption(by(id))}
       editor={(id, i) => personal
         ? <DurationEditor prefix={prefix} i={i} minutes={by(id).minutes ?? 30} max={720} onChange={(m) => void repo.updateOption(id, { minutes: m })} />
         : <CostEditor key={id} o={by(id)} i={i} />} />

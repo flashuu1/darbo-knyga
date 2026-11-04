@@ -56,17 +56,40 @@ describe('a fixed amount on an expense kind', () => {
   });
 });
 
-describe('moving her own choices', () => {
-  it('moves a choice up or down within its own list only', async () => {
+describe('putting her own lists in the order she dragged them', () => {
+  it('sets the order of a list of choices, in its own group only; ids left out keep their relative order at the end', async () => {
     const { repo } = await fresh();
     const a = await repo.addOption('expense', 'A'), b = await repo.addOption('expense', 'B'), c = await repo.addOption('expense', 'C');
     await repo.addOption('personal', 'Z');
-    await repo.moveOption(c.id, -1);
-    expect((await repo.listOptions('expense')).map((o) => o.name)).toEqual(['A', 'C', 'B']);
-    await repo.moveOption(a.id, -1); // already first: nothing happens
-    await repo.moveOption(b.id, 1);  // already last
-    expect((await repo.listOptions('expense')).map((o) => o.name)).toEqual(['A', 'C', 'B']);
-    await repo.moveOption(a.id, 1);
+    const before = (await repo.listOptions('personal')).map((o) => o.name);
+    await repo.reorderOptions('expense', [c.id, a.id, b.id]);
     expect((await repo.listOptions('expense')).map((o) => o.name)).toEqual(['C', 'A', 'B']);
+    await repo.reorderOptions('expense', [b.id]);
+    expect((await repo.listOptions('expense')).map((o) => o.name)).toEqual(['B', 'C', 'A']);
+    await repo.reorderOptions('expense', ['nope', a.id]);
+    expect((await repo.listOptions('expense')).map((o) => o.name)).toEqual(['A', 'B', 'C']);
+    expect((await repo.listOptions('personal')).map((o) => o.name)).toEqual(before);
+  });
+
+  it('sets the order of the services', async () => {
+    const { repo } = await fresh();
+    const all = await repo.listServices();
+    const ids = all.map((s) => s.id);
+    await repo.reorderServices([...ids].reverse());
+    expect((await repo.listServices()).map((s) => s.id)).toEqual([...ids].reverse());
+    await repo.reorderServices([ids[2]!]);
+    expect((await repo.listServices())[0]!.id).toBe(ids[2]);
+    expect((await repo.listServices()).length).toBe(ids.length); // nothing was lost
+  });
+
+  it('a removed choice comes back where it was (Anuliuoti)', async () => {
+    const { repo } = await fresh();
+    const a = await repo.addOption('expense', 'A'), b = await repo.addOption('expense', 'B');
+    await repo.addOption('expense', 'C');
+    const gone = await repo.deleteOption(b.id);
+    expect((await repo.listOptions('expense')).map((o) => o.name)).toEqual(['A', 'C']);
+    await repo.restoreOption(gone!);
+    expect((await repo.listOptions('expense')).map((o) => o.name)).toEqual(['A', 'B', 'C']);
+    expect(a.id).toBeTruthy();
   });
 });

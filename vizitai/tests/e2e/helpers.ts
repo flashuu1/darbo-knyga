@@ -31,6 +31,26 @@ export async function openRow(page: Page, prefix: 'svc' | 'opt-personal' | 'opt-
   await expect(top).toHaveAttribute('aria-expanded', 'true');
   await page.waitForTimeout(420);
 }
+/**
+ * Press and hold a row of Paslaugos / Asmeniniai / Išlaidų rūšys, carry it to another row's place (a number) or onto the trash, let go.
+ * `stay` keeps the finger down after the move (the caller lets go).
+ */
+export async function dragRow(page: Page, prefix: 'svc' | 'opt-personal' | 'opt-expense', from: number, to: number | 'trash', stay = false) {
+  await page.getByTestId(`${prefix}-open-${from}`).scrollIntoViewIfNeeded();
+  await page.waitForTimeout(150);
+  const a = (await page.getByTestId(`${prefix}-open-${from}`).boundingBox())!;
+  const b = to === 'trash' ? null : (await page.getByTestId(`${prefix}-open-${to}`).boundingBox())!;
+  const x = a.x + a.width / 2, y = a.y + a.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.waitForTimeout(520); // the hold
+  const t = to === 'trash' ? (await page.getByTestId(`${prefix}-trash`).boundingBox())! : null;
+  const ty = t ? t.y + t.height / 2 : b!.y + b!.height / 2 + ((to as number) > from ? 6 : -6);
+  await page.mouse.move(x, y + (ty - y) / 3, { steps: 4 });
+  await page.mouse.move(x, ty, { steps: 8 });
+  await page.waitForTimeout(350);
+  if (!stay) { await page.mouse.up(); await page.waitForTimeout(700); }
+}
 /** Gives the list of expense kinds some entries (it starts empty; Asmeninis already has its common words). */
 export async function seedOptions(page: Page) {
   await page.evaluate(async () => {

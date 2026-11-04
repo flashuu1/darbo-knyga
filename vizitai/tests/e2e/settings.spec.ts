@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { openApp, seedAppts, openSettings, openRow } from './helpers';
+import { openApp, seedAppts, openSettings, openRow, dragRow } from './helpers';
 
 const counts = (page: import('@playwright/test').Page) => page.evaluate(async () => {
   const { db } = (window as any).__vizitai; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -50,10 +50,11 @@ test('the last active service cannot be hidden', async ({ page }) => {
 test('reorders, recolours, changes length and adds a service', async ({ page }) => {
   await openApp(page);
   await openSettings(page, 'services');
-  await openRow(page, 'svc', 1);
-  const second = await page.getByTestId('svc-name-1').inputValue();
-  await page.getByTestId('svc-up-1').click();
-  await expect(page.getByTestId('svc-name-0')).toHaveValue(second);
+  const names = () => page.evaluate(async () => ((await (window as any).__vizitai.repo.listServices()) as { name: string }[]).map((s) => s.name)); // eslint-disable-line @typescript-eslint/no-explicit-any
+  const before = await names();
+  await dragRow(page, 'svc', 1, 0); // press and hold the second, carry it up
+  await expect.poll(names).toEqual([before[1], before[0], ...before.slice(2)]);
+  await expect(page.getByTestId('svc-open-0')).toContainText(before[1]!);
   await openRow(page, 'svc', 0);
   await expect(page.getByTestId('svc-minutes-0')).toHaveText('15 min'); // the default length
   await expect(page.getByTestId('svc-minus-0')).toBeDisabled(); // never below 15
@@ -166,7 +167,7 @@ test('colour swatches have 44pt touch targets', async ({ page }) => {
   await openApp(page);
   await openSettings(page, 'services');
   await openRow(page, 'svc', 0);
-  for (const id of ['svc-color-0-teal', 'svc-color-0-red', 'svc-up-0', 'svc-down-0', 'svc-delete-0', 'svc-minus-0', 'svc-plus-0']) {
+  for (const id of ['svc-color-0-teal', 'svc-color-0-red', 'svc-minus-0', 'svc-plus-0']) {
     const box = await page.getByTestId(id).boundingBox();
     expect(box?.width).toBeGreaterThanOrEqual(44);
     expect(box?.height).toBeGreaterThanOrEqual(44);

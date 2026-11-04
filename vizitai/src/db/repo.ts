@@ -97,6 +97,13 @@ export function createRepo(db: VizitaiDB) {
         await db.services.update(all[j].id, { order: all[i].order });
       });
     },
+    /** The whole order of the services, as she dragged it. */
+    async reorderServices(ids: string[]) {
+      const all = await db.services.orderBy('order').toArray();
+      const rest = all.map((x) => x.id).filter((id) => !ids.includes(id));
+      const order = [...ids.filter((id) => all.some((x) => x.id === id)), ...rest];
+      await db.transaction('rw', db.services, async () => { for (const [i, id] of order.entries()) await db.services.update(id, { order: i }); });
+    },
     async setServiceActive(id: string, active: boolean) {
       if (!active) {
         const others = (await db.services.toArray()).filter((s) => s.active && s.id !== id);
@@ -118,16 +125,12 @@ export function createRepo(db: VizitaiDB) {
       if (p.costCents === null) await db.options.where('id').equals(id).modify((o) => { delete o.costCents; });
       else if (p.costCents !== undefined && Number.isInteger(p.costCents) && p.costCents > 0 && p.costCents <= MAX_AMOUNT_CENTS) await db.options.update(id, { costCents: p.costCents });
     },
-    async moveOption(id: string, dir: -1 | 1) {
-      const o = await db.options.get(id);
-      if (!o) return;
-      const all = (await db.options.where('group').equals(o.group).toArray()).sort((a, b) => a.order - b.order);
-      const i = all.findIndex((x) => x.id === id), j = i + dir;
-      if (i < 0 || j < 0 || j >= all.length) return;
-      await db.transaction('rw', db.options, async () => {
-        await db.options.update(all[i].id, { order: all[j].order });
-        await db.options.update(all[j].id, { order: all[i].order });
-      });
+    /** The whole order of one list of choices, as she dragged it (ids not in the list are ignored, ones left out keep their place at the end). */
+    async reorderOptions(group: OptionGroup, ids: string[]) {
+      const all = (await db.options.where('group').equals(group).toArray()).sort((a, b) => a.order - b.order);
+      const rest = all.map((o) => o.id).filter((id) => !ids.includes(id));
+      const order = [...ids.filter((id) => all.some((o) => o.id === id)), ...rest];
+      await db.transaction('rw', db.options, async () => { for (const [i, id] of order.entries()) await db.options.update(id, { order: i }); });
     },
     async renameOption(id: string, name: string) { const n = cleanName(name); if (n) await db.options.update(id, { name: n }); }, // an empty name is ignored
     /** Entries keep the name they were made with, so a choice can always be removed. Undo: restoreOption. */

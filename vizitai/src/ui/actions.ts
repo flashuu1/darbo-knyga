@@ -99,23 +99,18 @@ export async function confirmDeleteClient(id: string, name: string) {
     },
   });
 }
-/** Swipe-to-delete on a service in Nustatymai. */
-export function confirmDeleteService(s: { id: string; name: string }) {
-  ui.set({
-    action: {
-      title: t('service.deleteQ', { vardas: s.name }),
-      items: [
-        { label: t('btn.delete'), role: 'destructive' as const, onPress: () => void (async () => {
-          try {
-            const r = await repo.deleteService(s.id);
-            if (r.result === 'hidden') showToast(t('service.hiddenInstead'), () => repo.restoreService(r.service));
-            else showToast(t('service.deleted'), () => repo.restoreService(r.service));
-          } catch { showToast(t('service.lastActive')); }
-        })() },
-        { label: t('btn.keep'), role: 'cancel' as const, onPress: () => {} },
-      ],
-    },
-  });
+/**
+ * A service dropped on the trash in Nustatymai. No question: it is removed, the toast says so and Anuliuoti brings it back in
+ * its place. A service that has visits is only hidden (the visits keep their label), and the last visible one stays.
+ * Resolves to whether the row is gone from the list.
+ */
+export async function removeService(s: { id: string; name: string }): Promise<'removed' | 'kept'> {
+  try {
+    const r = await repo.deleteService(s.id);
+    if (r.result === 'hidden') { showToast(t('service.hiddenInstead'), () => repo.restoreService(r.service)); return 'kept'; }
+    showToast(t('edit.removed', { vardas: s.name }), () => repo.restoreService(r.service));
+    return 'removed';
+  } catch { showToast(t('service.lastActive')); return 'kept'; }
 }
 /** Removes an expense (it is not a visit, so there is nothing to cancel). Anuliuoti puts it back. */
 export async function deleteExpenseWithToast(id: string) {
@@ -124,19 +119,12 @@ export async function deleteExpenseWithToast(id: string) {
   await repo.deleteAppointment(id);
   showToast(t('expense.deleted'), () => repo.putSnapshot(before));
 }
-export function confirmDeleteOption(o: Option) {
-  ui.set({
-    action: {
-      title: t('option.deleteQ', { vardas: o.name }),
-      items: [
-        { label: t('btn.delete'), role: 'destructive' as const, onPress: () => void (async () => {
-          const gone = await repo.deleteOption(o.id);
-          if (gone) showToast(t('option.deleted'), () => repo.restoreOption(gone));
-        })() },
-        { label: t('btn.keep'), role: 'cancel' as const, onPress: () => {} },
-      ],
-    },
-  });
+/** A choice (Asmeniniai, Išlaidų rūšys) dropped on the trash: removed at once, with Anuliuoti. */
+export async function removeOption(o: Option): Promise<'removed' | 'kept'> {
+  const gone = await repo.deleteOption(o.id);
+  if (!gone) return 'kept';
+  showToast(t('edit.removed', { vardas: o.name }), () => repo.restoreOption(gone));
+  return 'removed';
 }
 /**
  * A tap on a cancelled entry (the thin struck-through line): bring it back as it was, or book something new in

@@ -17,6 +17,11 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   { date: '2026-11-04', items: [
+    { kind: 'bugfix', text: 'Braukiant per trukmės pasirinkimus (3 val, 3 val 30 min...) puslapis nebeišnyksta: atgal grįžtama tik braukiant iš kairės ekrano dalies, o viskas, kas slenka į šonus, išsaugo savo braukimą.' },
+    { kind: 'bugfix', text: 'Tas pats Išlaidose: braukiant per „Kas sumokėjo“ eilutę puslapis nebeverčiamas.' },
+    { kind: 'change', text: 'Kliento kortelė taip pat grįžta atgal tik braukiant iš kairės dalies.' },
+  ] },
+  { build: 'bcd6170', date: '2026-11-04', items: [
     { kind: 'bugfix', text: 'Įjungus „Fiksuotą sumą“ klaviatūra iškart pasirodo ir žymeklis jau sumos lauke: nebereikia antro paspaudimo.' },
     { kind: 'change', text: 'Mygtuko „Gerai“ nebėra: suma išsaugoma renkant, o klaviatūrą nuleidžia jos pačios „OK“.' },
     { kind: 'change', text: 'Šiukšlinė tempiant eilutę dabar yra tik piktograma, be teksto.' },

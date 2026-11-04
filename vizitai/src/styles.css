@@ -85,7 +85,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 button:disabled { cursor: default; }
 input, select { font: inherit; font-size: max(16px, 1rem); color: inherit; }
 svg { flex: none; }
-.scroll { overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.scroll { overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 
 /* ==========================================================================
    App shell
@@ -179,7 +179,7 @@ svg { flex: none; }
    Calendar: timeline
    ========================================================================== */
 .timeline { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; --row: round(nearest, calc(2.75rem * var(--zoom, 1)), 1px); }
-.grid-scroll { flex: 1; min-height: 0; touch-action: pan-y; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; background: var(--page); }
+.grid-scroll { flex: 1; min-height: 0; touch-action: pan-y; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; background: var(--page); }
 .grid-pad { padding: .7rem 0 1.4rem; }
 .grid { position: relative; display: flex; height: calc(var(--row) * var(--rows));
   /* hour, half-hour and quarter lines, solid 1px hairlines that run through the time column too */
@@ -289,7 +289,7 @@ svg { flex: none; }
 /* ==========================================================================
    Calendar: month
    ========================================================================== */
-.month { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 0 var(--s2) var(--s4); background: var(--page); }
+.month { flex: 1; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; padding: 0 var(--s2) var(--s4); background: var(--page); }
 .month-head, .month-body { display: grid; grid-template-columns: repeat(7, 1fr); }
 .month-head span { text-align: center; font-size: .66rem; font-weight: 600; color: var(--label-2); text-transform: uppercase; padding: var(--s2) 0 var(--s1); }
 .month-cell { min-height: 3.6rem; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 3px;

@@ -1,12 +1,14 @@
 import { useEffect, useRef } from 'preact/hooks';
+import { edgeZone, inSideScroller } from './gestures';
 
 /** Set while something on the page is being dragged (a row being sorted): a sideways wobble must not take the page away. */
 export const swipeGuard = { locked: false };
 const IGNORE = 'input, textarea, select, .swipe-row, .wheel, [data-no-swipe-back]'; // things that use a sideways drag or a cursor themselves
 /**
- * A page that goes back when it is swiped to the right, anywhere on it. The page FOLLOWS the finger (what is behind it shows
- * as it slides away), and on release it either carries on out of the screen (far enough, or a quick flick) and `onDone` is
- * called, or springs back. A short or mostly vertical drag does nothing; the tap that would follow a drag is eaten.
+ * A page that goes back when it is swiped to the right, starting in the LEFT PART of it (`edgeZone`): the rest of the page, and
+ * anything that scrolls sideways, keeps its own sideways drags. The page FOLLOWS the finger (what is behind it shows as it
+ * slides away), and on release it either carries on out of the screen (far enough, or a quick flick) and `onDone` is called,
+ * or springs back. A short or mostly vertical drag does nothing; the tap that would follow a drag is eaten.
  * The element needs `touch-action: pan-y` on its scrollers so a sideways drag reaches here (see layers.css).
  */
 export function useSwipeBack(ref: { current: HTMLElement | null }, onDone: () => void, ready = true) {
@@ -17,7 +19,9 @@ export function useSwipeBack(ref: { current: HTMLElement | null }, onDone: () =>
     if (!el) return;
     let g: { id: number; x0: number; y0: number; t0: number; on: boolean } | null = null;
     const down = (e: PointerEvent) => {
-      g = !e.isPrimary || (e.target as HTMLElement).closest(IGNORE) ? null : { id: e.pointerId, x0: e.clientX, y0: e.clientY, t0: performance.now(), on: false };
+      const r = el.getBoundingClientRect();
+      const wanted = e.isPrimary && e.clientX - r.left <= edgeZone(r.width) && !(e.target as HTMLElement).closest(IGNORE) && !inSideScroller(e.target, el);
+      g = wanted ? { id: e.pointerId, x0: e.clientX, y0: e.clientY, t0: performance.now(), on: false } : null;
     };
     const move = (e: PointerEvent) => {
       if (!g || e.pointerId !== g.id) return;

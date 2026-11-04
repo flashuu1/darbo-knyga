@@ -1,4 +1,5 @@
 import { useEffect } from 'preact/hooks';
+import { inSideScroller } from './gestures';
 import { goPage, pageIndex, statsUi } from './statsUi';
 
 const NO_PAGE_SWIPE = '.lc, .ov, .swipe-row, .fc-plot, input, textarea, .glass, [data-no-page-swipe]'; // things that use a sideways drag themselves
@@ -13,7 +14,7 @@ export function usePager(ref: { current: HTMLElement | null }) {
     let g: { id: number; x0: number; y0: number; t0: number; state: 'maybe' | 'yes' } | null = null;
     const down = (e: PointerEvent) => {
       g = null;
-      if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0) || (e.target as HTMLElement).closest(NO_PAGE_SWIPE)) return;
+      if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0) || (e.target as HTMLElement).closest(NO_PAGE_SWIPE) || inSideScroller(e.target, el)) return;
       g = { id: e.pointerId, x0: e.clientX, y0: e.clientY, t0: performance.now(), state: 'maybe' };
     };
     const move = (e: PointerEvent) => {

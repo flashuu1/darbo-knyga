@@ -257,12 +257,13 @@ test.describe('Klientai list', () => {
     await expect(page.getByTestId('peek')).toHaveCount(0);
   });
 
-  test('a swipe to the right anywhere on the client card goes back to the list, like the button', async ({ page }) => {
+  test('a swipe to the right from the left part of the client card goes back to the list, like the button', async ({ page }) => {
     await openApp(page, NOW);
     await seedList(page);
     await page.getByTestId('tab-clients').click();
     await page.getByTestId('client-row-1').click();
     await expect(page.getByTestId('client-card')).toBeVisible();
+    await page.waitForTimeout(550); // the card has slid in: until then a press at its left lands on the list under it
     const c = (await page.getByTestId('card-visits').boundingBox())!;
     const y = c.y + c.height / 2;
     await page.mouse.move(80, y); await page.mouse.down(); await page.mouse.move(110, y + 2, { steps: 4 }); await page.mouse.up(); // short: stays

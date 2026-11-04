@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'preact';
-import { useEffect, useRef } from 'preact/hooks';
+import { useRef } from 'preact/hooks';
 import { repo } from '../../db/repo';
 import { formatWhen } from '../../i18n/format';
 import { t } from '../../i18n/lt';
@@ -8,6 +8,7 @@ import { useLive } from '../hooks';
 import { statusLabel } from '../status';
 import { BackIcon, NextIcon } from '../icons';
 import { ui } from '../store';
+import { useSwipeBack } from '../swipeBack';
 import { initials } from './Clients';
 
 export function ClientCard({ id }: { id: string }) {
@@ -16,49 +17,7 @@ export function ClientCard({ id }: { id: string }) {
   const phoneEl = useRef<HTMLInputElement>(null);
   const booking = useRef(false);
   const root = useRef<HTMLDivElement>(null);
-  const backRef = useRef<() => void>(() => {});
-  // A swipe to the right anywhere on the card (not on a field, where it moves the cursor) drags the card away with the
-  // finger and goes back to the list, as the button does. A short or mostly vertical drag does nothing.
-  useEffect(() => {
-    const el = root.current;
-    if (!el) return;
-    let g: { id: number; x0: number; y0: number; t0: number; on: boolean } | null = null;
-    const down = (e: PointerEvent) => { g = !e.isPrimary || (e.target as HTMLElement).closest('input, textarea') ? null : { id: e.pointerId, x0: e.clientX, y0: e.clientY, t0: performance.now(), on: false }; };
-    const move = (e: PointerEvent) => {
-      if (!g || e.pointerId !== g.id) return;
-      const dx = e.clientX - g.x0, dy = e.clientY - g.y0;
-      if (!g.on) {
-        if (Math.abs(dy) > 14 && Math.abs(dy) > Math.abs(dx)) { g = null; return; } // she is scrolling
-        if (dx < 14 || dx < Math.abs(dy) * 1.5) return;
-        g.on = true;
-        el.style.transition = 'none';
-      }
-      el.style.transform = `translateX(${Math.max(0, dx)}px)`;
-    };
-    const up = (e: PointerEvent) => {
-      const s = g;
-      g = null;
-      if (!s || !s.on || e.pointerId !== s.id) return;
-      const dx = e.clientX - s.x0, fast = dx / Math.max(1, performance.now() - s.t0) > 0.5;
-      const eat = (c: Event) => { c.stopPropagation(); c.preventDefault(); };
-      el.addEventListener('click', eat, { capture: true, once: true });
-      window.setTimeout(() => el.removeEventListener('click', eat, true), 120);
-      if (dx > 110 || (fast && dx > 50)) {
-        el.style.transition = 'transform .28s var(--ease-spring)';
-        el.style.transform = 'translateX(100%)';
-        window.setTimeout(() => backRef.current(), 230);
-      } else {
-        el.style.transition = 'transform .38s var(--ease-spring)';
-        el.style.transform = '';
-      }
-    };
-    const cancel = () => { if (g?.on) { el.style.transition = 'transform .3s var(--ease-spring)'; el.style.transform = ''; } g = null; };
-    el.addEventListener('pointerdown', down, { passive: true });
-    el.addEventListener('pointermove', move, { passive: true });
-    el.addEventListener('pointerup', up, { passive: true });
-    el.addEventListener('pointercancel', cancel, { passive: true });
-    return () => { el.removeEventListener('pointerdown', down); el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', cancel); };
-  }, [!d]);
+  useSwipeBack(root, () => void back(), !!d); // a swipe to the right goes back, the card follows the finger
   if (!d) return null;
 
   // Writes name and phone when they differ from what is stored, then puts the stored name back
@@ -82,7 +41,6 @@ export function ClientCard({ id }: { id: string }) {
     await save();
     ui.set({ client: null });
   };
-  backRef.current = () => void back();
   const book = async () => {
     if (booking.current) return;
     booking.current = true;

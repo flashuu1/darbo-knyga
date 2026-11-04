@@ -12,7 +12,8 @@ import { OptionList } from '../components/OptionList';
 import { SwipeRow } from '../components/SwipeRow';
 import { useBooksFingerprint, useLive, useNeedsBackup, useOptions, useServices, useSettings } from '../hooks';
 import { useKeyboardHeight } from '../keyboard';
-import { BackIcon, BackupIcon, ClockIcon, InfoIcon, NextIcon, PersonIcon, ScissorsIcon, WalletIcon } from '../icons';
+import { useSwipeBack } from '../swipeBack';
+import { BackIcon, BackupIcon, CheckIcon, ClockIcon, InfoIcon, NextIcon, PersonIcon, RepeatIcon, ScissorsIcon, WalletIcon } from '../icons';
 
 type Page = 'services' | 'hours' | 'personal' | 'expenses' | 'backup' | 'about';
 const TITLE: Record<Page, Key> = {
@@ -46,6 +47,7 @@ export function SettingsScreen() {
     setLeaving(true);
     window.setTimeout(() => { setPage(null); setLeaving(false); }, 230); // the pop-out animation is --t-med (220 ms)
   };
+  const closeNow = () => { setPage(null); setLeaving(false); }; // after a swipe the page is already off the screen
   const lastBackup = settings.lastBackupAt ? formatDayShort(todayStr(new Date(settings.lastBackupAt))) : t('backup.never');
 
   return (
@@ -75,7 +77,7 @@ export function SettingsScreen() {
       </div>
 
       {page && (
-        <SubPage title={t(TITLE[page])} id={page} leaving={leaving} onBack={close}>
+        <SubPage title={t(TITLE[page])} id={page} leaving={leaving} onBack={close} onSwiped={closeNow}>
           {page === 'services' && <ServicesPage />}
           {page === 'hours' && <HoursPage />}
           {page === 'personal' && <OptionList group="personal" />}
@@ -88,8 +90,8 @@ export function SettingsScreen() {
   );
 }
 
-/** A page pushed over the list: a back button named after the list, a large title, and a swipe from the left edge to go back. */
-function SubPage({ title, id, leaving, onBack, children }: { title: string; id: Page; leaving: boolean; onBack: () => void; children: ComponentChildren }) {
+/** A page pushed over the list: a back button named after the list, a large title, and a swipe to the right (the page follows the finger) to go back. */
+function SubPage({ title, id, leaving, onBack, onSwiped, children }: { title: string; id: Page; leaving: boolean; onBack: () => void; onSwiped: () => void; children: ComponentChildren }) {
   const el = useRef<HTMLDivElement>(null);
   const kb = useKeyboardHeight();
   const kbRef = useRef(kb);
@@ -118,20 +120,7 @@ function SubPage({ title, id, leaving, onBack, children }: { title: string; id: 
     node.addEventListener('focusin', focused);
     return () => { clearTimeout(timer); node.removeEventListener('focusin', focused); };
   }, []);
-  useEffect(() => {
-    const node = el.current;
-    if (!node) return;
-    let s: { x: number; y: number } | null = null;
-    const start = (e: TouchEvent) => { const p = e.touches[0]!; s = p.clientX < 28 ? { x: p.clientX, y: p.clientY } : null; };
-    const end = (e: TouchEvent) => {
-      const p = e.changedTouches[0];
-      if (s && p && p.clientX - s.x > 70 && Math.abs(p.clientY - s.y) < 60) back.current();
-      s = null;
-    };
-    node.addEventListener('touchstart', start, { passive: true });
-    node.addEventListener('touchend', end, { passive: true });
-    return () => { node.removeEventListener('touchstart', start); node.removeEventListener('touchend', end); };
-  }, []);
+  useSwipeBack(el, onSwiped); // swipe to the right anywhere: the page follows the finger back to the list
   return (
     <div ref={el} class={leaving ? 'set-page pop-out' : 'set-page push-in'} data-testid={`settings-page-${id}`} style={{ '--kb': `${kb}px` } as CSSProperties}>
       <header class="chrome">
@@ -262,23 +251,29 @@ function BackupPage() {
   const autos = useLive(async () => [...(await backups.list('auto')), ...(await backups.list('safety'))].sort((a, b) => b.at.localeCompare(a.at)), [], [] as Snap[]);
   const now = useBooksFingerprint();
   const last = settings.lastBackupAt ? t('backup.last', { data: formatDayShort(todayStr(new Date(settings.lastBackupAt))) }) : t('backup.never');
-  const same = exports[0] && exports[0].fp === now;
+  const same = !!exports[0] && exports[0].fp === now;
+  const head = same ? t('backup.statusOk') : settings.lastBackupAt ? t('backup.statusOld') : t('backup.statusNone');
   const row = (s: Snap, kind: string, i: number) => (
-    <button key={s.id} class="group-row snap-row" data-testid={`snap-${kind}-${i}`} onClick={() => void restoreSnapshot(s)}>
+    <button key={s.id} class="group-row snap-row rise" style={{ '--i': i } as CSSProperties} data-testid={`snap-${kind}-${i}`} onClick={() => void restoreSnapshot(s)}>
+      <span class={s.fp === now ? 'snap-ico on' : 'snap-ico'} aria-hidden="true">{s.fp === now ? <CheckIcon /> : s.kind === 'safety' ? <RepeatIcon /> : <BackupIcon />}</span>
       <span class="snap-text">
         <b>{formatDayShort(todayStr(new Date(s.at)))}, {nowLocal(new Date(s.at)).slice(11, 16)}{s.kind === 'safety' ? ` · ${t('backup.safetyTag')}` : ''}</b>
         <span>{t('backup.snapLine', { k: s.counts.clients, v: s.counts.visits, kb: Math.max(1, Math.round(s.bytes / 1024)) })}</span>
       </span>
-      {s.fp === now && <span class="snap-match" data-testid={`snap-match-${kind}-${i}`}>{t('backup.matches')}</span>}
+      {s.fp === now ? <span class="snap-match" data-testid={`snap-match-${kind}-${i}`}>{t('backup.matches')}</span> : <span class="snap-go" aria-hidden="true">{t('backup.restore')}</span>}
     </button>
   );
   return (
     <>
-      <div class="group">
-        <button class="group-row accent" data-testid="btn-export" onClick={() => void runBackup()}>{t('backup.export')}</button>
-        <button class="group-row accent" data-testid="btn-import" onClick={() => file.current?.click()}>{t('backup.import')}</button>
+      <div class={same ? 'bk-status ok rise' : 'bk-status rise'} data-testid="backup-status">
+        <span class="bk-ico" aria-hidden="true">{same ? <CheckIcon /> : <BackupIcon />}</span>
+        <div class="bk-text">
+          <b>{head}</b>
+          <span data-testid="backup-last">{same ? `${last}${last.endsWith('.') ? ' ' : '. '}${t('backup.upToDate')}` : last}</span>
+        </div>
       </div>
-      <p class="section-foot" data-testid="backup-last">{same ? `${last}. ${t('backup.upToDate')}` : last}</p>
+      <button class="primary bk-btn rise" style={{ '--i': 1 } as CSSProperties} data-testid="btn-export" onClick={() => void runBackup()}>{t('backup.export')}</button>
+      <button class="bk-btn second rise" style={{ '--i': 2 } as CSSProperties} data-testid="btn-import" onClick={() => file.current?.click()}>{t('backup.import')}</button>
       <h2 class="section-head">{t('backup.recent')}</h2>
       <div class="group" data-testid="snap-exports">
         {exports.length ? exports.map((s, i) => row(s, 'export', i)) : <p class="group-row text muted" data-testid="snap-none">{t('backup.none')}</p>}

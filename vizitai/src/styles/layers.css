@@ -826,9 +826,27 @@ html[data-fps='low'] .tile, html[data-fps='low'] .heat button, html[data-fps='lo
 html[data-fps='low'] .entry-glow i { display: none; }
 html[data-fps='low'] .entry-bloom i:nth-child(n+4) { display: none; }
 
-/* the list of copies in Nustatymai > Atsarginė kopija */
-.snap-row { min-height: 60px; padding-top: 8px; padding-bottom: 8px; }
+/* Nustatymai > Atsarginė kopija: a status card, the two actions as the app's buttons, then the copies as rows with round icons */
+.bk-status { display: flex; align-items: center; gap: var(--s3); padding: 16px; margin: var(--s1) 0 var(--s3); border-radius: var(--r-xl); background: var(--due-bg); }
+.bk-status.ok { background: color-mix(in srgb, var(--green) 16%, var(--card)); }
+.bk-ico { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; color: #fff; background: var(--due); }
+.bk-status.ok .bk-ico { background: var(--green); }
+.bk-ico svg { width: 24px; height: 24px; }
+.bk-text { min-width: 0; display: flex; flex-direction: column; gap: 2px; text-align: left; }
+.bk-text b { font-size: 1.12rem; font-weight: 750; letter-spacing: -.01em; }
+.bk-text span { font-size: .85rem; color: var(--label-2); }
+.bk-btn { display: block; margin-bottom: var(--s2); }
+.bk-btn.second { width: 100%; min-height: 54px; border-radius: var(--r-lg); background: var(--card); color: var(--accent); font-size: 1.08rem; font-weight: 650; transition: transform var(--t-press) var(--ease-out), background var(--t-fast); }
+.bk-btn.second:active { transform: scale(.98); background: var(--fill); }
+.snap-row { min-height: 64px; padding-top: 8px; padding-bottom: 8px; gap: var(--s3); }
+.snap-ico { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.snap-ico.on { color: var(--green-ink); background: color-mix(in srgb, var(--green) 20%, transparent); }
+.snap-ico svg { width: 18px; height: 18px; }
 .snap-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; text-align: left; }
-.snap-text b { font-weight: 600; font-size: 1rem; }
-.snap-text span { font-size: .8rem; color: var(--label-2); }
+.snap-text b { font-weight: 650; font-size: 1rem; white-space: nowrap; }
+.snap-text span { font-size: .8rem; color: var(--label-2); font-variant-numeric: tabular-nums; }
 .snap-match { flex: none; padding: 3px 10px; border-radius: 12px; font-size: .72rem; font-weight: 700; color: var(--green-ink); background: color-mix(in srgb, var(--green) 20%, transparent); }
+.snap-go { flex: none; padding: 5px 12px; border-radius: 14px; font-size: .8rem; font-weight: 650; color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+
+/* pages that follow a swipe back: vertical scrolling stays, a sideways drag reaches the page */
+.set-page, .set-page .scroll, .set-page .chrome { touch-action: pan-y; }

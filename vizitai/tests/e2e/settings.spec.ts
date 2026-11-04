@@ -213,20 +213,30 @@ test('Nustatymai is a list of categories, like iOS, and each opens its own page 
   await expect(page.getByTestId('settings-row-services')).toBeVisible();
 });
 
-test('a swipe from the left edge goes back to the list of Nustatymai', async ({ page }) => {
+test('swiping a Nustatymai page to the right: it follows the finger, springs back when short, goes back when long', async ({ page }) => {
   await openApp(page);
   await openSettings(page, 'hours');
-  await page.evaluate(() => {
-    const el = document.querySelector('[data-testid="settings-page-hours"]')!;
-    const fire = (type: string, x: number, y: number) => {
-      const tt = { identifier: 1, target: el, clientX: x, clientY: y };
-      const ev = new Event(type, { bubbles: true, cancelable: true });
-      Object.assign(ev, { touches: type === 'touchend' ? [] : [tt], changedTouches: [tt] });
-      el.dispatchEvent(ev);
-    };
-    fire('touchstart', 8, 400); fire('touchmove', 60, 402); fire('touchend', 140, 404);
-  });
-  await expect(page.getByTestId('settings-page-hours')).toHaveCount(0);
+  const pg = page.getByTestId('settings-page-hours');
+  await page.waitForTimeout(500); // the page's own entrance is over
+  const x = () => pg.evaluate((el) => el.getBoundingClientRect().x);
+  await page.mouse.move(70, 620);
+  await page.mouse.down();
+  await page.mouse.move(110, 622, { steps: 4 });
+  await page.mouse.move(190, 624, { steps: 4 });
+  expect(Math.round(await x())).toBeGreaterThan(90); // mid-drag the page is already moving with the finger
+  expect(Math.round(await x())).toBeLessThan(140);
+  await page.mouse.move(110, 624, { steps: 4 });
+  expect(Math.round(await x())).toBeLessThan(60); // and it follows back
+  await page.mouse.up(); // a short drag: springs back
+  await page.waitForTimeout(600);
+  expect(Math.round(await x())).toBe(0);
+  await expect(pg).toBeVisible();
+  await page.mouse.move(70, 620);
+  await page.mouse.down();
+  await page.mouse.move(250, 622, { steps: 8 });
+  await page.mouse.up(); // a long drag: goes back
+  await expect(pg).toHaveCount(0);
+  await expect(page.getByTestId('settings-row-hours')).toBeVisible();
 });
 
 test('the backup row shows the last backup and a red dot when one is due', async ({ page }) => {

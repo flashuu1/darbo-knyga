@@ -17,6 +17,10 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   { date: '2026-11-04', items: [
+    { kind: 'bugfix', text: 'Nustatymų puslapiai grįžta pirštu: braukiant į dešinę puslapis seka pirštą, o ne tik pasileidus atkuria animaciją.' },
+    { kind: 'change', text: 'Atsarginės kopijos puslapis perdarytas pagal likusią programą: būsenos kortelė, didelis eksporto mygtukas ir kopijos eilutės su apvaliomis piktogramomis.' },
+  ] },
+  { build: 'e23d397', date: '2026-11-04', items: [
     { kind: 'feature', text: 'Atsarginė kopija: matomos paskutinės 3 eksportuotos kopijos ir 3 automatinės; palietus kopiją klausiama, ar atkurti, ir veiksmą galima anuliuoti. Failo rinkti nebereikia.' },
     { kind: 'change', text: 'Jei duomenys nepasikeitė nuo paskutinio eksporto, jie nebeeksportuojami antrą kartą, atkurti tų pačių duomenų nereikia, o priminimas apie kopiją neberodomas.' },
   ] },

@@ -17,6 +17,11 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   { date: '2026-11-04', items: [
+    { kind: 'bugfix', text: 'Įjungus „Fiksuotą sumą“ klaviatūra iškart pasirodo ir žymeklis jau sumos lauke: nebereikia antro paspaudimo.' },
+    { kind: 'change', text: 'Mygtuko „Gerai“ nebėra: suma išsaugoma renkant, o klaviatūrą nuleidžia jos pačios „OK“.' },
+    { kind: 'change', text: 'Šiukšlinė tempiant eilutę dabar yra tik piktograma, be teksto.' },
+  ] },
+  { build: 'aae5e82', date: '2026-11-04', items: [
     { kind: 'change', text: 'Paslaugų, Asmeninių ir Išlaidų rūšių tvarka keičiama palaikius eilutę ir tempiant (rodyklių nebėra); puslapis pats slenka prie krašto.' },
     { kind: 'feature', text: 'Tempiant eilutę apačioje pakyla šiukšlinė: numetus eilutę ji pašalinama, parodomas patvirtinimas „Ištrinta“ ir galima Anuliuoti.' },
     { kind: 'change', text: 'Naujo įrašo pridėjimas dabar yra plius viršuje dešinėje, kaip kituose ekranuose.' },

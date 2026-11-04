@@ -10,10 +10,13 @@ test.describe('Išlaidų rūšys: a fixed amount that is only assumed when she a
     await openSettings(page, 'expenses');
     await expect(page.getByTestId('opt-expense-open-1')).toContainText('Be sumos');
     await openRow(page, 'opt-expense', 1); // Nuoma
-    await expect(page.getByTestId('opt-expense-cost-1')).toHaveCount(0); // there is no field until she asks for it
+    const wrap = page.getByTestId('opt-expense-cost-1').locator('xpath=..');
+    await expect(wrap).toHaveClass(/off/); // the field is in the page (the tap has to focus it) but not shown until she asks for it
+    expect((await wrap.boundingBox())!.height).toBeLessThanOrEqual(1);
     await page.getByTestId('opt-expense-cost-toggle-1').click();
     const field = page.getByTestId('opt-expense-cost-1');
-    await expect(field).toBeVisible(); // it opens
+    await expect(wrap).not.toHaveClass(/off/); // it opens
+    await expect.poll(async () => (await field.boundingBox())!.height).toBeGreaterThan(30);
     await expect(field).toBeFocused(); // the cursor is in it, so the keyboard is up
     await expect(field).toHaveAttribute('inputmode', 'decimal'); // and it is the number pad
     await field.fill('450');
@@ -55,7 +58,7 @@ test.describe('Išlaidų rūšys: a fixed amount that is only assumed when she a
     await expect(page.getByTestId('opt-expense-cost-2')).toBeFocused();
     await page.getByTestId('opt-expense-name-2').focus(); // she leaves without an amount
     await expect(page.getByTestId('opt-expense-cost-toggle-2')).toHaveAttribute('aria-checked', 'false');
-    await expect(page.getByTestId('opt-expense-cost-2')).toHaveCount(0);
+    await expect(page.getByTestId('opt-expense-cost-2').locator('xpath=..')).toHaveClass(/off/);
   });
 
   test('registering an expense: a kind with a fixed amount starts with it and says so; a kind without one starts empty', async ({ page }) => {
@@ -140,7 +143,7 @@ test.describe('the fixed amount switch and the number pad', () => {
     await expect(toggle).toHaveAttribute('aria-checked', 'false');
     await page.waitForTimeout(900);
     await expect(toggle).toHaveAttribute('aria-checked', 'false'); // and it stays off
-    await expect(page.getByTestId('opt-expense-cost-0')).toHaveCount(0);
+    await expect(page.getByTestId('opt-expense-cost-0').locator('xpath=..')).toHaveClass(/off/);
     expect(await page.evaluate(() => document.activeElement instanceof HTMLInputElement)).toBe(false);
     await toggle.click(); // on, with an amount
     await page.getByTestId('opt-expense-cost-0').fill('120');
@@ -149,19 +152,34 @@ test.describe('the fixed amount switch and the number pad', () => {
     await expect.poll(async () => (await optionOf(page, 'Medžiagos'))?.costCents).toBeUndefined();
   });
 
-  test('"Gerai" lowers the number pad and keeps the amount', async ({ page }) => {
+  test('the tap on the switch focuses the amount field itself (that is what makes iOS raise the keyboard), with no second tap', async ({ page }) => {
+    await openApp(page);
+    await seedOptions(page);
+    await openSettings(page, 'expenses');
+    await openRow(page, 'opt-expense', 1);
+    const r = await page.evaluate((id) => { // the click handler runs inside this call: what has the focus when it returns?
+      (document.querySelector(`[data-testid="${id}"]`) as HTMLElement).click();
+      const a = document.activeElement as HTMLInputElement | null;
+      return { id: a?.dataset.testid, mode: a?.inputMode };
+    }, 'opt-expense-cost-toggle-1');
+    expect(r).toEqual({ id: 'opt-expense-cost-1', mode: 'decimal' });
+  });
+
+  test('the keyboard\'s own OK key (Enter) lowers it and keeps the amount; there is no extra button for that', async ({ page }) => {
     await openApp(page);
     await seedOptions(page);
     await openSettings(page, 'expenses');
     await openRow(page, 'opt-expense', 1);
     await page.getByTestId('opt-expense-cost-toggle-1').click();
-    const done = page.getByTestId('opt-expense-cost-done-1');
-    await expect(done).toBeVisible();
-    await page.getByTestId('opt-expense-cost-1').fill('450');
-    await done.click();
+    await expect(page.getByTestId('opt-expense-cost-done-1')).toHaveCount(0);
+    const field = page.getByTestId('opt-expense-cost-1');
+    await expect(field).toHaveAttribute('enterkeyhint', 'done');
+    await field.fill('450');
+    await field.press('Enter');
     expect(await page.evaluate(() => document.activeElement instanceof HTMLInputElement)).toBe(false);
     await expect(page.getByTestId('opt-expense-cost-toggle-1')).toHaveAttribute('aria-checked', 'true');
     await expect.poll(async () => (await optionOf(page, 'Nuoma'))?.costCents).toBe(45000);
+    await expect(page.getByTestId('opt-expense-open-1')).toContainText('450');
   });
 });
 

@@ -50,6 +50,8 @@ test.describe('Nustatymai lists: press and hold to move or throw away, "+" at th
     await dragRow(page, 'opt-expense', 1, 'trash', true);
     await expect(trash).toHaveClass(/on/);
     await expect(trash).toHaveClass(/hot/); // the finger is over it
+    await expect(trash).toHaveText(''); // an icon, no words
+    await expect(trash.locator('svg')).toBeVisible();
     await expect(page.getByTestId('opt-expense-row-1')).toHaveClass(/lift/);
     const a = (await page.getByTestId('opt-expense-open-1').boundingBox())!, t = (await trash.boundingBox())!;
     expect(a.y + a.height / 2).toBeGreaterThan(t.y - 40); // the row is carried down to it

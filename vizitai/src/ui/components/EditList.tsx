@@ -429,7 +429,7 @@ export function EditList({ prefix, items, addLabel, onAdd, onRename, onReorder, 
         </div>
         <p class="section-foot er-note">{note}</p>
         <div ref={trash} class={trashOn ? 'er-trash on' : 'er-trash'} data-testid={`${prefix}-trash`} aria-hidden="true">
-          <TrashIcon /><span>{t('edit.trash')}</span>
+          <TrashIcon />
         </div>
       </div>
     </RowsContext.Provider>

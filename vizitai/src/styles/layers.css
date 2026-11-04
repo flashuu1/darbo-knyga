@@ -906,9 +906,6 @@ html[data-fps='low'] .entry-bloom i:nth-child(n+4) { display: none; }
 
 .amt-eur { font-size: 1.5rem; font-weight: 800; color: var(--label-2); }
 .amt span.amt-eur { font-size: 1.5rem; }
-/* "Gerai" lowers the number pad (it has no return key); it is always in its place and only fades in, so nothing moves when the field loses focus */
-.amt-done { flex: none; min-width: 0; min-height: 36px; padding: 0 14px; border-radius: 18px; background: var(--accent); color: var(--on-accent); font-size: .9rem; font-weight: 700; opacity: 0; transform: scale(.9); pointer-events: none; transition: opacity var(--t-fast), transform var(--t-fast) var(--ease-out); }
-.amt-done.on { opacity: 1; transform: none; pointer-events: auto; }
 /* the switch is a pill: the app's buttons are at least 44 pt, which made it a block (the touch area is the ::after) */
 .switch { min-width: 51px; min-height: 31px; width: 51px; height: 31px; padding: 0; }
 .er-switch .switch { flex: none; }
@@ -919,10 +916,15 @@ html[data-fps='low'] .entry-bloom i:nth-child(n+4) { display: none; }
 .er-list.sorting .er:not(.lift) { transition: transform 260ms var(--ease-spring), opacity var(--t-med); }
 .er.lift { z-index: 6; box-shadow: 0 14px 30px rgba(0,0,0,.24), 0 2px 6px rgba(0,0,0,.12); will-change: transform; }
 .er-note { margin-top: var(--s3); }
-.er-trash { position: fixed; left: 16px; right: 16px; bottom: 16px; z-index: 7; height: 64px; border-radius: var(--r-xl); display: flex; align-items: center; justify-content: center; gap: 10px; pointer-events: none;
-  background: color-mix(in srgb, var(--red) 14%, var(--card)); color: var(--red); font-weight: 650; font-size: 1rem; box-shadow: 0 6px 22px rgba(0,0,0,.18);
-  opacity: 0; transform: translate3d(0, 90px, 0) scale(.96); transition: transform 340ms var(--ease-spring), opacity var(--t-med), background var(--t-fast); }
-.er-trash svg { width: 24px; height: 24px; transition: transform 300ms var(--ease-spring); }
+
+/* the amount field is in the page while the switch is off (iOS only raises the keyboard for a field focused inside the tap), but out of sight and out of the layout */
+.amt.off { position: absolute; left: 0; bottom: 0; width: 1px; height: 1px; margin: 0; padding: 0; overflow: hidden; opacity: 0; pointer-events: none; animation: none; box-shadow: none; }
+.amt:not(.off) { animation: ed-in var(--t-sheet) var(--ease-out) backwards; }
+/* the trash that rises while a row is carried: just the icon, in a round button at the bottom */
+.er-trash { position: fixed; left: 50%; bottom: 18px; z-index: 7; width: 76px; height: 76px; margin-left: -38px; border-radius: 50%; display: grid; place-items: center; pointer-events: none;
+  background: color-mix(in srgb, var(--red) 14%, var(--card)); color: var(--red); box-shadow: 0 6px 22px rgba(0,0,0,.2);
+  opacity: 0; transform: translate3d(0, 110px, 0) scale(.8); transition: transform 340ms var(--ease-spring), opacity var(--t-med), background var(--t-fast), color var(--t-fast); }
+.er-trash svg { width: 32px; height: 32px; transition: transform 300ms var(--ease-spring); }
 .er-trash.on { opacity: 1; transform: none; }
-.er-trash.on.hot { background: var(--red); color: #fff; transform: scale(1.04); }
-.er-trash.hot svg { transform: scale(1.25) rotate(-10deg); }
+.er-trash.on.hot { background: var(--red); color: #fff; transform: scale(1.18); }
+.er-trash.hot svg { transform: rotate(-12deg); }

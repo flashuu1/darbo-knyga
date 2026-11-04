@@ -5,7 +5,7 @@ import { addDays, datePart, todayStr, weekStart } from '../../logic/time';
 import { openNewToday, openSummary, runBackup } from '../actions';
 import { useNow } from '../clock';
 import { useLive, useNeedsBackup } from '../hooks';
-import { BackIcon, BackupIcon, ChevronIcon, NextIcon, PlusIcon } from '../icons';
+import { BackupIcon, ChevronIcon, NextIcon, PlusIcon } from '../icons';
 import { ui, useStore, type UiState } from '../store';
 import { MonthGrid } from '../components/MonthGrid';
 import { LiquidSeg } from '../components/Segmented';
@@ -32,16 +32,13 @@ export function CalendarScreen() {
   return (
     <section class="cal" data-testid="calendar">
       <header class="chrome">
-        <div class="navbar">
+        <div class="navbar cal-bar">
           <button class="lq lq-btn month-btn" data-testid="month-name" aria-expanded={view === 'month'} onClick={() => ui.set({ view: view === 'month' ? 'day' : 'month' })}>
-            {view === 'month' ? <><span>{monthName(date)}</span><span class="chev-up"><ChevronIcon /></span></> : <><BackIcon /><span>{monthName(date)}</span></>}
+            <span>{monthName(date)}</span>{view === 'month' && <span class="chev-up"><ChevronIcon /></span>}
           </button>
           <LiquidSeg items={[{ id: 'day', label: t('view.day') }, { id: 'week', label: t('view.week') }]} value={view === 'month' ? ('' as 'day') : view}
             onChange={(v) => ui.set({ view: v })} itemTestId={(id) => `seg-${id}`} />
-          <div class="nav-right">
-            <button class="lq lq-btn today-btn" data-testid="btn-today" onClick={() => ui.set({ date: todayStr() })}>{t('nav.today')}</button>
-            <button class="nav-btn round accent" data-testid="btn-add" aria-label={t('sheet.new.title')} onClick={() => void openNewToday()}><PlusIcon /></button>
-          </div>
+          <button class="lq lq-btn lq-round" data-testid="btn-add" aria-label={t('sheet.new.title')} onClick={() => void openNewToday()}><PlusIcon /></button>
         </div>
         <h1 key={title} class="large-title title-in" data-testid="title">{title}</h1>
         <button class="summary-btn" data-testid="summary-btn" onClick={() => openSummary(view)}>
@@ -67,6 +64,7 @@ export function CalendarScreen() {
       </header>
       {view !== 'month' && <TimelineGrid dates={view === 'day' ? [date] : days} compact={view === 'week'} onSwipe={step} />}
       {view === 'month' && <MonthGrid onSwipe={step} />}
+      <button class="lq lq-btn today-fab" data-testid="btn-today" onClick={() => ui.set({ date: todayStr() })}>{t('nav.today')}</button>
     </section>
   );
 }

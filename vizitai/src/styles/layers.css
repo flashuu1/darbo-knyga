@@ -934,21 +934,25 @@ html[data-fps='low'] .entry-bloom i:nth-child(n+4) { display: none; }
 .lq { position: relative; background: linear-gradient(180deg, rgba(255,255,255,.62), rgba(255,255,255,.28)); border: 1px solid rgba(255,255,255,.7);
   -webkit-backdrop-filter: blur(18px) saturate(190%); backdrop-filter: blur(18px) saturate(190%);
   box-shadow: 0 3px 14px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.9), inset 0 -1px 0 rgba(0,0,0,.05); }
-.lq-btn { display: inline-flex; align-items: center; justify-content: center; gap: 3px; height: 36px; min-height: 36px; min-width: 0; padding: 0 13px; border-radius: 18px; color: var(--label); font-size: .92rem; font-weight: 600; white-space: nowrap;
+.lq-btn { display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 40px; min-height: 40px; min-width: 0; padding: 0 15px; border-radius: 20px; color: var(--label); font-size: .95rem; font-weight: 600; white-space: nowrap; flex: none;
   transition: transform var(--t-press) var(--ease-out); }
 .lq-btn::after { content: ''; position: absolute; inset: -4px; }
 .lq-btn:active { transform: scale(.94); opacity: 1; }
-.lq-btn.month-btn { padding-left: 7px; text-transform: capitalize; }
+.lq-btn.month-btn { text-transform: capitalize; padding: 0 13px; }
+.lq-btn.month-btn .chev-up { display: inline-flex; margin-right: -2px; }
+.lq-btn.month-btn svg { width: 13px; height: 13px; }
 .lq-btn svg { width: 14px; height: 14px; }
+.lq-btn.lq-round { width: 40px; min-width: 40px; padding: 0; color: var(--accent); }
+.lq-btn.lq-round svg { width: 22px; height: 22px; stroke-width: 2.4; }
 .lq-btn .chev-up svg { transform: rotate(180deg); }
-.lq-seg { display: flex; height: 36px; padding: 3px; border-radius: 19px; }
-.lq-drop { position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc((100% - 6px) / var(--n)); border-radius: 16px; background: rgba(255,255,255,.92);
+.lq-seg { display: flex; flex: none; height: 40px; padding: 3px; border-radius: 20px; }
+.lq-drop { position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc((100% - 6px) / var(--n)); border-radius: 17px; background: rgba(255,255,255,.92);
   box-shadow: 0 2px 8px rgba(0,0,0,.16), inset 0 1px 0 #fff, inset 0 -1px 0 rgba(0,0,0,.05); transform: translateX(calc(var(--idx, 0) * 100%));
   transition: transform .46s cubic-bezier(.3, 1.35, .5, 1), opacity .2s; }
 .lq-seg:has(.lq-opt:not(.on):active) .lq-drop { transform: translateX(calc(var(--idx, 0) * 100%)) scale(.97); }
-.lq-opt { position: relative; z-index: 1; min-width: 0; min-height: 30px; height: 30px; padding: 0 14px; border-radius: 16px; font-size: .86rem; font-weight: 600; color: var(--label-2); transition: color var(--t-fast); }
+.lq-opt { position: relative; z-index: 1; min-width: 0; min-height: 34px; height: 34px; padding: 0 14px; border-radius: 17px; font-size: .9rem; font-weight: 600; color: var(--label-2); transition: color var(--t-fast); }
 .lq-opt.on { color: var(--label); }
-.lq-opt::after { content: ''; position: absolute; inset: -7px -2px; } /* a 44 pt tall touch area around the 30 pt label */
+.lq-opt::after { content: ''; position: absolute; inset: -5px -2px; } /* a 44 pt tall touch area around the 34 pt label */
 .lq-seg:has(.lq-opt.on) .lq-drop { opacity: 1; }
 .lq-seg:not(:has(.lq-opt.on)) .lq-drop { opacity: 0; } /* on Mėnuo (month grid) neither is chosen */
 @media (prefers-color-scheme: dark) {
@@ -959,3 +963,10 @@ html[data-fps='low'] .entry-bloom i:nth-child(n+4) { display: none; }
 html[data-fps='low'] .lq { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(255,255,255,.9); }
 @media (prefers-color-scheme: dark) { html[data-fps='low'] .lq { background: rgba(70,70,76,.94); } }
 html[data-fps='low'] .lq-drop { transition-duration: .24s; }
+
+/* the bar: the switch is exactly in the middle (the sides are equal columns), the blobs are the same height and hug their text; Šiandien floats bottom left like in iOS Calendar */
+.cal { position: relative; }
+.cal-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); min-height: 52px; padding: 0 var(--s3); }
+.cal-bar > :first-child { justify-self: start; }
+.cal-bar > :last-child { justify-self: end; }
+.today-fab { position: absolute; left: var(--s3); bottom: var(--s3); z-index: 6; }

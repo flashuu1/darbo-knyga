@@ -43,25 +43,56 @@ test.describe('the calendar bar is liquid glass', () => {
     expect(props.filter((p) => /^(width|height|top|left|right|bottom|margin.*|padding.*|inset.*)$/.test(p)), `layout properties animated: ${props.join(', ')}`).toEqual([]);
   });
 
-  for (const date of ['2026-08-14', '2026-09-14', '2026-11-14', '2026-12-14', '2026-10-14']) {
-    test(`everything fits in the bar with the month of ${date}, without overlapping`, async ({ page }) => {
+  for (const date of ['2026-08-14', '2026-09-14', '2026-11-14', '2026-12-14', '2026-10-14', '2026-02-14']) {
+    test(`the bar with the month of ${date}: the switch is in the middle, the blobs are one height and hug their text, nothing overlaps, no "<"`, async ({ page }) => {
       await openApp(page, NOW);
       await page.evaluate((d) => (window as any).__vizitai.ui.set({ date: d }), date);
       await page.waitForTimeout(300);
-      for (const view of ['seg-day', 'seg-week']) {
-        await page.getByTestId(view).click(); await page.waitForTimeout(500);
-        const [m, s, t, p] = [await box(page, 'month-name'), await box(page, view === 'seg-day' ? 'seg-day' : 'seg-week'), await box(page, 'btn-today'), await box(page, 'btn-add')];
+      const vw = page.viewportSize()!.width;
+      for (const view of ['day', 'week', 'month']) {
+        if (view === 'week') await page.getByTestId('seg-week').click();
+        if (view === 'month') await page.getByTestId('month-name').click();
+        await page.waitForTimeout(500);
+        const m = await box(page, 'month-name'), p = await box(page, 'btn-add');
         const seg = (await page.locator('.lq-seg').boundingBox())!;
-        const vw = page.viewportSize()!.width;
-        expect(m.x).toBeGreaterThanOrEqual(0);
-        expect(m.x + m.width, 'month button runs into the switch').toBeLessThanOrEqual(seg.x + 1);
-        expect(seg.x + seg.width, 'the switch runs into Šiandien').toBeLessThanOrEqual(t.x + 1);
-        expect(t.x + t.width, 'Šiandien runs into +').toBeLessThanOrEqual(p.x + 1);
+        const at = `(${date}, ${view})`;
+        expect(Math.abs(seg.x + seg.width / 2 - vw / 2), `the switch is off centre ${at}`).toBeLessThanOrEqual(1);
+        expect(seg.x - (m.x + m.width), `the month blob is too close to the switch ${at}`).toBeGreaterThanOrEqual(6);
+        expect(p.x - (seg.x + seg.width), `the switch is too close to + ${at}`).toBeGreaterThanOrEqual(6);
         expect(p.x + p.width).toBeLessThanOrEqual(vw);
-        expect(s.width).toBeGreaterThan(40);
+        expect(m.x).toBeGreaterThanOrEqual(0);
+        for (const h of [m.height, seg.height, p.height]) expect(Math.abs(h - 40), `the blobs are not all 40 tall ${at}`).toBeLessThanOrEqual(1);
+        expect(Math.abs(p.width - 40)).toBeLessThanOrEqual(1);
+        // the month blob hugs its text: even padding, nothing sticks out, and no "<" (only the small chevron while the month grid is open)
+        const hug = await page.getByTestId('month-name').evaluate((el) => {
+          const text = el.querySelector('span')!.getBoundingClientRect(), r = el.getBoundingClientRect(), svg = el.querySelector('svg');
+          return { left: text.left - r.left, right: r.right - (svg ? svg.getBoundingClientRect().right : text.right), svg: !!svg };
+        });
+        expect(hug.left, `the text touches the left edge of the blob ${at}`).toBeGreaterThanOrEqual(11);
+        expect(hug.right, `the text sticks out of the blob on the right ${at}`).toBeGreaterThanOrEqual(11);
+        expect(hug.svg, `the "<" (or any icon) beside the month ${at}`).toBe(view === 'month');
+        if (view !== 'month') expect(Math.abs(hug.left - hug.right), `uneven padding ${at}`).toBeLessThanOrEqual(1.5);
       }
     });
   }
+
+  test('Šiandien is a glass blob at the bottom left, above the tab bar, in every view; it brings the calendar back to today', async ({ page }) => {
+    await openApp(page, NOW);
+    for (const view of ['day', 'week', 'month']) {
+      if (view === 'week') await page.getByTestId('seg-week').click();
+      if (view === 'month') await page.getByTestId('month-name').click();
+      await page.waitForTimeout(400);
+      const t = await box(page, 'btn-today'), tab = await box(page, 'tab-calendar'), vh = page.viewportSize()!.height;
+      expect(t.x, `${view}: bottom left`).toBeLessThanOrEqual(24);
+      expect(t.y, `${view}: in the lower half`).toBeGreaterThan(vh * 0.7);
+      expect(t.y + t.height, `${view}: above the tab bar`).toBeLessThanOrEqual(tab.y);
+      expect(Math.abs(t.height - 40)).toBeLessThanOrEqual(1);
+    }
+    await page.evaluate(() => (window as any).__vizitai.ui.set({ date: '2026-03-02', view: 'day' }));
+    await page.waitForTimeout(300);
+    await page.getByTestId('btn-today').click();
+    await expect(page.getByTestId('title')).toContainText('spalio 14');
+  });
 });
 
 test.describe('the summaries open up to the button that opened them at most', () => {

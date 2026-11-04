@@ -17,6 +17,10 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   { date: '2026-11-04', items: [
+    { kind: 'change', text: 'Kalendoriaus „stiklo“ lašai šiek tiek didesni ir apglėbia tekstą tolygiai; prie mėnesio nebėra „<“, plius taip pat stiklinis, o Diena / Savaitė slankiklis tiksliai viduryje.' },
+    { kind: 'change', text: 'Šiandien perkelta į apatinį kairįjį ekrano kampą, kaip iOS kalendoriuje.' },
+  ] },
+  { build: 'ecc7fc0', date: '2026-11-04', items: [
     { kind: 'change', text: 'Kalendoriaus juosta tapo „skystu stiklu“: mėnuo, Diena / Savaitė slankiklis (su stiklo lašu, kuris slysta) ir Šiandien.' },
     { kind: 'bugfix', text: 'Dienos, Savaitės ir Mėnesio suvestinės, kai įrašų daug, nebekyla aukščiau už savo mygtuką.' },
   ] },

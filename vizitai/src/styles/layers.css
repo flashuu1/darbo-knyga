@@ -825,3 +825,10 @@ html[data-fps='low'] .tile, html[data-fps='low'] .heat button, html[data-fps='lo
 /* the glow keeps breathing, but without its sparks, and the flowers are three instead of five */
 html[data-fps='low'] .entry-glow i { display: none; }
 html[data-fps='low'] .entry-bloom i:nth-child(n+4) { display: none; }
+
+/* the list of copies in Nustatymai > Atsarginė kopija */
+.snap-row { min-height: 60px; padding-top: 8px; padding-bottom: 8px; }
+.snap-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; text-align: left; }
+.snap-text b { font-weight: 600; font-size: 1rem; }
+.snap-text span { font-size: .8rem; color: var(--label-2); }
+.snap-match { flex: none; padding: 3px 10px; border-radius: 12px; font-size: .72rem; font-weight: 700; color: var(--green-ink); background: color-mix(in srgb, var(--green) 20%, transparent); }

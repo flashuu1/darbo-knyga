@@ -3,8 +3,10 @@ import { repo, type Entry, type OverlapInfo } from '../db/repo';
 import type { Appointment, CancelReason, Option } from '../db/types';
 import { formatDayShort, weekdayShort } from '../i18n/format';
 import { t, type Key } from '../i18n/lt';
+import { backups, type Snap } from '../db/backups';
 import { backupFileName, BackupError, exportData, importData, parseBackup, shareBackup, type BackupFile } from '../logic/backup';
-import { addDays, datePart, timePart, todayStr } from '../logic/time';
+import { fingerprint } from '../logic/snapshots';
+import { addDays, datePart, nowLocal, timePart, todayStr } from '../logic/time';
 import { ui, type Origin, type Sheet } from './store';
 
 let toastId = 0;
@@ -208,14 +210,29 @@ export function confirmCancel(id: string) {
   });
 }
 
+const when = (iso: string) => `${formatDayShort(todayStr(new Date(iso)))}, ${nowLocal(new Date(iso)).slice(11, 16)}`;
 let backingUp = false;
-export async function runBackup() {
+/**
+ * Exports the books to Files (the share sheet). When nothing has changed since the last export it asks first (`again`), and
+ * the export is kept in the app too (see db/backups.ts), but never twice for the same books.
+ */
+export async function runBackup(again = false) {
   if (backingUp) return;
   backingUp = true;
   try {
-    const json = JSON.stringify(await exportData(db));
+    const file = await exportData(db);
+    const last = await backups.latest('export');
+    if (!again && last && last.fp === fingerprint(file)) {
+      ui.set({ action: { title: t('backup.unchanged', { kada: when(last.at) }), items: [
+        { label: t('backup.again'), onPress: () => void runBackup(true) },
+        { label: t('btn.dismiss'), role: 'cancel', onPress: () => {} },
+      ] } });
+      return;
+    }
+    const json = JSON.stringify(file);
     const result = await shareBackup(json, backupFileName());
     if (result === 'cancelled') return; // share sheet dismissed: nothing was saved
+    await backups.save('export', file, json);
     await repo.updateSettings({ lastBackupAt: new Date().toISOString() });
     showToast(t('backup.exported'));
   } catch (e) {
@@ -226,12 +243,18 @@ export async function runBackup() {
   }
 }
 let importing = false;
+/** Replaces the books with `file`, after keeping the current ones as the safety copy, so the toast can undo it. */
 async function doImport(file: BackupFile) {
   if (importing) return;
   importing = true;
   try {
+    const current = await exportData(db);
+    const { snap: safety } = await backups.save('safety', current, JSON.stringify(current));
     await importData(db, file);
-    showToast(t('backup.imported'));
+    showToast(t('backup.imported'), async () => {
+      const back = await backups.get(safety.id);
+      if (back) await importData(db, parseBackup(back.json));
+    });
   } catch (e) {
     console.error(e);
     showToast(t('backup.error.format'));
@@ -239,16 +262,40 @@ async function doImport(file: BackupFile) {
     importing = false;
   }
 }
+/** Asks, then restores `file`; says so instead when the books already are exactly that. */
+async function confirmRestore(file: BackupFile, lines?: string[]) {
+  if (fingerprint(file) === fingerprint(await exportData(db))) { showToast(t('backup.same')); return; }
+  ui.set({ action: { title: t('backup.restoreQ'), ...(lines ? { lines } : {}), items: [
+    { label: t('backup.restore'), role: 'destructive', onPress: () => void doImport(file) },
+    { label: t('btn.dismiss'), role: 'cancel', onPress: () => {} },
+  ] } });
+}
+/** Tapping a copy in the list: what it holds, and the question. */
+export async function restoreSnapshot(s: Snap) {
+  try {
+    await confirmRestore(parseBackup(s.json), [when(s.at), t('backup.snapLine', { k: s.counts.clients, v: s.counts.visits, kb: Math.max(1, Math.round(s.bytes / 1024)) }), t('backup.restoreNote')]);
+  } catch (e) { console.error(e); showToast(t('backup.error.format')); }
+}
 export async function chooseImport(file: File) {
   let parsed: BackupFile;
   try { parsed = parseBackup(await file.text()); } catch (e) {
     showToast(t(e instanceof BackupError && e.code === 'newer' ? 'backup.error.newer' : 'backup.error.format'));
     return; // nothing was touched
   }
-  ui.set({ action: { title: t('backup.confirm'), items: [
-    { label: t('backup.replace'), role: 'destructive', onPress: () => void doImport(parsed) },
-    { label: t('btn.dismiss'), role: 'cancel', onPress: () => {} },
-  ] } });
+  await confirmRestore(parsed, [t('backup.restoreNote')]);
+}
+/** The first time the app is in front each day: keeps a copy in the app if the books changed since the last copy of any kind. */
+let autoChecked = '';
+export async function autoSnapshot() {
+  try {
+    const today = todayStr();
+    if (autoChecked === today || (await db.appointments.count()) === 0) return;
+    autoChecked = today;
+    const last = await backups.latest('auto');
+    if (last && todayStr(new Date(last.at)) === today) return;
+    const file = await exportData(db);
+    await backups.save('auto', file, JSON.stringify(file));
+  } catch (e) { console.error(e); }
 }
 
 /**

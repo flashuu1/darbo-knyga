@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { openApp, seedAppts, openSettings } from './helpers';
 
 const counts = (page: import('@playwright/test').Page) => page.evaluate(async () => {
@@ -281,4 +281,97 @@ test('Darbo laikas: the weekdays she works can be switched, at least one stays o
   await page.getByTestId('work-day-5').click(); // the last one cannot be switched off
   await expect(page.getByTestId('work-day-5')).toHaveAttribute('aria-pressed', 'true');
   await expect.poll(() => page.evaluate(async () => (await (window as any).__vizitai.repo.getSettings()).workDays)).toEqual([5]); // eslint-disable-line @typescript-eslint/no-explicit-any
+});
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+test.describe('copies of the books kept in the app', () => {
+  const exportNow = async (page: Page) => { await Promise.all([page.waitForEvent('download'), page.getByTestId('btn-export').click()]); await expect(page.getByTestId('toast')).toHaveText(/Kopija sukurta/); };
+  const plus = (page: Page, name: string) => seedAppts(page, [{ name, start: '2026-10-20T10:00' }]);
+  const counts2 = (page: Page) => page.evaluate(async () => { const { db } = (window as any).__vizitai; return { c: await db.clients.count(), a: await db.appointments.count() }; });
+
+  test('the last three exports are listed, newest first; the one that matches the books is marked; unchanged books are not exported twice', async ({ page }) => {
+    await openApp(page);
+    await plus(page, 'Ona');
+    await openSettings(page, 'backup');
+    await expect(page.getByTestId('snap-none')).toBeVisible();
+    await exportNow(page);
+    await expect(page.getByTestId('snap-export-0')).toContainText('Klientų: 1 · vizitų: 1');
+    await expect(page.getByTestId('snap-match-export-0')).toBeVisible();
+    await expect(page.getByTestId('backup-last')).toContainText('Duomenys nepakito');
+    // nothing changed: it asks first, and a "no" keeps things as they are
+    await page.getByTestId('btn-export').click();
+    await expect(page.getByTestId('action-title')).toContainText('Duomenys nepakito');
+    await page.getByTestId('action-item-1').click();
+    await expect(page.getByTestId('snap-export-1')).toHaveCount(0);
+    // changed books: a second copy, and now the newest one is the one that matches
+    await plus(page, 'Rasa');
+    await expect(page.getByTestId('snap-match-export-0')).toHaveCount(0);
+    await exportNow(page);
+    await expect(page.getByTestId('snap-export-1')).toBeVisible();
+    await expect(page.getByTestId('snap-export-0')).toContainText('Klientų: 2 · vizitų: 2');
+    await expect(page.getByTestId('snap-match-export-0')).toBeVisible();
+    await expect(page.getByTestId('snap-match-export-1')).toHaveCount(0);
+    await plus(page, 'Zita'); await exportNow(page);
+    await plus(page, 'Gabija'); await exportNow(page);
+    await expect(page.getByTestId('snap-export-2')).toBeVisible();
+    await expect(page.getByTestId('snap-export-3')).toHaveCount(0); // only the last three
+    await expect(page.getByTestId('snap-export-0')).toContainText('Klientų: 4');
+  });
+
+  test('tapping a copy asks to restore it, restores it, and the toast can undo that', async ({ page }) => {
+    await openApp(page);
+    await plus(page, 'Ona');
+    await openSettings(page, 'backup');
+    await exportNow(page);
+    await plus(page, 'Rasa'); await exportNow(page);
+    await plus(page, 'Zita'); // three clients now, the newest copy has two
+    expect(await counts2(page)).toEqual({ c: 3, a: 3 });
+    await page.getByTestId('snap-export-0').click();
+    await expect(page.getByTestId('action-title')).toHaveText('Atkurti duomenis iš šios kopijos?');
+    await expect(page.getByTestId('action-lines')).toContainText('Klientų: 2 · vizitų: 2');
+    await page.getByTestId('action-item-0').click();
+    await expect(page.getByTestId('toast')).toContainText('Duomenys atkurti');
+    expect(await counts2(page)).toEqual({ c: 2, a: 2 });
+    await page.getByTestId('toast-undo').click(); // back to the three
+    await expect.poll(() => counts2(page)).toEqual({ c: 3, a: 3 });
+    // the safety copy it used is in the second list
+    await expect(page.getByTestId('snap-auto-0')).toContainText('Prieš atkuriant');
+  });
+
+  test('a copy, or a file, that holds exactly the current books says there is nothing to restore', async ({ page }) => {
+    await openApp(page);
+    await plus(page, 'Ona');
+    await openSettings(page, 'backup');
+    const [download] = await Promise.all([page.waitForEvent('download'), page.getByTestId('btn-export').click()]);
+    const file = await download.path();
+    await expect(page.getByTestId('snap-match-export-0')).toBeVisible();
+    await page.getByTestId('snap-export-0').click();
+    await expect(page.getByTestId('toast')).toContainText('jau tokie patys');
+    await expect(page.getByTestId('action-title')).toHaveCount(0);
+    await page.getByTestId('import-input').setInputFiles(file!);
+    await expect(page.getByTestId('toast')).toContainText('jau tokie patys');
+    await expect(page.getByTestId('action-title')).toHaveCount(0);
+  });
+
+  test('the banner stays away while the books are exactly what the last export holds, even when that export is old', async ({ page }) => {
+    await openApp(page);
+    await plus(page, 'Ona');
+    await openSettings(page, 'backup');
+    await exportNow(page);
+    await page.evaluate(() => (window as any).__vizitai.repo.updateSettings({ lastBackupAt: '2026-09-01T09:00:00.000Z' }));
+    await page.getByTestId('settings-back').click();
+    await page.getByTestId('tab-calendar').click();
+    await expect(page.getByTestId('backup-banner')).toHaveCount(0); // unchanged since that export
+    await plus(page, 'Rasa'); // now there is something that is not in any export
+    await expect(page.getByTestId('backup-banner')).toBeVisible();
+  });
+
+  test('the app also keeps a copy by itself, once a day, when the books have changed', async ({ page }) => {
+    await openApp(page);
+    await plus(page, 'Ona');
+    await page.waitForTimeout(3600); // the daily check runs a few seconds after the app opens
+    await openSettings(page, 'backup');
+    await expect(page.getByTestId('snap-auto-0')).toContainText('Klientų: 1 · vizitų: 1');
+    await expect(page.getByTestId('snap-match-auto-0')).toBeVisible();
+  });
 });

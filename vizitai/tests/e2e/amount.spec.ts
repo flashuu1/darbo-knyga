@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { apptState, expectPickedTime, openApp, seedAppts, openSettings } from './helpers';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const amountOf = async (page: Page, id: string) => (await apptState(page, id)).amountCents;
+const amountOf = async (page: Page, id: string) => (await apptState(page, id))?.amountCents;
 
 test('a visit turns orange the moment its time passes, and not before', async ({ page }) => {
   await openApp(page, '2026-10-14T09:50:00');

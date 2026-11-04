@@ -3,7 +3,9 @@ import { useEffect, useState } from 'preact/hooks';
 import { db } from '../db/db';
 import { repo } from '../db/repo';
 import { DEFAULT_SETTINGS } from '../db/seed';
-import { needsBackup } from '../logic/backup';
+import { backups } from '../db/backups';
+import { exportData } from '../logic/backup';
+import { backupDue, fingerprint } from '../logic/snapshots';
 import type { Option, OptionGroup, Service, Settings } from '../db/types';
 
 // Any write re-runs every live query that reads the table; most come back unchanged, and a re-render of the
@@ -25,5 +27,15 @@ export function useLive<T>(q: () => T | Promise<T>, deps: unknown[], initial: T)
 export const useSettings = (): Settings => useLive(() => repo.getSettings(), [], DEFAULT_SETTINGS);
 export const useServices = (activeOnly = false): Service[] => useLive(() => repo.listServices(activeOnly), [activeOnly], []);
 export const useOptions = (group: OptionGroup): Option[] => useLive(() => repo.listOptions(group), [group], []);
+/** Due when there is data, and it was never exported or changed since an export over a week ago (not when the books are exactly what the last export holds). */
 export const useNeedsBackup = (): boolean =>
-  useLive(async () => needsBackup((await repo.getSettings()).lastBackupAt, (await db.appointments.count()) > 0), [], false);
+  useLive(async () => {
+    const [settings, count] = await Promise.all([repo.getSettings(), db.appointments.count()]);
+    if (count === 0) return false;
+    if (!backupDue(settings.lastBackupAt, true, false)) return false; // backed up this week: nothing to work out
+    const last = await backups.latest('export');
+    const unchanged = !!last && last.fp === fingerprint(await exportData(db)); // old backup, but are the books still the same as in it?
+    return backupDue(settings.lastBackupAt, true, unchanged);
+  }, [], false);
+/** Whether the books are exactly what a copy holds (by its fingerprint): the list marks that copy. */
+export const useBooksFingerprint = (): string => useLive(async () => fingerprint(await exportData(db)), [], '');

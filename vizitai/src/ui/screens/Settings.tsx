@@ -4,12 +4,13 @@ import { repo } from '../../db/repo';
 import { SERVICE_COLORS } from '../../db/types';
 import { formatBuildTime, formatDayShort, weekdayAbbr, weekdayName } from '../../i18n/format';
 import { t, type Key } from '../../i18n/lt';
-import { snapClock, todayStr } from '../../logic/time';
-import { chooseImport, confirmDeleteService, primeKeyboard, runBackup, showToast } from '../actions';
+import { nowLocal, snapClock, todayStr } from '../../logic/time';
+import { chooseImport, confirmDeleteService, primeKeyboard, restoreSnapshot, runBackup, showToast } from '../actions';
+import { backups, type Snap } from '../../db/backups';
 import { Changelog } from '../components/Changelog';
 import { OptionList } from '../components/OptionList';
 import { SwipeRow } from '../components/SwipeRow';
-import { useNeedsBackup, useOptions, useServices, useSettings } from '../hooks';
+import { useBooksFingerprint, useLive, useNeedsBackup, useOptions, useServices, useSettings } from '../hooks';
 import { useKeyboardHeight } from '../keyboard';
 import { BackIcon, BackupIcon, ClockIcon, InfoIcon, NextIcon, PersonIcon, ScissorsIcon, WalletIcon } from '../icons';
 
@@ -257,14 +258,37 @@ function HoursPage() {
 function BackupPage() {
   const settings = useSettings();
   const file = useRef<HTMLInputElement>(null);
+  const exports = useLive(() => backups.list('export'), [], [] as Snap[]);
+  const autos = useLive(async () => [...(await backups.list('auto')), ...(await backups.list('safety'))].sort((a, b) => b.at.localeCompare(a.at)), [], [] as Snap[]);
+  const now = useBooksFingerprint();
   const last = settings.lastBackupAt ? t('backup.last', { data: formatDayShort(todayStr(new Date(settings.lastBackupAt))) }) : t('backup.never');
+  const same = exports[0] && exports[0].fp === now;
+  const row = (s: Snap, kind: string, i: number) => (
+    <button key={s.id} class="group-row snap-row" data-testid={`snap-${kind}-${i}`} onClick={() => void restoreSnapshot(s)}>
+      <span class="snap-text">
+        <b>{formatDayShort(todayStr(new Date(s.at)))}, {nowLocal(new Date(s.at)).slice(11, 16)}{s.kind === 'safety' ? ` · ${t('backup.safetyTag')}` : ''}</b>
+        <span>{t('backup.snapLine', { k: s.counts.clients, v: s.counts.visits, kb: Math.max(1, Math.round(s.bytes / 1024)) })}</span>
+      </span>
+      {s.fp === now && <span class="snap-match" data-testid={`snap-match-${kind}-${i}`}>{t('backup.matches')}</span>}
+    </button>
+  );
   return (
     <>
       <div class="group">
         <button class="group-row accent" data-testid="btn-export" onClick={() => void runBackup()}>{t('backup.export')}</button>
         <button class="group-row accent" data-testid="btn-import" onClick={() => file.current?.click()}>{t('backup.import')}</button>
       </div>
-      <p class="section-foot" data-testid="backup-last">{last}</p>
+      <p class="section-foot" data-testid="backup-last">{same ? `${last}. ${t('backup.upToDate')}` : last}</p>
+      <h2 class="section-head">{t('backup.recent')}</h2>
+      <div class="group" data-testid="snap-exports">
+        {exports.length ? exports.map((s, i) => row(s, 'export', i)) : <p class="group-row text muted" data-testid="snap-none">{t('backup.none')}</p>}
+      </div>
+      <p class="section-foot">{t('backup.recentNote')}</p>
+      <h2 class="section-head">{t('backup.autoHead')}</h2>
+      <div class="group" data-testid="snap-autos">
+        {autos.length ? autos.map((s, i) => row(s, 'auto', i)) : <p class="group-row text muted">{t('backup.none')}</p>}
+      </div>
+      <p class="section-foot">{t('backup.autoNote')}</p>
       <input ref={file} type="file" accept="application/json,.json" hidden data-testid="import-input"
         onChange={(e) => { const f = (e.target as HTMLInputElement).files?.[0]; (e.target as HTMLInputElement).value = ''; if (f) void chooseImport(f); }} />
     </>

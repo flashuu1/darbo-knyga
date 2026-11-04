@@ -35,6 +35,7 @@ async function boot() {
   tidy();
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') tidy(); });
   render(<App />, root);
+  void import('./ui/actions').then(({ autoSnapshot }) => { window.setTimeout(() => void autoSnapshot(), 3000); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') void autoSnapshot(); }); });
   startFrameMonitor(); // notices Low Power Mode (30 Hz) and simplifies the animations while it lasts
   initUpdates(isBusy);
 }

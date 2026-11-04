@@ -92,7 +92,7 @@ export const lt = {
   'service.note': 'Palieskite paslaugą, kad ją pakeistumėte. Rodyklės keičia vietą: ta pati tvarka rodoma registruojant. Paslėpta paslauga nebesiūloma, bet senų vizitų neprarandate.',
   'option.personalNote': 'Tai, ką įrašote į kalendorių ne klientams. Trukmė pasiūloma automatiškai.',
   'option.expenseNote': 'Fiksuota suma neprivaloma. Jei jos nėra, registruojant suma neįrašoma. Seni įrašai išlaiko savo pavadinimą ir sumą.',
-  'option.addPersonal': 'Naujas įrašas', 'option.addExpense': 'Nauja rūšis', 'cost.title': 'Fiksuota suma', 'cost.none': 'Be sumos',
+  'option.addPersonal': 'Naujas įrašas', 'option.addExpense': 'Nauja rūšis', 'cost.title': 'Fiksuota suma', 'cost.done': 'Gerai', 'cost.none': 'Be sumos',
   'cost.offNote': 'Neįjungta: registruojant suma neįrašoma, įvedate ją patys.', 'cost.onNote': 'Registruojant suma įrašoma pati, jūs tik patvirtinate arba pakeičiate.',
   'cost.usual': 'Įprasta suma', 'cost.hint': 'Patvirtinkite arba pakeiskite.', 'cost.changed': 'Pakeista, įprasta suma {suma}', 'cost.confirm': 'Patvirtinti {suma}',
   'drag.nextWeek': 'Kita savaitė', 'drag.prevWeek': 'Ankstesnė savaitė', 'drag.thisWeek': 'Ši savaitė', 'drag.today': 'Šiandien', 'drag.nextDay': 'Kita diena', 'drag.prevDay': 'Ankstesnė diena',

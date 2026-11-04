@@ -114,12 +114,13 @@ function SubPage({ title, id, leaving, onBack, onSwiped, children }: { title: st
         const r = t.getBoundingClientRect(), top = body.getBoundingClientRect().top + 8;
         const limit = window.innerHeight - kbRef.current - (kbRef.current > 0 ? 64 : 24); // 64: the strip above the keyboard
         const delta = r.bottom > limit ? r.bottom - limit : r.top < top ? r.top - top : 0;
-        if (delta) body.scrollBy({ top: delta, behavior: 'smooth' });
+        if (Math.abs(delta) > (t.closest('.cost') ? 24 : 0)) body.scrollBy({ top: delta, behavior: 'smooth' }); // the fixed amount was already put in place when the row opened: only a real miss is corrected
       }, 320);
     };
     node.addEventListener('focusin', focused);
     return () => { clearTimeout(timer); node.removeEventListener('focusin', focused); };
   }, []);
+  const touchY = useRef(0); // dragging the page with the keyboard up puts the keyboard away, like iOS lists
   useSwipeBack(el, onSwiped); // swipe to the right anywhere: the page follows the finger back to the list
   return (
     <div ref={el} class={leaving ? 'set-page pop-out' : 'set-page push-in'} data-testid={`settings-page-${id}`} style={{ '--kb': `${kb}px` } as CSSProperties}>
@@ -129,7 +130,8 @@ function SubPage({ title, id, leaving, onBack, onSwiped, children }: { title: st
         </div>
         <h1 class="large-title">{title}</h1>
       </header>
-      <div class="scroll list-body settings-body">{children}</div>
+      <div class="scroll list-body settings-body" onTouchStart={(e) => { touchY.current = e.touches[0]!.clientY; }}
+        onTouchMove={(e) => { const a = document.activeElement; if (a instanceof HTMLInputElement && Math.abs(e.touches[0]!.clientY - touchY.current) > 10) a.blur(); }}>{children}</div>
     </div>
   );
 }

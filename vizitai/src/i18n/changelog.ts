@@ -17,6 +17,11 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   { date: '2026-11-04', items: [
+    { kind: 'bugfix', text: 'Paslaugų, Asmeninių ir Išlaidų rūšių eilutės atsidaro sklandžiai: judinamos tik transformacijomis, be aukščio ar tinklelio animacijų, ir atsidaro tik viena eilutė.' },
+    { kind: 'bugfix', text: 'Fiksuotos sumos jungiklis vėl yra pailgas (buvo tapęs kvadratu) ir jį galima paspausti, kai rodoma skaičių klaviatūra: vienas paspaudimas išjungia.' },
+    { kind: 'bugfix', text: 'Sumos laukas atsiranda kartu su klaviatūra, o klaviatūrą galima nuleisti mygtuku „Gerai“ arba patraukus puslapį.' },
+  ] },
+  { build: 'cf5b881', date: '2026-11-04', items: [
     { kind: 'change', text: 'Paslaugos, Asmeniniai ir Išlaidų rūšys perdarytos: kiekviena po vieną eilutę, palietus ji atsidaro vietoje (pavadinimas, trukmė, spalva, rodoma, tvarka, trynimas). Viskas, ką turite, išlieka.' },
     { kind: 'feature', text: 'Išlaidų rūšims galima įjungti „Fiksuotą sumą“: įjungus iškart išsiskleidžia suma ir pasirodo skaičių klaviatūra, o registruojant išlaidą suma jau įrašyta, jums tik reikia ją patvirtinti. Be fiksuotos sumos nieko neįrašoma.' },
     { kind: 'bugfix', text: 'Ištrynus fiksuotą sumą eilutė pati užsidaro, nebereikia spausti du kartus.' },

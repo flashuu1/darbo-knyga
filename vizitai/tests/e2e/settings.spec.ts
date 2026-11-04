@@ -166,7 +166,7 @@ test('colour swatches have 44pt touch targets', async ({ page }) => {
   await openApp(page);
   await openSettings(page, 'services');
   await openRow(page, 'svc', 0);
-  for (const id of ['svc-color-0-teal', 'svc-color-0-red', 'svc-up-1', 'svc-down-0', 'svc-delete-0', 'svc-minus-0', 'svc-plus-0']) {
+  for (const id of ['svc-color-0-teal', 'svc-color-0-red', 'svc-up-0', 'svc-down-0', 'svc-delete-0', 'svc-minus-0', 'svc-plus-0']) {
     const box = await page.getByTestId(id).boundingBox();
     expect(box?.width).toBeGreaterThanOrEqual(44);
     expect(box?.height).toBeGreaterThanOrEqual(44);

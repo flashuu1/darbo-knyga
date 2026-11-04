@@ -74,7 +74,7 @@ test('Settings lists her own choices; she can add, rename and delete them, and t
   await openApp(page);
   await openSettings(page, 'personal');
   await seedOptions(page);
-  await expect(page.getByTestId('opt-personal-name-0')).toHaveValue('Psichologas'); // the common words are there from the start
+  await expect(page.getByTestId('opt-personal-open-0')).toContainText('Psichologas'); // the common words are there from the start
   await expect(page.getByTestId('opt-personal-row-11')).toBeAttached({ timeout: 15000 });
   await page.getByTestId('opt-personal-add').click();
   await expect(page.getByTestId('opt-personal-row-12')).toBeAttached({ timeout: 15000 });

@@ -127,9 +127,6 @@ svg { flex: none; }
 .nav-btn.round { padding: 0; }
 .nav-btn.round svg { width: 22px; height: 22px; }
 .nav-btn.accent svg { box-sizing: border-box; width: 32px; height: 32px; padding: 6px; border-radius: 50%; background: var(--accent); color: var(--on-accent); stroke-width: 2.6; }
-.nav-right { display: flex; align-items: center; }
-.month-btn { padding-left: 0; text-transform: capitalize; }
-.month-btn .chev-up svg { transform: rotate(180deg); margin-left: 2px; }
 
 .banner { display: flex; align-items: center; justify-content: center; gap: var(--s2); width: calc(100% - 2 * var(--s4)); margin: 0 var(--s4) var(--s2);
   min-height: 44px; border-radius: var(--r-md); background: color-mix(in srgb, var(--accent) 12%, var(--card)); color: var(--accent);

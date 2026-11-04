@@ -937,7 +937,7 @@ html[data-fps='low'] .entry-bloom i:nth-child(n+4) { display: none; }
 .lq-btn::after { content: ''; position: absolute; inset: -4px; }
 .lq-btn:active { transform: scale(.94); opacity: 1; }
 .lq-btn.month-btn { text-transform: capitalize; padding: 0 13px; }
-.lq-btn.month-btn .chev-up { display: inline-flex; margin-right: -2px; }
+.lq-btn.month-btn .chev-up { display: inline-flex; margin: 0 -3.3px 0 -1px; } /* the chevron's drawing has empty space inside its box: pull it in, so the blob is as wide on the right of the arrow as on the left of the name */
 .lq-btn.month-btn svg { width: 13px; height: 13px; }
 .lq-btn svg { width: 14px; height: 14px; }
 .lq-btn.lq-round { width: 40px; min-width: 40px; padding: 0; color: var(--accent); }

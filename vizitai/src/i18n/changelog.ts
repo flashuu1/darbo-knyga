@@ -17,6 +17,9 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   { date: '2026-11-04', items: [
+    { kind: 'bugfix', text: 'Atidarius mėnesio tinklelį, rodyklė prie mėnesio pavadinimo dabar tvarkingai viduryje: vienodi tarpai abiejose pusėse ir stiklo lašas ją visą apglėbia.' },
+  ] },
+  { build: 'aafbf77', date: '2026-11-04', items: [
     { kind: 'change', text: 'Klientas / Asmeninis / Išlaidos naujo įrašo pradžioje dabar yra to paties „skysto stiklo“ slankiklis.' },
     { kind: 'bugfix', text: 'Slankiklių užrašai (pvz. „Savaitė“) dabar tiksliai viduryje po stiklo lašu: visi pasirinkimai vienodo pločio.' },
   ] },

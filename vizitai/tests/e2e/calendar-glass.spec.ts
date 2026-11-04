@@ -66,12 +66,13 @@ test.describe('the calendar bar is liquid glass', () => {
         // the month blob hugs its text: even padding, nothing sticks out, and no "<" (only the small chevron while the month grid is open)
         const hug = await page.getByTestId('month-name').evaluate((el) => {
           const text = el.querySelector('span')!.getBoundingClientRect(), r = el.getBoundingClientRect(), svg = el.querySelector('svg');
-          return { left: text.left - r.left, right: r.right - (svg ? svg.getBoundingClientRect().right : text.right), svg: !!svg };
+          return { left: text.left - r.left, right: r.right - (svg ? svg.querySelector('path')!.getBoundingClientRect().right : text.right), gap: svg ? svg.querySelector('path')!.getBoundingClientRect().left - text.right : 0, svg: !!svg };
         });
         expect(hug.left, `the text touches the left edge of the blob ${at}`).toBeGreaterThanOrEqual(11);
         expect(hug.right, `the text sticks out of the blob on the right ${at}`).toBeGreaterThanOrEqual(11);
         expect(hug.svg, `the "<" (or any icon) beside the month ${at}`).toBe(view === 'month');
-        if (view !== 'month') expect(Math.abs(hug.left - hug.right), `uneven padding ${at}`).toBeLessThanOrEqual(1.5);
+        expect(Math.abs(hug.left - hug.right), `uneven padding (left of the name, right of the ${hug.svg ? 'arrow' : 'name'}) ${at}`).toBeLessThanOrEqual(1.5);
+        if (hug.svg) { expect(hug.gap, `the arrow is too far from the name ${at}`).toBeLessThanOrEqual(8); expect(hug.gap, `the arrow touches the name ${at}`).toBeGreaterThanOrEqual(4); }
       }
     });
   }

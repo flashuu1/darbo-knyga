@@ -130,14 +130,6 @@ svg { flex: none; }
 .nav-right { display: flex; align-items: center; }
 .month-btn { padding-left: 0; text-transform: capitalize; }
 .month-btn .chev-up svg { transform: rotate(180deg); margin-left: 2px; }
-.segmented { display: inline-flex; background: var(--fill); border-radius: 9px; padding: 2px; }
-.seg { min-height: 32px; padding: 0 var(--s3); border-radius: 7px; font-size: .84rem; font-weight: 500; position: relative;
-  transition: background-color var(--t-fast), box-shadow var(--t-fast); }
-.seg::after { content: ''; position: absolute; inset: -6px 0; } /* 44pt tall hit area around the 32pt pill */
-.seg.on { background: var(--card); box-shadow: 0 1px 3px rgba(0, 0, 0, .14), 0 0 0 .5px rgba(0, 0, 0, .04); font-weight: 600; }
-@media (prefers-color-scheme: dark) { .seg.on { background: #636366; } }
-.segmented.wide { display: flex; }
-.segmented.wide .seg { flex: 1; min-height: 36px; }
 
 .banner { display: flex; align-items: center; justify-content: center; gap: var(--s2); width: calc(100% - 2 * var(--s4)); margin: 0 var(--s4) var(--s2);
   min-height: 44px; border-radius: var(--r-md); background: color-mix(in srgb, var(--accent) 12%, var(--card)); color: var(--accent);

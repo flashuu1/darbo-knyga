@@ -17,6 +17,10 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   { date: '2026-11-04', items: [
+    { kind: 'change', text: 'Klientas / Asmeninis / Išlaidos naujo įrašo pradžioje dabar yra to paties „skysto stiklo“ slankiklis.' },
+    { kind: 'bugfix', text: 'Slankiklių užrašai (pvz. „Savaitė“) dabar tiksliai viduryje po stiklo lašu: visi pasirinkimai vienodo pločio.' },
+  ] },
+  { build: 'ee3ab60', date: '2026-11-04', items: [
     { kind: 'change', text: 'Kalendoriaus „stiklo“ lašai šiek tiek didesni ir apglėbia tekstą tolygiai; prie mėnesio nebėra „<“, plius taip pat stiklinis, o Diena / Savaitė slankiklis tiksliai viduryje.' },
     { kind: 'change', text: 'Šiandien perkelta į apatinį kairįjį ekrano kampą, kaip iOS kalendoriuje.' },
   ] },

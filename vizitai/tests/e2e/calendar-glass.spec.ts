@@ -95,6 +95,45 @@ test.describe('the calendar bar is liquid glass', () => {
   });
 });
 
+/** How far (px) the text of the chosen option is from the middle of the glass drop under it. */
+const labelOffset = (page: Page, testId: string) => page.getByTestId(testId).evaluate((btn) => {
+  const r = document.createRange(); r.selectNodeContents(btn);
+  const text = r.getBoundingClientRect(), drop = btn.parentElement!.querySelector('.lq-drop')!.getBoundingClientRect();
+  return Math.abs(text.left + text.width / 2 - (drop.left + drop.width / 2));
+});
+
+test.describe('the labels of the glass switches sit in the middle of their drop', () => {
+  test('Diena / Savaitė: both labels, in both states', async ({ page }) => {
+    await openApp(page, NOW);
+    for (const id of ['seg-week', 'seg-day', 'seg-week']) {
+      await page.getByTestId(id).click();
+      await expect.poll(() => labelOffset(page, id), { message: `${id}: the label is off the middle of its drop`, timeout: 4000 }).toBeLessThanOrEqual(1.5); // once the drop has come to rest
+    }
+    // the two options are equally wide, so the drop is under exactly one of them
+    const w = await page.locator('.lq-opt').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().width)));
+    expect(w[0]).toBe(w[1]);
+  });
+
+  test('Klientas / Asmeninis / Išlaidos in the new entry: glass, equal thirds, every label in the middle of its drop', async ({ page }) => {
+    await openApp(page, NOW);
+    await page.getByTestId('btn-add').click();
+    await expect(page.getByTestId('type-client')).toBeVisible();
+    await page.waitForTimeout(500);
+    const seg = page.locator('.lq-seg.wide');
+    expect(await seg.evaluate((el) => getComputedStyle(el).backdropFilter)).toMatch(/blur/);
+    for (const k of ['type-personal', 'type-expense', 'type-client']) {
+      await page.getByTestId(k).click();
+      await expect.poll(() => labelOffset(page, k), { message: `${k}: the label is off the middle of its drop`, timeout: 4000 }).toBeLessThanOrEqual(1.5);
+      await expect(page.getByTestId(k)).toHaveAttribute('aria-pressed', 'true');
+    }
+    const w = await page.locator('.lq-seg.wide .lq-opt').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().width)));
+    expect(new Set(w).size, 'the three options are equally wide').toBe(1);
+    const s = (await seg.boundingBox())!, sheet = (await page.getByTestId('sheet').boundingBox().catch(() => null));
+    expect(s.width).toBeGreaterThan(page.viewportSize()!.width - 60); // it fills the width
+    expect(sheet === null || s.x >= sheet.x).toBe(true);
+  });
+});
+
 test.describe('the summaries open up to the button that opened them at most', () => {
   async function many(page: Page) {
     await page.evaluate(async () => { // 28 visits that took place today and wait for their amount: a long page in all three summaries

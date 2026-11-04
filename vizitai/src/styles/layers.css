@@ -55,8 +55,6 @@
 @keyframes toast-in { from { opacity: 0; transform: translateY(14px) scale(.98); } }
 
 /* shared form bits */
-.segmented.wide { display: flex; width: 100%; box-sizing: border-box; }
-.segmented.wide .seg { flex: 1; }
 .field { width: 100%; box-sizing: border-box; margin-top: var(--s3); padding: 14px var(--s4); border: 0; border-radius: var(--r-lg); background: var(--sheet-card); color: var(--label);
   font-size: 1.15rem; outline: none; -webkit-appearance: none; appearance: none; }
 .field::placeholder { color: var(--label-2); }
@@ -945,12 +943,12 @@ html[data-fps='low'] .entry-bloom i:nth-child(n+4) { display: none; }
 .lq-btn.lq-round { width: 40px; min-width: 40px; padding: 0; color: var(--accent); }
 .lq-btn.lq-round svg { width: 22px; height: 22px; stroke-width: 2.4; }
 .lq-btn .chev-up svg { transform: rotate(180deg); }
-.lq-seg { display: flex; flex: none; height: 40px; padding: 3px; border-radius: 20px; }
+.lq-seg { display: inline-grid; grid-auto-flow: column; grid-auto-columns: 1fr; flex: none; height: 40px; padding: 3px; border-radius: 20px; } /* equal columns: the drop is exactly one column, so every label is centred in it */
 .lq-drop { position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc((100% - 6px) / var(--n)); border-radius: 17px; background: rgba(255,255,255,.92);
   box-shadow: 0 2px 8px rgba(0,0,0,.16), inset 0 1px 0 #fff, inset 0 -1px 0 rgba(0,0,0,.05); transform: translateX(calc(var(--idx, 0) * 100%));
   transition: transform .46s cubic-bezier(.3, 1.35, .5, 1), opacity .2s; }
 .lq-seg:has(.lq-opt:not(.on):active) .lq-drop { transform: translateX(calc(var(--idx, 0) * 100%)) scale(.97); }
-.lq-opt { position: relative; z-index: 1; min-width: 0; min-height: 34px; height: 34px; padding: 0 14px; border-radius: 17px; font-size: .9rem; font-weight: 600; color: var(--label-2); transition: color var(--t-fast); }
+.lq-opt { position: relative; z-index: 1; min-width: 0; min-height: 34px; height: 34px; padding: 0 11px; border-radius: 17px; font-size: .9rem; font-weight: 600; color: var(--label-2); transition: color var(--t-fast); text-align: center; white-space: nowrap; }
 .lq-opt.on { color: var(--label); }
 .lq-opt::after { content: ''; position: absolute; inset: -5px -2px; } /* a 44 pt tall touch area around the 34 pt label */
 .lq-seg:has(.lq-opt.on) .lq-drop { opacity: 1; }
@@ -970,3 +968,7 @@ html[data-fps='low'] .lq-drop { transition-duration: .24s; }
 .cal-bar > :first-child { justify-self: start; }
 .cal-bar > :last-child { justify-self: end; }
 .today-fab { position: absolute; left: var(--s3); bottom: var(--s3); z-index: 6; }
+
+.lq-seg.wide { display: grid; width: 100%; box-sizing: border-box; height: 46px; padding: 4px; border-radius: 23px; }
+.lq-seg.wide .lq-drop { top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / var(--n)); border-radius: 19px; }
+.lq-seg.wide .lq-opt { height: 38px; min-height: 38px; font-size: .95rem; border-radius: 19px; }

@@ -14,6 +14,7 @@ import { useKeyboardHeight } from '../keyboard';
 import { agoText, initials } from '../screens/Clients';
 import { ui, type Origin } from '../store';
 import { DateTimePicker } from './DateTimePicker';
+import { LiquidSeg } from './Segmented';
 import { Sheet } from './Sheet';
 
 // Enough to find someone as the client list grows, few enough to stay clear of the keyboard.
@@ -145,12 +146,8 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
       <div class={kb > 0 ? 'flow kb-open' : 'flow'} style={{ '--screen': screen, '--kb': `${kb}px` } as CSSProperties}>
         {/* 0 Klientas / Asmeninis / Išlaida */}
         <section class="flow-pane" {...pane(0)} onTouchStart={(e) => { touchY.current = e.touches[0]!.clientY; }} onTouchMove={dismissOnDrag}>
-          <div class="segmented wide">
-            {(['client', 'personal', 'expense'] as const).map((k) => (
-              <button key={k} data-testid={`type-${k}`} class={kind === k ? 'seg on' : 'seg'}
-                onClick={() => { setKind(k); setOptionId(null); setOff(false); setOffStep('from'); setLinked(null); }}>{t(`type.${k}`)}</button>
-            ))}
-          </div>
+          <LiquidSeg wide items={(['client', 'personal', 'expense'] as const).map((k) => ({ id: k, label: t(`type.${k}`) }))} value={kind} itemTestId={(k) => `type-${k}`}
+            onChange={(k) => { setKind(k); setOptionId(null); setOff(false); setOffStep('from'); setLinked(null); }} />
           {kind === 'client' && (
             <input ref={input} class="field" data-testid="field-name" value={name} autocomplete="off" autocapitalize="words" enterkeyhint="next" placeholder={t('field.name')}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); next(); } }}

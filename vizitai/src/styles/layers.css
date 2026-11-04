@@ -200,7 +200,6 @@ p.link-name { color: var(--label); }
 .swipe-trash:active { filter: brightness(.9); }
 .swipe-content { position: relative; background: var(--card); touch-action: pan-y; }
 .client-list .swipe-row + * { margin: 0; }
-.svc-list .swipe-content { background: var(--card); }
 .cancelled-row .avatar.dim { background: var(--fill-2); color: var(--label-2); }
 .client-text .pill.gone { color: var(--label-2); background: var(--fill-2); font-weight: 600; }
 .status-unconfirmed { color: var(--due-ink) !important; font-weight: 650; }
@@ -556,7 +555,6 @@ p.link-name { color: var(--label); }
 .entry.compact[data-fit='m'] .entry-time { display: none; }
 .entry.compact[data-fit='s'] .entry-name, .entry.compact[data-fit='x'] .entry-name { -webkit-line-clamp: 1; line-clamp: 1; }
 .timeline[data-density='tight'] .hour-label, .timeline[data-density='tiny'] .hour-label { font-size: .8rem; }
-.svc-line .inline.left { text-align: left; flex: 1; min-width: 0; color: var(--label); font-size: 1.02rem; padding: 8px 0; }
 /* A long list (many choices, many name suggestions) must keep its full height inside the pane and scroll with it; a flex column would squeeze and clip it */
 .flow-pane > * { flex-shrink: 0; }
 
@@ -850,3 +848,69 @@ html[data-fps='low'] .entry-bloom i:nth-child(n+4) { display: none; }
 
 /* pages that follow a swipe back: vertical scrolling stays, a sideways drag reaches the page */
 .set-page, .set-page .scroll, .set-page .chrome { touch-action: pan-y; }
+
+/* Nustatymai: Paslaugos, Asmeniniai, Išlaidų rūšys. One row per item; a tap opens the row in place. */
+.er-list { display: flex; flex-direction: column; gap: 8px; }
+.er { position: relative; border-radius: var(--r-xl); background: color-mix(in srgb, var(--tint, var(--c-gray)) 12%, var(--card)); overflow: hidden; box-shadow: inset 0 0 0 2px transparent; transition: box-shadow var(--t-med), opacity var(--t-med); scroll-margin-bottom: var(--s5); }
+.er.open { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--tint, var(--c-gray)) 65%, transparent); }
+.er.off:not(.open) { opacity: .55; }
+.er-top { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 62px; padding: 0 14px 0 16px; text-align: left; }
+.er-top:active { background: color-mix(in srgb, var(--label) 5%, transparent); }
+.er-dot { flex: none; width: 14px; height: 14px; border-radius: 50%; background: var(--tint); }
+.er-ic { flex: none; width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; color: #fff; background: var(--tint); }
+.er-ic svg { width: 17px; height: 17px; }
+.er-name { flex: 1; min-width: 0; font-size: 1.06rem; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.er-val { flex: none; font-size: 1.06rem; font-weight: 750; font-variant-numeric: tabular-nums; color: color-mix(in srgb, var(--tint) 78%, var(--label)); }
+.er-val small { font-size: .75rem; font-weight: 700; margin: 0 2px 0 1px; }
+.er-none { font-weight: 550; font-size: .95rem; color: var(--label-3); }
+.er-chev { flex: none; width: 16px; color: var(--label-3); display: grid; place-items: center; transition: transform var(--t-sheet) var(--ease-spring); }
+.er.open .er-chev { transform: rotate(90deg); }
+/* the opened part grows with one grid-row transition (a few rows, the width never changes, so no text reflows) */
+.er-ed { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--t-sheet) var(--ease-spring); }
+.er.open .er-ed { grid-template-rows: 1fr; }
+.er-ed-in { min-height: 0; overflow: hidden; padding: 0 16px; opacity: 0; transition: opacity var(--t-med); }
+.er.open .er-ed-in { opacity: 1; padding-bottom: 14px; }
+.er-input { box-sizing: border-box; width: 100%; min-height: 46px; border: 0; border-radius: var(--r-md); padding: 0 12px; background: color-mix(in srgb, var(--label) 7%, transparent); outline: none; font-size: 1.1rem; font-weight: 700; color: var(--label); }
+.ed-lab { margin: 12px 0 6px; font-size: .75rem; font-weight: 700; color: var(--label-2); text-transform: uppercase; letter-spacing: .03em; }
+.ed-lab-row { display: flex; align-items: center; justify-content: space-between; }
+.ed-lab-row .stepper { text-transform: none; letter-spacing: 0; background: color-mix(in srgb, var(--label) 8%, transparent); }
+.ed-lab-row .stepper-val { min-width: 4.8em; font-size: .85rem; color: var(--label); }
+.ed-chips { display: flex; gap: 7px; overflow-x: auto; margin: 0 -16px; padding: 0 16px 2px; scrollbar-width: none; }
+.ed-chips::-webkit-scrollbar { display: none; }
+.chip { flex: none; min-height: 40px; padding: 0 14px; border-radius: 20px; background: color-mix(in srgb, var(--label) 8%, transparent); font-weight: 600; font-size: .88rem; font-variant-numeric: tabular-nums; white-space: nowrap; transition: background var(--t-fast), color var(--t-fast), transform var(--t-press) var(--ease-out); }
+.chip:active { transform: scale(.94); }
+.chip.on { background: var(--tint, var(--accent)); color: #fff; }
+.er-colors { display: grid; grid-template-columns: repeat(5, 1fr); justify-items: center; }
+.er-colors .swatch .dot { background: var(--sc); }
+.er-colors .swatch.on .dot { box-shadow: 0 0 0 3px var(--card), 0 0 0 5px var(--sc); color: inherit; transform: scale(1.1); }
+.er-foot { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
+.er-spacer { flex: 1; }
+.er-switch { display: flex; align-items: center; gap: 10px; font-size: .95rem; font-weight: 600; }
+.sq { width: 44px; height: 44px; border-radius: var(--r-md); display: grid; place-items: center; background: color-mix(in srgb, var(--label) 8%, transparent); transition: transform var(--t-press) var(--ease-out), opacity var(--t-fast); }
+.sq:active { transform: scale(.9); }
+.sq:disabled { opacity: .3; }
+.sq.up svg { transform: rotate(180deg); }
+.sq.red { background: color-mix(in srgb, var(--red) 15%, transparent); color: var(--red); }
+.er-add { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 62px; margin-top: 8px; border-radius: var(--r-xl); border: 2px dashed var(--label-3); color: var(--accent); font-size: 1rem; font-weight: 650; }
+.er-add:active { background: var(--fill); }
+.er-add svg { width: 18px; height: 18px; }
+/* Išlaidų rūšys: the fixed amount */
+.cost { margin-top: 12px; padding: 12px 14px; border-radius: var(--r-lg); background: color-mix(in srgb, var(--label) 6%, transparent); }
+.cost-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.cost-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.cost-text b { font-size: 1rem; }
+.cost-text span { font-size: .8rem; color: var(--label-2); line-height: 1.35; max-width: 17em; }
+.cost-in { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--t-sheet) var(--ease-spring); }
+.cost.on .cost-in { grid-template-rows: 1fr; }
+.cost-in > div { min-height: 0; overflow: hidden; }
+.amt { display: flex; align-items: center; gap: 6px; margin-top: 12px; padding: 0 14px; border-radius: var(--r-md); background: var(--card); box-shadow: inset 0 0 0 2px var(--accent); }
+.amt input { flex: 1; min-width: 0; border: 0; background: transparent; outline: none; min-height: 52px; font-size: 1.7rem; font-weight: 800; letter-spacing: -.01em; font-variant-numeric: tabular-nums; color: var(--label); }
+.amt span { font-size: 1.5rem; font-weight: 800; color: var(--label-2); }
+/* the new-entry screen: an expense kind that has a fixed amount */
+.amount-hint { margin: -6px 0 var(--s3); text-align: center; font-size: .85rem; color: var(--label-2); display: flex; align-items: center; justify-content: center; gap: 8px; }
+.amount-hint i { font-style: normal; font-weight: 700; padding: 2px 9px; border-radius: 10px; font-size: .75rem; background: color-mix(in srgb, var(--green) 20%, transparent); color: var(--green-ink); }
+.amount-hint i.chg { background: color-mix(in srgb, var(--orange) 22%, transparent); color: var(--due-ink); }
+.swatch { width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; }
+.swatch .dot { width: 26px; height: 26px; border-radius: 50%; display: block; transition: transform var(--t-press) var(--ease-out), box-shadow var(--t-fast); }
+.swatch:active .dot { transform: scale(.85); }
+.ed-lab-row .stepper button { min-height: 44px; }

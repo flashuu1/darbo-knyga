@@ -17,6 +17,11 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   { date: '2026-11-04', items: [
+    { kind: 'change', text: 'Paslaugos, Asmeniniai ir Išlaidų rūšys perdarytos: kiekviena po vieną eilutę, palietus ji atsidaro vietoje (pavadinimas, trukmė, spalva, rodoma, tvarka, trynimas). Viskas, ką turite, išlieka.' },
+    { kind: 'feature', text: 'Išlaidų rūšims galima įjungti „Fiksuotą sumą“: įjungus iškart išsiskleidžia suma ir pasirodo skaičių klaviatūra, o registruojant išlaidą suma jau įrašyta, jums tik reikia ją patvirtinti. Be fiksuotos sumos nieko neįrašoma.' },
+    { kind: 'bugfix', text: 'Ištrynus fiksuotą sumą eilutė pati užsidaro, nebereikia spausti du kartus.' },
+  ] },
+  { build: '722ce53', date: '2026-11-04', items: [
     { kind: 'bugfix', text: 'Nustatymų puslapiai grįžta pirštu: braukiant į dešinę puslapis seka pirštą, o ne tik pasileidus atkuria animaciją.' },
     { kind: 'change', text: 'Atsarginės kopijos puslapis perdarytas pagal likusią programą: būsenos kortelė, didelis eksporto mygtukas ir kopijos eilutės su apvaliomis piktogramomis.' },
   ] },

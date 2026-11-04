@@ -5,11 +5,11 @@ import { SERVICE_COLORS } from '../../db/types';
 import { formatBuildTime, formatDayShort, weekdayAbbr, weekdayName } from '../../i18n/format';
 import { t, type Key } from '../../i18n/lt';
 import { nowLocal, snapClock, todayStr } from '../../logic/time';
-import { chooseImport, confirmDeleteService, primeKeyboard, restoreSnapshot, runBackup, showToast } from '../actions';
+import { chooseImport, confirmDeleteService, restoreSnapshot, runBackup, showToast } from '../actions';
 import { backups, type Snap } from '../../db/backups';
 import { Changelog } from '../components/Changelog';
+import { Dur, DurationEditor, EditList, Switch } from '../components/EditList';
 import { OptionList } from '../components/OptionList';
-import { SwipeRow } from '../components/SwipeRow';
 import { useBooksFingerprint, useLive, useNeedsBackup, useOptions, useServices, useSettings } from '../hooks';
 import { useKeyboardHeight } from '../keyboard';
 import { useSwipeBack } from '../swipeBack';
@@ -134,71 +134,38 @@ function SubPage({ title, id, leaving, onBack, onSwiped, children }: { title: st
   );
 }
 
-// Short services go in quarter hours; long ones (a wedding takes hours) in half hours, up to 14 hours.
 const MAX_SERVICE_MIN = 840;
-const stepFor = (minutes: number) => (minutes < 120 ? 15 : 30);
 
+/** Paslaugos: one row per service (colour, name, length); a tap opens it: name, length, colour, shown or hidden, order, delete. */
 function ServicesPage() {
   const services = useServices(false);
-  const [openColor, setOpenColor] = useState<string | null>(null);
-  const [tick, setTick] = useState(0);
-  const [focusId, setFocusId] = useState<string | null>(null); // the service just added: its name field gets the cursor
-  useEffect(() => {
-    if (!focusId) return;
-    const i = services.findIndex((s) => s.id === focusId);
-    if (i < 0) return;
-    const input = document.querySelector<HTMLInputElement>(`[data-testid="svc-name-${i}"]`);
-    if (input) { input.focus(); input.select(); setFocusId(null); }
-  }, [focusId, services]);
   async function toggle(id: string, active: boolean) {
     try { await repo.setServiceActive(id, active); } catch { showToast(t('service.lastActive')); }
   }
-  async function renameService(id: string, name: string) {
-    try { await repo.updateService(id, { name }); } catch (e) { console.error(e); }
-    setTick((x) => x + 1); // remount the input so it shows the stored name (a blank edit is ignored)
-  }
+  const by = (id: string) => services.find((s) => s.id === id)!;
   return (
-    <>
-      <ul class="group svc-list">
-        {services.map((s, i) => (
-          <li key={s.id} data-testid={`svc-row-${i}`} class={s.active ? '' : 'hidden-svc'}>
-            <SwipeRow testId={`svc-swipe-${i}`} onDelete={() => confirmDeleteService(s)}>
-              <div class="svc-line">
-                <button class="swatch" data-testid={`svc-swatch-${i}`} aria-expanded={openColor === s.id} onClick={() => setOpenColor(openColor === s.id ? null : s.id)}>
-                  <span class="dot" style={{ background: `var(--c-${s.color})` } as CSSProperties} />
-                </button>
-                <input class="inline" data-testid={`svc-name-${i}`} defaultValue={s.name} key={`${s.id}${s.name}${tick}`} autocomplete="off"
-                  onChange={(e) => void renameService(s.id, (e.target as HTMLInputElement).value)} />
-                <button class="icon-btn" data-testid={`svc-up-${i}`} disabled={i === 0} onClick={() => void repo.moveService(s.id, -1)}>↑</button>
-                <button class="icon-btn" data-testid={`svc-down-${i}`} disabled={i === services.length - 1} onClick={() => void repo.moveService(s.id, 1)}>↓</button>
-              </div>
-              <div class="svc-line sub">
-                <span class="sub-label">{t('service.minutes')}</span>
-                <span class="stepper">
-                  <button data-testid={`svc-minus-${i}`} disabled={s.minutes <= 15} onClick={() => void repo.updateService(s.id, { minutes: Math.max(15, s.minutes - stepFor(s.minutes - 1)) })}>−</button>
-                  <span class="stepper-val" data-testid={`svc-minutes-${i}`}>{s.minutes}</span>
-                  <button data-testid={`svc-plus-${i}`} disabled={s.minutes >= MAX_SERVICE_MIN} onClick={() => void repo.updateService(s.id, { minutes: Math.min(MAX_SERVICE_MIN, s.minutes + stepFor(s.minutes)) })}>+</button>
-                </span>
-                <button class="toggle" data-testid={`svc-toggle-${i}`} onClick={() => void toggle(s.id, !s.active)}>{s.active ? t('service.hide') : t('service.show')}</button>
-              </div>
-              {openColor === s.id && (
-                <div class="svc-line swatches">
-                  {SERVICE_COLORS.map((c) => (
-                    <button key={c} class={c === s.color ? 'swatch on' : 'swatch'} data-testid={`svc-color-${i}-${c}`}
-                      onClick={() => { void repo.updateService(s.id, { color: c }); setOpenColor(null); }}>
-                      <span class="dot" style={{ background: `var(--c-${c})` } as CSSProperties} />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </SwipeRow>
-          </li>
-        ))}
-      </ul>
-      <div class="group">
-        <button class="group-row accent" data-testid="svc-add" onClick={() => { primeKeyboard(); void repo.addService(t('service.new')).then((s) => setFocusId(s.id)); }}>{t('service.add')}</button>
-      </div>
-    </>
+    <EditList prefix="svc" addLabel={t('service.add')} note={t('service.note')}
+      items={services.map((s) => ({ id: s.id, name: s.name, tint: `var(--c-${s.color})`, lead: <span class="er-dot" />, value: <Dur m={s.minutes} />, off: !s.active }))}
+      onAdd={async () => (await repo.addService(t('service.new'))).id}
+      onRename={async (id, name) => { try { await repo.updateService(id, { name }); } catch (e) { console.error(e); } }}
+      onMove={(id, dir) => void repo.moveService(id, dir)}
+      onDelete={(id) => confirmDeleteService(by(id))}
+      extra={(id, i) => <span class="er-switch"><Switch on={by(id).active} label={t('edit.shown')} testId={`svc-toggle-${i}`} onChange={(on) => void toggle(id, on)} />{t('edit.shown')}</span>}
+      editor={(id, i) => {
+        const s = by(id);
+        return (
+          <>
+            <DurationEditor prefix="svc" i={i} minutes={s.minutes} max={MAX_SERVICE_MIN} onChange={(m) => void repo.updateService(id, { minutes: m })} />
+            <div class="ed-lab">{t('edit.color')}</div>
+            <div class="er-colors">
+              {SERVICE_COLORS.map((c) => (
+                <button key={c} class={c === s.color ? 'swatch on' : 'swatch'} aria-label={c} aria-pressed={c === s.color} data-testid={`svc-color-${i}-${c}`} style={{ '--sc': `var(--c-${c})` } as CSSProperties}
+                  onClick={() => void repo.updateService(id, { color: c })}><span class="dot" /></button>
+              ))}
+            </div>
+          </>
+        );
+      }} />
   );
 }
 

@@ -2,7 +2,7 @@ import type { CSSProperties } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { repo, type ClientSuggestion } from '../../db/repo';
 import type { Client } from '../../db/types';
-import { euroSign, formatDayShort, formatWhen, parseAmountInput } from '../../i18n/format';
+import { euroSign, formatAmountInput, formatDayShort, formatEuroShort, formatWhen, parseAmountInput } from '../../i18n/format';
 import { t } from '../../i18n/lt';
 import { glyphFor } from '../../logic/glyph';
 import { cleanName, foldName } from '../../logic/names';
@@ -51,6 +51,7 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
   const options = useOptions(kind === 'expense' ? 'expense' : 'personal');
   const chosen = kind === 'client' ? null : options.find((o) => o.id === optionId) ?? null;
   const cents = parseAmountInput(amountText);
+  const usual = kind === 'expense' && chosen?.costCents != null ? chosen.costCents : null; // the kind's fixed amount: the field starts with it and she confirms or changes it
   // The first screen is done when she has a name (client) or has picked one of her own choices (and an amount for an expense).
   const canNext = kind === 'client' ? hasName : kind === 'personal' ? chosen !== null || off : chosen !== null && cents !== null;
   const canSave = canNext && (kind !== 'client' || sid !== null);
@@ -163,7 +164,7 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
                   const g = glyphFor(o.name);
                   return (
                     <button key={o.id} data-testid={`option-${i}`} class={o.id === optionId ? 'opt-card on' : 'opt-card'} aria-pressed={o.id === optionId}
-                      style={{ '--g': `var(--c-${g.color})` } as CSSProperties} onClick={() => { setOptionId(o.id); setOff(false); }}>
+                      style={{ '--g': `var(--c-${g.color})` } as CSSProperties} onClick={() => { if (o.id !== optionId) setAmountText(kind === 'expense' && o.costCents != null ? formatAmountInput(o.costCents) : ''); setOptionId(o.id); setOff(false); }}>
                       <span class="opt-ico" aria-hidden="true">{g.glyph}</span>
                       <span class="opt-name">{o.name}</span>
                       <span class="radio" aria-hidden="true"><CheckIcon /></span>
@@ -185,6 +186,11 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
                     onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLInputElement).blur(); } }} />
                   <span class="amount-eur" aria-hidden="true">{euroSign}</span>
                 </label>
+              )}
+              {kind === 'expense' && usual !== null && (
+                <p class="amount-hint" data-testid="amount-hint">
+                  {cents === usual || cents === null ? <><i>{t('cost.usual')}</i>{formatEuroShort(usual)}. {t('cost.hint')}</> : <><i class="chg">{t('cost.changed', { suma: formatEuroShort(usual) })}</i></>}
+                </p>
               )}
             </>
           )}
@@ -244,7 +250,7 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
 
         {/* The main button: always at the bottom of the flow, riding up above the keyboard while it is open. */}
         <div class={kb > 0 ? 'flow-bar kb-open' : 'flow-bar'}>
-          {screen === 0 && <button class="primary" data-testid="btn-next" disabled={!canNext} onClick={next}>{t('btn.next')}</button>}
+          {screen === 0 && <button class="primary" data-testid="btn-next" disabled={!canNext} onClick={next}>{usual !== null && cents === usual ? t('cost.confirm', { suma: formatEuroShort(usual) }) : t('btn.next')}</button>}
           {screen === 1 && <button class="primary" data-testid="btn-save" disabled={!canSave || saving} onClick={() => void save()}>{t('btn.save')}</button>}
           {screen === 2 && !off && <button class="primary" data-testid="btn-save-time" disabled={!canSave || saving} onClick={() => void save()}>{t('btn.save')}</button>}
           {screen === 2 && off && offStep === 'from' && <button class="primary" data-testid="btn-off-next" onClick={toEnd}>{t('btn.next')}</button>}

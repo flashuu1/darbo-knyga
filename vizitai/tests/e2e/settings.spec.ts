@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { openApp, seedAppts, openSettings } from './helpers';
+import { openApp, seedAppts, openSettings, openRow } from './helpers';
 
 const counts = (page: import('@playwright/test').Page) => page.evaluate(async () => {
   const { db } = (window as any).__vizitai; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -9,6 +9,7 @@ const counts = (page: import('@playwright/test').Page) => page.evaluate(async ()
 test('renames a service and the new name appears in the booking sheet', async ({ page }) => {
   await openApp(page);
   await openSettings(page, 'services');
+  await openRow(page, 'svc', 0);
   await page.getByTestId('svc-name-0').fill('Moteriškas kirpimas');
   await page.getByTestId('svc-name-0').blur();
   await page.getByTestId('tab-calendar').click();
@@ -22,6 +23,7 @@ test('hiding a service removes its chip but keeps old appointment labels', async
   await openApp(page);
   const [id] = await seedAppts(page, [{ name: 'Ona', start: '2026-10-14T10:00', service: 1 }]);
   await openSettings(page, 'services');
+  await openRow(page, 'svc', 1);
   await page.getByTestId('svc-toggle-1').click();
   await page.getByTestId('tab-calendar').click();
   await expect(page.getByTestId(`entry-${id}`)).toContainText('Dažymas');
@@ -34,7 +36,8 @@ test('hiding a service removes its chip but keeps old appointment labels', async
 test('the last active service cannot be hidden', async ({ page }) => {
   await openApp(page);
   await openSettings(page, 'services');
-  for (let i = 1; i < 7; i++) await page.getByTestId(`svc-toggle-${i}`).click();
+  for (let i = 1; i < 7; i++) { await openRow(page, 'svc', i); await page.getByTestId(`svc-toggle-${i}`).click(); }
+  await openRow(page, 'svc', 0);
   await page.getByTestId('svc-toggle-0').click();
   await expect(page.getByTestId('toast')).toHaveText(/Turi likti bent viena paslauga/);
   await page.getByTestId('tab-calendar').click();
@@ -47,20 +50,23 @@ test('the last active service cannot be hidden', async ({ page }) => {
 test('reorders, recolours, changes length and adds a service', async ({ page }) => {
   await openApp(page);
   await openSettings(page, 'services');
+  await openRow(page, 'svc', 1);
   const second = await page.getByTestId('svc-name-1').inputValue();
   await page.getByTestId('svc-up-1').click();
   await expect(page.getByTestId('svc-name-0')).toHaveValue(second);
-  await expect(page.getByTestId('svc-minutes-0')).toHaveText('15'); // the default length
+  await openRow(page, 'svc', 0);
+  await expect(page.getByTestId('svc-minutes-0')).toHaveText('15 min'); // the default length
   await expect(page.getByTestId('svc-minus-0')).toBeDisabled(); // never below 15
   await page.getByTestId('svc-plus-0').click();
   await page.getByTestId('svc-plus-0').click();
   await page.getByTestId('svc-minus-0').click();
-  await expect(page.getByTestId('svc-minutes-0')).toHaveText('30');
-  await page.getByTestId('svc-swatch-0').click();
+  await expect(page.getByTestId('svc-minutes-0')).toHaveText('30 min');
   await page.getByTestId('svc-color-0-teal').click();
   await expect.poll(() => page.evaluate(async () => (await (window as any).__vizitai.repo.listServices())[0])).toMatchObject({ color: 'teal', minutes: 30 }); // eslint-disable-line @typescript-eslint/no-explicit-any
   await page.getByTestId('svc-add').click();
   await expect(page.getByTestId('svc-row-7')).toBeVisible();
+  await expect(page.getByTestId('svc-open-7')).toHaveAttribute('aria-expanded', 'true'); // the new one opens with the cursor in its name
+  await expect(page.getByTestId('svc-name-7')).toBeFocused();
 });
 
 test('working hours change the timeline range and reject an end before the start', async ({ page }) => {
@@ -148,6 +154,7 @@ test('shows the storage status and app version', async ({ page }) => {
 test('a blank service name reverts to the stored name', async ({ page }) => {
   await openApp(page);
   await openSettings(page, 'services');
+  await openRow(page, 'svc', 0);
   const before = await page.getByTestId('svc-name-0').inputValue();
   await page.getByTestId('svc-name-0').fill('   ');
   await page.getByTestId('svc-name-0').blur();
@@ -158,8 +165,8 @@ test('a blank service name reverts to the stored name', async ({ page }) => {
 test('colour swatches have 44pt touch targets', async ({ page }) => {
   await openApp(page);
   await openSettings(page, 'services');
-  await page.getByTestId('svc-swatch-0').click();
-  for (const id of ['svc-swatch-0', 'svc-color-0-teal', 'svc-color-0-red']) {
+  await openRow(page, 'svc', 0);
+  for (const id of ['svc-color-0-teal', 'svc-color-0-red', 'svc-up-1', 'svc-down-0', 'svc-delete-0', 'svc-minus-0', 'svc-plus-0']) {
     const box = await page.getByTestId(id).boundingBox();
     expect(box?.width).toBeGreaterThanOrEqual(44);
     expect(box?.height).toBeGreaterThanOrEqual(44);

@@ -1,18 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
-import { apptState, openApp, openSettings, seedAppts, seedOptions } from './helpers';
+import { apptState, openApp, openRow, openSettings, seedAppts, seedOptions } from './helpers';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const count = (page: Page, table: string) => page.evaluate((x) => (window as any).__vizitai.db[x].count(), table);
-
-async function swipeLeft(page: Page, testId: string, dx = 130) {
-  await page.getByTestId(testId).scrollIntoViewIfNeeded();
-  const b = (await page.getByTestId(testId).boundingBox())!;
-  const y = b.y + b.height / 2, x = b.x + b.width - 40;
-  await page.mouse.move(x, y);
-  await page.mouse.down();
-  for (let i = 1; i <= 6; i++) { await page.mouse.move(x - (dx * i) / 6, y); await page.waitForTimeout(25); }
-  await page.mouse.up();
-}
 
 test('the money is in the summary: money in minus money out, for the day, the week and the month', async ({ page }) => {
   await openApp(page, '2026-10-14T12:00:00');
@@ -80,7 +70,7 @@ test('an expense can be opened and its amount changed, and it never blocks a vis
   expect((await apptState(page, vid)).amountCents ?? null).toBeNull();
 });
 
-test('Settings lists her own choices; she can add, rename and swipe-delete them, and the flow offers them', async ({ page }) => {
+test('Settings lists her own choices; she can add, rename and delete them, and the flow offers them', async ({ page }) => {
   await openApp(page);
   await openSettings(page, 'personal');
   await seedOptions(page);
@@ -88,7 +78,7 @@ test('Settings lists her own choices; she can add, rename and swipe-delete them,
   await expect(page.getByTestId('opt-personal-row-11')).toBeAttached({ timeout: 15000 });
   await page.getByTestId('opt-personal-add').click();
   await expect(page.getByTestId('opt-personal-row-12')).toBeAttached({ timeout: 15000 });
-  await page.getByTestId('opt-personal-name-12').scrollIntoViewIfNeeded();
+  await expect(page.getByTestId('opt-personal-name-12')).toBeFocused(); // the new one opens with the cursor in its name
   await page.getByTestId('opt-personal-name-12').fill('Sporto salė');
   await page.getByTestId('opt-personal-name-12').blur();
   await expect.poll(() => page.evaluate(async () => (await (window as any).__vizitai.repo.listOptions('personal')).map((o: any) => o.name))).toContain('Sporto salė');
@@ -97,8 +87,8 @@ test('Settings lists her own choices; she can add, rename and swipe-delete them,
   await page.getByTestId('settings-row-expenses').click();
   await page.waitForTimeout(450); // the page slides in
   await expect(page.getByTestId('opt-expense-row-3')).toBeAttached({ timeout: 15000 });
-  await swipeLeft(page, 'opt-expense-swipe-0');
-  await page.getByTestId('opt-expense-swipe-0-trash').click();
+  await openRow(page, 'opt-expense', 0);
+  await page.getByTestId('opt-expense-delete-0').click();
   await page.getByTestId('action-item-0').click();
   await expect.poll(() => page.evaluate(async () => (await (window as any).__vizitai.repo.listOptions('expense')).length)).toBe(3);
   await page.getByTestId('toast-undo').click();
@@ -269,6 +259,7 @@ test('adding a new choice at the bottom of a long list: its name field is scroll
   });
   await page.getByTestId('opt-personal-add').scrollIntoViewIfNeeded();
   await page.getByTestId('opt-personal-add').click();
+  await page.waitForTimeout(500);
   const input = page.getByTestId('opt-personal-name-12');
   await expect(input).toBeFocused(); // the new name is selected, so typing replaces it
   await expect.poll(async () => { const b = (await input.boundingBox())!; return b.y + b.height; }, { timeout: 8000 }).toBeLessThan(vh - 336);

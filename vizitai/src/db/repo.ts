@@ -7,7 +7,7 @@ import { cleanName, foldName, ltCollator } from '../logic/names';
 import { addDays, addMinutes, datePart, minutesOfDay, nowLocal, parse, scopeRange, type Scope } from '../logic/time';
 import { findOverlap, findOverlaps, minutesFor, nextFreeSlot, PERSONAL_MINUTES, SHORT_MINUTES, type Block } from '../logic/overlap';
 import { t } from '../i18n/lt';
-import { isAmountDue, isValidCents } from '../logic/amount';
+import { isAmountDue, isValidCents, MAX_AMOUNT_CENTS } from '../logic/amount';
 import type { AnalyticsInput, OffRec, VisitRec } from '../logic/analytics';
 
 /** One row of the contacts list (see listClients). */
@@ -112,7 +112,23 @@ export function createRepo(db: VizitaiDB) {
       await db.options.add(o);
       return o;
     },
-    async updateOption(id: string, p: { minutes?: number }) { if (p.minutes !== undefined && Number.isInteger(p.minutes) && p.minutes >= 15 && p.minutes <= 720) await db.options.update(id, { minutes: p.minutes }); },
+    /** `costCents: null` removes the fixed amount; anything that is not a positive whole number of cents is ignored. */
+    async updateOption(id: string, p: { minutes?: number; costCents?: number | null }) {
+      if (p.minutes !== undefined && Number.isInteger(p.minutes) && p.minutes >= 15 && p.minutes <= 720) await db.options.update(id, { minutes: p.minutes });
+      if (p.costCents === null) await db.options.where('id').equals(id).modify((o) => { delete o.costCents; });
+      else if (p.costCents !== undefined && Number.isInteger(p.costCents) && p.costCents > 0 && p.costCents <= MAX_AMOUNT_CENTS) await db.options.update(id, { costCents: p.costCents });
+    },
+    async moveOption(id: string, dir: -1 | 1) {
+      const o = await db.options.get(id);
+      if (!o) return;
+      const all = (await db.options.where('group').equals(o.group).toArray()).sort((a, b) => a.order - b.order);
+      const i = all.findIndex((x) => x.id === id), j = i + dir;
+      if (i < 0 || j < 0 || j >= all.length) return;
+      await db.transaction('rw', db.options, async () => {
+        await db.options.update(all[i].id, { order: all[j].order });
+        await db.options.update(all[j].id, { order: all[i].order });
+      });
+    },
     async renameOption(id: string, name: string) { const n = cleanName(name); if (n) await db.options.update(id, { name: n }); }, // an empty name is ignored
     /** Entries keep the name they were made with, so a choice can always be removed. Undo: restoreOption. */
     async deleteOption(id: string): Promise<Option | null> { const o = await db.options.get(id); if (o) await db.options.delete(id); return o ?? null; },

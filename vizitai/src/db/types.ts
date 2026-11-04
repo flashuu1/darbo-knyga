@@ -17,7 +17,7 @@ export interface Appointment {
 }
 /** One of her own choices in Settings: what a personal entry can be, or what a kind of expense is. */
 export type OptionGroup = 'personal' | 'expense';
-export interface Option { id: string; group: OptionGroup; name: string; order: number; /** Personal choices: how long the entry is (default 30). */ minutes?: number }
+export interface Option { id: string; group: OptionGroup; name: string; order: number; /** Personal choices: how long the entry is (default 30). */ minutes?: number; /** Expense kinds: a fixed amount in cents; the new-entry screen starts with it. Absent = no fixed amount (nothing is assumed). Unindexed. */ costCents?: number }
 /** `floral`: visits of this service get flowers while they are coming up or waiting for their payment (Vestuvės). Unindexed. */
 export interface Service { id: string; name: string; color: ServiceColor; minutes: number; order: number; active: boolean; floral?: boolean }
 /** `workDays`: the weekdays she works (0 = Monday ... 6 = Sunday); absent = every day. Only the statistics use it. Unindexed. */

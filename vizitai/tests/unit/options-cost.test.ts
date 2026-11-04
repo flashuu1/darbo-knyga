@@ -1,0 +1,72 @@
+import { describe, it, expect } from 'vitest';
+import { VizitaiDB } from '../../src/db/db';
+import { ensureSeed } from '../../src/db/seed';
+import { createRepo } from '../../src/db/repo';
+import { exportData, importData, parseBackup } from '../../src/logic/backup';
+import { fingerprint } from '../../src/logic/snapshots';
+
+async function fresh() {
+  const db = new VizitaiDB(`opt-${crypto.randomUUID()}`);
+  await ensureSeed(db);
+  return { db, repo: createRepo(db) };
+}
+
+describe('a fixed amount on an expense kind', () => {
+  it('starts without one; only a positive whole number of cents is kept; null removes it', async () => {
+    const { repo } = await fresh();
+    const rent = await repo.addOption('expense', 'Nuoma');
+    expect((await repo.listOptions('expense'))[0]!.costCents).toBeUndefined();
+    await repo.updateOption(rent.id, { costCents: 45000 });
+    expect((await repo.listOptions('expense'))[0]!.costCents).toBe(45000);
+    for (const bad of [0, -5, 12.5, Number.NaN, 100_000 * 100 + 1]) {
+      await repo.updateOption(rent.id, { costCents: bad });
+      expect((await repo.listOptions('expense'))[0]!.costCents).toBe(45000); // ignored
+    }
+    await repo.updateOption(rent.id, { costCents: null });
+    const o = (await repo.listOptions('expense'))[0]!;
+    expect(o.costCents).toBeUndefined();
+    expect('costCents' in o).toBe(false); // really gone, not just undefined
+  });
+
+  it('changing the amount or the length leaves the other kinds and the other field alone', async () => {
+    const { repo } = await fresh();
+    const a = await repo.addOption('expense', 'Nuoma'), b = await repo.addOption('expense', 'Medžiagos');
+    await repo.updateOption(a.id, { costCents: 45000 });
+    const p = await repo.addOption('personal', 'Pietūs');
+    await repo.updateOption(p.id, { minutes: 90 });
+    expect((await repo.listOptions('expense')).find((o) => o.id === b.id)!.costCents).toBeUndefined();
+    expect((await repo.listOptions('personal')).find((o) => o.id === p.id)!.minutes).toBe(90);
+    expect((await repo.listOptions('personal')).find((o) => o.id === p.id)!.costCents).toBeUndefined();
+  });
+
+  it('is kept by the backup file, and an older file (without it) still loads', async () => {
+    const { db, repo } = await fresh();
+    const rent = await repo.addOption('expense', 'Nuoma');
+    await repo.updateOption(rent.id, { costCents: 45000 });
+    const f = await exportData(db);
+    const other = new VizitaiDB(`opt2-${crypto.randomUUID()}`);
+    await ensureSeed(other);
+    await importData(other, parseBackup(JSON.stringify(f)));
+    expect((await createRepo(other).listOptions('expense'))[0]!.costCents).toBe(45000);
+    expect(fingerprint(await exportData(other))).toBe(fingerprint(f));
+    const old = JSON.parse(JSON.stringify(f)) as typeof f;
+    for (const o of old.options ?? []) delete o.costCents;
+    await importData(other, parseBackup(JSON.stringify(old)));
+    expect((await createRepo(other).listOptions('expense'))[0]!.costCents).toBeUndefined();
+  });
+});
+
+describe('moving her own choices', () => {
+  it('moves a choice up or down within its own list only', async () => {
+    const { repo } = await fresh();
+    const a = await repo.addOption('expense', 'A'), b = await repo.addOption('expense', 'B'), c = await repo.addOption('expense', 'C');
+    await repo.addOption('personal', 'Z');
+    await repo.moveOption(c.id, -1);
+    expect((await repo.listOptions('expense')).map((o) => o.name)).toEqual(['A', 'C', 'B']);
+    await repo.moveOption(a.id, -1); // already first: nothing happens
+    await repo.moveOption(b.id, 1);  // already last
+    expect((await repo.listOptions('expense')).map((o) => o.name)).toEqual(['A', 'C', 'B']);
+    await repo.moveOption(a.id, 1);
+    expect((await repo.listOptions('expense')).map((o) => o.name)).toEqual(['C', 'A', 'B']);
+  });
+});

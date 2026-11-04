@@ -24,6 +24,13 @@ export async function openSettings(page: Page, section: 'services' | 'hours' | '
   await expect(page.getByTestId(`settings-page-${section}`)).toBeVisible();
   await page.waitForTimeout(450); // the page has slid in
 }
+/** Opens a row of Paslaugos / Asmeniniai / Išlaidų rūšys (the others fold) and waits until it has grown. */
+export async function openRow(page: Page, prefix: 'svc' | 'opt-personal' | 'opt-expense', i: number) {
+  const top = page.getByTestId(`${prefix}-open-${i}`);
+  if ((await top.getAttribute('aria-expanded')) !== 'true') await top.click();
+  await expect(top).toHaveAttribute('aria-expanded', 'true');
+  await page.waitForTimeout(420);
+}
 /** Gives the list of expense kinds some entries (it starts empty; Asmeninis already has its common words). */
 export async function seedOptions(page: Page) {
   await page.evaluate(async () => {

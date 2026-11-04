@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openApp, openSettings } from './helpers';
+import { openApp, openSettings, openRow } from './helpers';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const wedding = (page: any) => page.evaluate(async () => (await (window as any).__vizitai.repo.listServices(true)).find((s: any) => s.name === 'Vestuvės'));
@@ -57,7 +57,7 @@ test('only Vestuvės has the flowers, and Paslaugos has no switch for them', asy
   const id = await book(page, '2026-10-14T15:00', 'Kirpimas', 'Ona');
   await expect(page.getByTestId(`bloom-${id}`)).toHaveCount(0);
   await openSettings(page, 'services');
-  await expect(page.getByTestId('svc-minutes-5')).toBeVisible(); // the service rows are there ...
+  await expect(page.getByTestId('svc-row-5')).toBeVisible(); // the service rows are there ...
   await expect(page.locator('[data-testid^="svc-floral-"]')).toHaveCount(0); // ... without a switch for the flowers
   expect((await wedding(page)).floral).toBe(true); // the effect itself stays on Vestuvės
 });
@@ -65,14 +65,16 @@ test('only Vestuvės has the flowers, and Paslaugos has no switch for them', asy
 test('a service can be made long: half-hour steps from two hours, up to fourteen hours', async ({ page }) => {
   await openApp(page);
   await openSettings(page, 'services');
-  await expect(page.getByTestId('svc-minutes-5')).toHaveText('240');
+  await openRow(page, 'svc', 5);
+  await expect(page.getByTestId('svc-minutes-5')).toHaveText('4 val');
   await page.getByTestId('svc-plus-5').click();
-  await expect(page.getByTestId('svc-minutes-5')).toHaveText('270');
+  await expect(page.getByTestId('svc-minutes-5')).toHaveText('4 val 30 min');
   await page.getByTestId('svc-minus-5').click();
   await page.getByTestId('svc-minus-5').click();
-  await expect(page.getByTestId('svc-minutes-5')).toHaveText('210');
+  await expect(page.getByTestId('svc-minutes-5')).toHaveText('3 val 30 min');
+  await openRow(page, 'svc', 1);
   await page.getByTestId('svc-plus-1').click(); // short services still go in quarter hours
-  await expect(page.getByTestId('svc-minutes-1')).toHaveText('30');
+  await expect(page.getByTestId('svc-minutes-1')).toHaveText('30 min');
 });
 
 test('the glow and the flowers are there at every zoom and scale with the entry as she pinches in and out', async ({ page }) => {

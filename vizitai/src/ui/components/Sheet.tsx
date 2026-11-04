@@ -1,4 +1,4 @@
-import type { ComponentChildren } from 'preact';
+import type { ComponentChildren, CSSProperties } from 'preact';
 import { useEffect, useRef } from 'preact/hooks';
 
 /**
@@ -16,13 +16,15 @@ const CLOSE_DISTANCE = 96; // px dragged down that closes
 const CLOSE_VELOCITY = 0.6; // px/ms flick that closes
 const NO_SWIPE = '.wheel, .picker-months, input, textarea, select, [data-no-sheet-swipe]'; // things that scroll or type sideways/vertically themselves
 
-export function Sheet({ title, left, right, bar, onClose, onBackdrop, children, testId = 'sheet', variant = 'bottom' }: {
+export function Sheet({ title, left, right, bar, onClose, onBackdrop, children, testId = 'sheet', variant = 'bottom', maxTop }: {
   title: string; left?: ComponentChildren; right?: ComponentChildren; onClose: () => void;
   /** A fixed bar at the bottom of the screen (above the keyboard while it is up), outside the sheet card. */
   bar?: ComponentChildren;
   /** Tap on the dimmed area; defaults to onClose. */
   onBackdrop?: () => void;
   children: ComponentChildren; testId?: string; variant?: SheetVariant;
+  /** A bottom sheet never reaches higher than this many px from the top of the screen (default: just under the status bar). */
+  maxTop?: number;
 }) {
   const sheet = useRef<HTMLDivElement>(null);
   const back = useRef<HTMLDivElement>(null);
@@ -124,7 +126,7 @@ export function Sheet({ title, left, right, bar, onClose, onBackdrop, children, 
     <div class="layer">
       {/* preventDefault on mousedown keeps focus where it is, so onBackdrop sees the real focus state */}
       <div ref={back} class="backdrop" onMouseDown={(e) => e.preventDefault()} onClick={onBackdrop ?? onClose} />
-      <div ref={sheet} class={`sheet ${variant}`} role="dialog" aria-label={title} data-testid={testId}>
+      <div ref={sheet} class={`sheet ${variant}`} role="dialog" aria-label={title} data-testid={testId} style={maxTop ? { '--sheet-top': `${maxTop}px` } as CSSProperties : undefined}>
         <div class="sheet-top" onPointerDown={down} onPointerMove={move} onPointerUp={(e) => end(e, false)} onPointerCancel={(e) => end(e, true)}>
           {variant !== 'dialog' && <div class="grabber" />}
           <header class="sheet-nav">

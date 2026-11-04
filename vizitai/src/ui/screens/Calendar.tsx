@@ -8,6 +8,7 @@ import { useLive, useNeedsBackup } from '../hooks';
 import { BackIcon, BackupIcon, ChevronIcon, NextIcon, PlusIcon } from '../icons';
 import { ui, useStore, type UiState } from '../store';
 import { MonthGrid } from '../components/MonthGrid';
+import { LiquidSeg } from '../components/Segmented';
 import { TimelineGrid } from '../components/TimelineGrid';
 import { WeekStrip } from '../components/WeekStrip';
 
@@ -32,16 +33,13 @@ export function CalendarScreen() {
     <section class="cal" data-testid="calendar">
       <header class="chrome">
         <div class="navbar">
-          <button class="nav-btn month-btn" data-testid="month-name" aria-expanded={view === 'month'} onClick={() => ui.set({ view: view === 'month' ? 'day' : 'month' })}>
+          <button class="lq lq-btn month-btn" data-testid="month-name" aria-expanded={view === 'month'} onClick={() => ui.set({ view: view === 'month' ? 'day' : 'month' })}>
             {view === 'month' ? <><span>{monthName(date)}</span><span class="chev-up"><ChevronIcon /></span></> : <><BackIcon /><span>{monthName(date)}</span></>}
           </button>
-          <div class="segmented" role="group">
-            {(['day', 'week'] as const).map((v) => (
-              <button key={v} data-testid={`seg-${v}`} class={view === v ? 'seg on' : 'seg'} aria-pressed={view === v} onClick={() => ui.set({ view: v })}>{t(`view.${v}`)}</button>
-            ))}
-          </div>
+          <LiquidSeg items={[{ id: 'day', label: t('view.day') }, { id: 'week', label: t('view.week') }]} value={view === 'month' ? ('' as 'day') : view}
+            onChange={(v) => ui.set({ view: v })} itemTestId={(id) => `seg-${id}`} />
           <div class="nav-right">
-            <button class="nav-btn" data-testid="btn-today" onClick={() => ui.set({ date: todayStr() })}>{t('nav.today')}</button>
+            <button class="lq lq-btn today-btn" data-testid="btn-today" onClick={() => ui.set({ date: todayStr() })}>{t('nav.today')}</button>
             <button class="nav-btn round accent" data-testid="btn-add" aria-label={t('sheet.new.title')} onClick={() => void openNewToday()}><PlusIcon /></button>
           </div>
         </div>

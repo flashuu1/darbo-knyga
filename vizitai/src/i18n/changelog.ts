@@ -17,6 +17,10 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   { date: '2026-11-04', items: [
+    { kind: 'change', text: 'Kalendoriaus juosta tapo „skystu stiklu“: mėnuo, Diena / Savaitė slankiklis (su stiklo lašu, kuris slysta) ir Šiandien.' },
+    { kind: 'bugfix', text: 'Dienos, Savaitės ir Mėnesio suvestinės, kai įrašų daug, nebekyla aukščiau už savo mygtuką.' },
+  ] },
+  { build: '5c3dbd3', date: '2026-11-04', items: [
     { kind: 'bugfix', text: 'Braukiant per trukmės pasirinkimus (3 val, 3 val 30 min...) puslapis nebeišnyksta: atgal grįžtama tik braukiant iš kairės ekrano dalies, o viskas, kas slenka į šonus, išsaugo savo braukimą.' },
     { kind: 'bugfix', text: 'Tas pats Išlaidose: braukiant per „Kas sumokėjo“ eilutę puslapis nebeverčiamas.' },
     { kind: 'change', text: 'Kliento kortelė taip pat grįžta atgal tik braukiant iš kairės dalies.' },

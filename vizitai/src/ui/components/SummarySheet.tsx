@@ -29,6 +29,8 @@ function rangeLabel(scope: Scope, date: string) {
  */
 export function SummarySheet({ scope, date }: { scope: Scope; date: string }) {
   const s = useLive(() => repo.summary(scope, date), [scope, date], EMPTY);
+  // With many entries the page grows, but only up to the button that opened it (it stays in view, under the title of the screen)
+  const [maxTop] = useState(() => { const b = document.querySelector('[data-testid="summary-btn"]'); return b ? Math.round(b.getBoundingClientRect().bottom) + 6 : undefined; });
   const loaded = s.scope === scope && s.date === date;
   const waiting = s.due.length + s.older.length;
   const [celebrate, setCelebrate] = useState(false);
@@ -77,7 +79,7 @@ export function SummarySheet({ scope, date }: { scope: Scope; date: string }) {
   const many = scope !== 'day';
   const paidShown = many ? [...s.paid].reverse().slice(0, PAID_SHOWN) : s.paid;
   return (
-    <Sheet title={t(`eod.title.${scope}`)} onClose={closeSheet} testId="day-sheet"
+    <Sheet title={t(`eod.title.${scope}`)} onClose={closeSheet} testId="day-sheet" maxTop={maxTop}
       right={<button class="strong" data-testid="btn-close" onClick={closeSheet}>{t('btn.close')}</button>}>
       <div class="money-hero eod-hero">
         {celebrate && <div class="yay"><Burst /></div>}

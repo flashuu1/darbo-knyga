@@ -1,0 +1,105 @@
+import { test, expect, type Page } from '@playwright/test';
+import { openApp } from './helpers';
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+const NOW = '2026-10-14T12:00:00';
+const box = async (page: Page, testId: string) => (await page.getByTestId(testId).boundingBox())!;
+
+test.describe('the calendar bar is liquid glass', () => {
+  test('the month button, the Diena / Savaitė switch and Šiandien are glass, and the drop slides to the chosen side', async ({ page }) => {
+    await openApp(page, NOW);
+    for (const id of ['month-name', 'btn-today']) {
+      const css = await page.getByTestId(id).evaluate((el) => { const c = getComputedStyle(el); return { blur: c.backdropFilter || (c as any).webkitBackdropFilter, bg: c.backgroundImage !== 'none' || c.backgroundColor !== 'rgba(0, 0, 0, 0)', color: c.color }; });
+      expect(css.blur, `${id} has no blurred backdrop`).toMatch(/blur/);
+      expect(css.bg).toBe(true);
+      expect(css.color, `${id} is no longer blue text`).not.toBe('rgb(0, 122, 255)');
+    }
+    const seg = page.locator('.lq-seg');
+    expect(await seg.evaluate((el) => (getComputedStyle(el).backdropFilter || '').includes('blur'))).toBe(true);
+    const drop = page.locator('.lq-drop');
+    const a = (await drop.boundingBox())!;
+    await page.getByTestId('seg-week').click();
+    await expect.poll(async () => (await drop.boundingBox())!.x, { timeout: 2000 }).toBeGreaterThan(a.x + 40);
+    await expect(page.getByTestId('seg-week')).toHaveAttribute('aria-pressed', 'true');
+    await page.waitForTimeout(600);
+    const b = (await drop.boundingBox())!, w = await box(page, 'seg-week');
+    expect(Math.abs(b.x + b.width / 2 - (w.x + w.width / 2)), 'the drop rests under the chosen label').toBeLessThan(6);
+    await page.getByTestId('seg-day').click();
+    await expect.poll(async () => Math.abs((await drop.boundingBox())!.x - a.x), { timeout: 2000 }).toBeLessThan(3);
+    await page.getByTestId('month-name').click(); // the month grid: neither is chosen, the drop is gone
+    await expect.poll(() => drop.evaluate((el) => getComputedStyle(el).opacity)).toBe('0');
+  });
+
+  test('the drop only moves with transform: nothing in the bar animates a layout property', async ({ page }) => {
+    await openApp(page, NOW);
+    await page.evaluate(() => {
+      const w = window as any; w.__props = new Set<string>();
+      const tick = () => { for (const a of document.getAnimations()) { if (a instanceof CSSTransition) w.__props.add(a.transitionProperty); } requestAnimationFrame(tick); };
+      requestAnimationFrame(tick);
+    });
+    await page.getByTestId('seg-week').click(); await page.waitForTimeout(700);
+    await page.getByTestId('seg-day').click(); await page.waitForTimeout(700);
+    const props: string[] = await page.evaluate(() => [...(window as any).__props]);
+    expect(props.filter((p) => /^(width|height|top|left|right|bottom|margin.*|padding.*|inset.*)$/.test(p)), `layout properties animated: ${props.join(', ')}`).toEqual([]);
+  });
+
+  for (const date of ['2026-08-14', '2026-09-14', '2026-11-14', '2026-12-14', '2026-10-14']) {
+    test(`everything fits in the bar with the month of ${date}, without overlapping`, async ({ page }) => {
+      await openApp(page, NOW);
+      await page.evaluate((d) => (window as any).__vizitai.ui.set({ date: d }), date);
+      await page.waitForTimeout(300);
+      for (const view of ['seg-day', 'seg-week']) {
+        await page.getByTestId(view).click(); await page.waitForTimeout(500);
+        const [m, s, t, p] = [await box(page, 'month-name'), await box(page, view === 'seg-day' ? 'seg-day' : 'seg-week'), await box(page, 'btn-today'), await box(page, 'btn-add')];
+        const seg = (await page.locator('.lq-seg').boundingBox())!;
+        const vw = page.viewportSize()!.width;
+        expect(m.x).toBeGreaterThanOrEqual(0);
+        expect(m.x + m.width, 'month button runs into the switch').toBeLessThanOrEqual(seg.x + 1);
+        expect(seg.x + seg.width, 'the switch runs into Šiandien').toBeLessThanOrEqual(t.x + 1);
+        expect(t.x + t.width, 'Šiandien runs into +').toBeLessThanOrEqual(p.x + 1);
+        expect(p.x + p.width).toBeLessThanOrEqual(vw);
+        expect(s.width).toBeGreaterThan(40);
+      }
+    });
+  }
+});
+
+test.describe('the summaries open up to the button that opened them at most', () => {
+  async function many(page: Page) {
+    await page.evaluate(async () => { // 28 visits that took place today and wait for their amount: a long page in all three summaries
+      const { repo } = (window as any).__vizitai;
+      const svc = await repo.listServices(true);
+      for (let i = 0; i < 28; i++) await repo.createAppointment({ kind: 'client', name: `Klientas ${i}`, serviceId: svc[0].id, start: `2026-10-14T${String(Math.floor((i * 25) / 60)).padStart(2, '0')}:${String((i * 25) % 60).padStart(2, '0')}` });
+    });
+  }
+
+  for (const [view, label] of [['day', 'Dienos'], ['week', 'Savaitės'], ['month', 'Mėnesio']] as const) {
+    test(`${label} suvestinė with many entries does not reach higher than its button`, async ({ page }) => {
+      await openApp(page, NOW);
+      await many(page);
+      if (view === 'week') await page.getByTestId('seg-week').click();
+      if (view === 'month') await page.getByTestId('month-name').click();
+      await page.waitForTimeout(500);
+      const btn = await box(page, 'summary-btn');
+      await page.getByTestId('summary-btn').click();
+      const sheet = page.getByTestId('day-sheet');
+      await expect(sheet).toBeVisible();
+      await expect(page.getByTestId('eod-row-0')).toBeVisible();
+      await page.waitForTimeout(600);
+      const s = (await sheet.boundingBox())!;
+      expect(s.y, 'the sheet covers the button that opened it').toBeGreaterThanOrEqual(btn.y + btn.height - 1);
+      expect(s.y, 'the sheet should be as tall as that allows when there is a lot in it').toBeLessThan(btn.y + btn.height + 30);
+      expect(s.y + s.height).toBeGreaterThanOrEqual(page.viewportSize()!.height - 2); // and it still sits on the bottom
+      await expect(page.getByTestId('summary-btn')).toBeVisible();
+    });
+  }
+
+  test('with few entries the sheet is only as tall as its content', async ({ page }) => {
+    await openApp(page, NOW);
+    await page.getByTestId('summary-btn').click();
+    await expect(page.getByTestId('day-sheet')).toBeVisible();
+    await page.waitForTimeout(500);
+    const s = (await page.getByTestId('day-sheet').boundingBox())!;
+    expect(s.height).toBeLessThan(page.viewportSize()!.height * 0.7);
+  });
+});

@@ -9,7 +9,10 @@ import { chooseImport, removeService, restoreSnapshot, runBackup, showToast } fr
 import { attempt, saveFailed } from '../failure';
 import { backups, type Snap } from '../../db/backups';
 import { Changelog } from '../components/Changelog';
-import { AddSlotContext, Dur, DurationEditor, EditList, Switch, type AddSlot } from '../components/EditList';
+import { AddSlotContext, Dur, DurationEditor, EditList, formatMinutes, Switch, type AddSlot } from '../components/EditList';
+import { LiquidSeg } from '../components/Segmented';
+import { REC_MINUTES } from '../free';
+import { REC_FROM, REC_TO } from '../../logic/freetime';
 import { OptionList } from '../components/OptionList';
 import { useBooksFingerprint, useLive, useNeedsBackup, useOptions, useServices, useSettings } from '../hooks';
 import { useKeyboardHeight } from '../keyboard';
@@ -181,15 +184,16 @@ let dayChain: Promise<void> = Promise.resolve();
 function HoursPage() {
   const settings = useSettings();
   const [tick, setTick] = useState(0);
-  async function setHour(field: 'dayStart' | 'dayEnd', raw: string) {
+  async function setHour(field: 'dayStart' | 'dayEnd' | 'recFrom' | 'recTo', raw: string) {
     if (!raw) return;
     const v = snapClock(raw);
     if (v !== raw) setTick((x) => x + 1); // remount so the field shows the snapped value even if it is unchanged
     const next = { ...settings, [field]: v };
-    if (next.dayStart >= next.dayEnd) { showToast(t('hours.invalid')); setTick((x) => x + 1); return; }
+    if (next.dayStart >= next.dayEnd || (next.recFrom ?? REC_FROM) >= (next.recTo ?? REC_TO)) { showToast(t('hours.invalid')); setTick((x) => x + 1); return; }
     await attempt(() => repo.updateSettings({ [field]: v }));
   }
   const days = settings.workDays ?? [0, 1, 2, 3, 4, 5, 6];
+  const recMinutes = settings.recMinutes ?? REC_MINUTES;
   // Each tap reads what is saved (not what was last drawn), one after another, so quick taps never undo each other
   function toggleDay(i: number) {
     dayChain = dayChain.then(async () => {
@@ -215,6 +219,23 @@ function HoursPage() {
       ))}
     </div>
     <p class="section-foot">{t('hours.daysNote')}</p>
+    <h2 class="section-head">{t('rec.head')}</h2>
+    <div class="group">
+      <label class="group-row"><span>{t('rec.from')}</span>
+        <input class="inline time" type="time" step={900} key={`rf${settings.recFrom ?? REC_FROM}${tick}`} defaultValue={settings.recFrom ?? REC_FROM} data-testid="rec-from" onChange={(e) => void setHour('recFrom', (e.target as HTMLInputElement).value)} /></label>
+      <label class="group-row"><span>{t('rec.to')}</span>
+        <input class="inline time" type="time" step={900} key={`rt${settings.recTo ?? REC_TO}${tick}`} defaultValue={settings.recTo ?? REC_TO} data-testid="rec-to" onChange={(e) => void setHour('recTo', (e.target as HTMLInputElement).value)} /></label>
+      <div class="group-row"><span>{t('rec.minutes')}</span>
+        <span class="stepper">
+          <button data-testid="rec-minus" aria-label={t('edit.shorter')} disabled={recMinutes <= 15} onClick={() => void attempt(() => repo.updateSettings({ recMinutes: Math.max(15, recMinutes - 15) }))}>−</button>
+          <span class="stepper-val" data-testid="rec-minutes">{formatMinutes(recMinutes)}</span>
+          <button data-testid="rec-plus" aria-label={t('edit.longer')} disabled={recMinutes >= 480} onClick={() => void attempt(() => repo.updateSettings({ recMinutes: Math.min(480, recMinutes + 15) }))}>+</button>
+        </span></div>
+    </div>
+    <h2 class="section-head">{t('rec.mode')}</h2>
+    <LiquidSeg wide items={[{ id: 'free', label: t('rec.free') }, { id: 'fit', label: t('rec.fit') }]} value={settings.recMode ?? 'free'} itemTestId={(id) => `rec-mode-${id}`}
+      onChange={(m) => void attempt(() => repo.updateSettings({ recMode: m }))} />
+    <p class="section-foot">{t('rec.note')}</p>
     </>
   );
 }

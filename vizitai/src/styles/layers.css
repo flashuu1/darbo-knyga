@@ -970,3 +970,26 @@ html[data-fps='low'] .lq-drop { transition-duration: .24s; }
 /* a failure: red, so it is not taken for a confirmation */
 .toast.error { background: color-mix(in srgb, #8e1b14 88%, #000); }
 .toast.error button { color: #fff; font-weight: 700; padding: 0 4px; }
+
+/* The week view: where a new visit fits (Savaitė only). The pill under the title and dashed free slots in the grid. */
+.freepill { flex: none; display: flex; align-items: center; gap: 10px; margin: 0 var(--s4) var(--s2); padding: 7px 10px 7px 8px; border-radius: 18px; text-align: left; width: calc(100% - 2 * var(--s4)); box-sizing: border-box; min-height: 0;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--green) 24%, var(--card)), color-mix(in srgb, var(--green) 8%, var(--card))); box-shadow: inset 0 0 0 .5px color-mix(in srgb, var(--green) 45%, transparent); transition: transform var(--t-press) var(--ease-out); }
+.freepill:active { transform: scale(.985); }
+.fp-star { flex: none; width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; color: #fff; font-size: 1.05rem; background: linear-gradient(180deg, color-mix(in srgb, var(--green) 85%, #fff), var(--green)); box-shadow: 0 2px 8px color-mix(in srgb, var(--green) 45%, transparent); }
+.fp-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.fp-text b { font-size: .95rem; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fp-text span { font-size: .75rem; color: var(--label-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fp-go { flex: none; display: inline-flex; align-items: center; gap: 2px; font-size: .75rem; font-weight: 700; color: var(--green-ink); padding: 4px 9px; border-radius: 11px; background: color-mix(in srgb, var(--green) 18%, transparent); }
+.fp-go svg { width: 12px; height: 12px; }
+.freepill.none { background: var(--fill); box-shadow: none; } .freepill.none .fp-star { background: var(--fill-2); color: var(--label-2); box-shadow: none; } .freepill.none .fp-go { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.ghost { position: absolute; z-index: 1; left: var(--lpad); right: var(--rpad); top: calc(var(--row) * var(--top) + 1px); height: calc(var(--row) * var(--len) - 2px); min-height: 0; min-width: 0; padding: 0; box-sizing: border-box;
+  display: flex; flex-direction: column; overflow: hidden; border-radius: 8px; border: 1.5px dashed color-mix(in srgb, var(--green) 85%, transparent); background: color-mix(in srgb, var(--green) 8%, transparent); }
+.ghost:active { background: color-mix(in srgb, var(--green) 18%, transparent); }
+.ghost-fit { flex: none; height: calc(var(--row) * var(--fit)); max-height: 100%; display: flex; align-items: center; justify-content: center; font-size: .62rem; font-weight: 800; white-space: nowrap; color: var(--green-ink); background: color-mix(in srgb, var(--green) 30%, transparent); }
+.ghost-slack { flex: 1; display: grid; place-items: center; font-size: .56rem; font-weight: 700; color: var(--label-2); white-space: nowrap; }
+.ghost.best { border-style: solid; border-width: 2px; background: color-mix(in srgb, var(--green) 16%, transparent); z-index: 3; }
+.ghost.best .ghost-fit { background: var(--green); color: #fff; }
+.ghost.best::after { content: ''; position: absolute; inset: -2px; border-radius: inherit; pointer-events: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 55%, transparent); animation: ghost-pulse 1.8s ease-in-out infinite; }
+@keyframes ghost-pulse { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .ghost.best::after { animation: none; opacity: .7; } }
+html[data-fps='low'] .ghost.best::after { animation: none; opacity: .7; }

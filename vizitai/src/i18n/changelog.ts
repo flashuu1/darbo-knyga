@@ -17,6 +17,10 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   { date: '2026-11-06', items: [
+    { kind: 'feature', text: 'Savaitės rodinyje matomi laisvi langai: punktyrinės žalios kortelės ten, kur telpa vizitas (11:00–18:00, 1 val), ir „Geriausias: ketvirtadienis 15:00“ po pavadinimu. Palietus langą atsidaro Nauja > Klientas su jau įrašytu laiku. Kita savaitė rodo savo geriausią laiką.' },
+    { kind: 'feature', text: 'Nustatymai > Darbo laikas > Rekomenduojamas laikas: nuo, iki, vizito trukmė ir ką siūlyti pirmiausia (laisviausią ar tiksliausią).' },
+  ] },
+  { build: 'f00c85d', date: '2026-11-06', items: [
     { kind: 'feature', text: 'Jei kas nors neišsisaugo (pilna atmintis, klaida), dabar tai matote: raudonas pranešimas „Nepavyko išsaugoti“ su mygtuku „Bandyti dar kartą“, o tai, ką darėte, lieka kaip buvo. Anksčiau 25 vietose klaida buvo užrašoma tik paslėptame žurnale.' },
     { kind: 'bugfix', text: 'Paslaugos paslėpimas dėl atminties klaidos nebeįvardijamas kaip „turi likti bent viena paslauga“.' },
   ] },

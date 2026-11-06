@@ -21,5 +21,7 @@ export interface Option { id: string; group: OptionGroup; name: string; order: n
 /** `floral`: visits of this service get flowers while they are coming up or waiting for their payment (Vestuvės). Unindexed. */
 export interface Service { id: string; name: string; color: ServiceColor; minutes: number; order: number; active: boolean; floral?: boolean }
 /** `workDays`: the weekdays she works (0 = Monday ... 6 = Sunday); absent = every day. Only the statistics use it. Unindexed. */
-export interface Settings { id: 'settings'; dayStart: string; dayEnd: string; slotMinutes: number; lastBackupAt: string | null; persistGranted: boolean | null; workDays?: number[] }
+export interface Settings { id: 'settings'; dayStart: string; dayEnd: string; slotMinutes: number; lastBackupAt: string | null; persistGranted: boolean | null; workDays?: number[];
+  /** The recommended time (free slots in the week view): the window (default 11:00–18:00), how long a slot is (default 60 minutes) and which gap is suggested first. Unindexed. */
+  recFrom?: string; recTo?: string; recMinutes?: number; recMode?: 'free' | 'fit' }
 export const SERVICE_COLORS: ServiceColor[] = ['blue', 'green', 'indigo', 'orange', 'pink', 'purple', 'red', 'teal', 'yellow', 'gray'];

@@ -1,12 +1,16 @@
+import { useEffect } from 'preact/hooks';
 import { repo } from '../../db/repo';
 import { formatDayLong, formatDayShort, monthName, weekdayShort } from '../../i18n/format';
 import { t } from '../../i18n/lt';
 import { addDays, datePart, todayStr, weekStart } from '../../logic/time';
 import { openNewToday, openSummary, runBackup } from '../actions';
 import { useNow } from '../clock';
+import { useFreeWeek } from '../free';
+import { freeUi } from '../freeUi';
 import { useLive, useNeedsBackup } from '../hooks';
 import { BackupIcon, ChevronIcon, NextIcon, PlusIcon } from '../icons';
 import { ui, useStore, type UiState } from '../store';
+import { FreePill } from '../components/FreePill';
 import { MonthGrid } from '../components/MonthGrid';
 import { LiquidSeg } from '../components/Segmented';
 import { TimelineGrid } from '../components/TimelineGrid';
@@ -29,6 +33,8 @@ export function CalendarScreen() {
   };
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart(date), i));
   const title = titleFor(view, date);
+  const free = useFreeWeek(days, view === 'week');
+  useEffect(() => { freeUi.set({ ri: 0 }); }, [days[0]]); // another week: its own best time first
   return (
     <section class="cal" data-testid="calendar">
       <header class="chrome">
@@ -46,6 +52,7 @@ export function CalendarScreen() {
           {waiting > 0 && <span class="due-badge" data-testid="due-badge" aria-hidden="true">{waiting}</span>}
           <span class="b-chev" aria-hidden="true"><NextIcon /></span>
         </button>
+        {free && <FreePill free={free} onNextWeek={() => step(1)} />}
         {view === 'day' && stale && (
           <button class="banner" data-testid="backup-banner" onClick={() => void runBackup()}>
             <BackupIcon /><span>{t('backup.banner')}</span>
@@ -62,7 +69,7 @@ export function CalendarScreen() {
           </div>
         )}
       </header>
-      {view !== 'month' && <TimelineGrid dates={view === 'day' ? [date] : days} compact={view === 'week'} onSwipe={step} />}
+      {view !== 'month' && <TimelineGrid dates={view === 'day' ? [date] : days} compact={view === 'week'} onSwipe={step} free={free} />}
       {view === 'month' && <MonthGrid onSwipe={step} />}
       <button class="lq lq-btn today-fab" data-testid="btn-today" onClick={() => ui.set({ date: todayStr() })}>{t('nav.today')}</button>
     </section>

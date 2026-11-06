@@ -6,6 +6,10 @@ import { addDays, datePart, hhmm, minutesOfDay } from '../../logic/time';
 import { formatDayShort } from '../../i18n/format';
 import { t } from '../../i18n/lt';
 import { openNew, showOverflow } from '../actions';
+import type { FreeWeek } from '../free';
+import { freeUi } from '../freeUi';
+import { slotKey, type FreeSlot } from '../../logic/freetime';
+import { formatMinutes } from './EditList';
 import { useNow } from '../clock';
 import { useLive, useSettings } from '../hooks';
 import { CalendarIcon } from '../icons';
@@ -74,7 +78,15 @@ function applyLevel(root: HTMLElement, z: number, startMin: number) {
   });
 }
 
-export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; compact: boolean; onSwipe?: (dir: -1 | 1) => void }) {
+/** A tap on a free slot: a new visit that starts where she tapped inside the gap (never so late that it would not fit), in Nauja > Klientas. */
+function freeTap(e: MouseEvent, s: FreeSlot, minutes: number) {
+  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+  const rows = (s.gap.end - s.gap.start) / 15;
+  const off = e.clientY ? Math.max(0, Math.floor((e.clientY - r.top) / (r.height / rows))) * 15 : 0; // a keyboard activation has no position
+  openNew(`${s.date}T${hhmm(Math.min(s.gap.start + off, s.gap.end - minutes))}`);
+}
+
+export function TimelineGrid({ dates, compact, onSwipe, free }: { dates: string[]; compact: boolean; onSwipe?: (dir: -1 | 1) => void; free?: FreeWeek | null }) {
   const settings = useSettings();
   const now = useNow();
   const today = datePart(now);
@@ -89,6 +101,7 @@ export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; com
   const scroller = useRef<HTMLDivElement>(null);
   const rootEl = useRef<HTMLDivElement>(null);
   const { drag, zoom } = useStore(ui);
+  const { tick: freeTick } = useStore(freeUi);
   const live = useRef({ startMin: 0, rows: 1, onSwipe });
   const skipAnim = useRef(false);
   const ownScroll = useRef(0); // until when scroll events come from the app itself, not from her finger
@@ -99,6 +112,14 @@ export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; com
   const showNow = dates.includes(today) && nowMin >= startMin && nowMin < endMin;
 
   useLayoutEffect(() => { if (rootEl.current) applyLevel(rootEl.current, zoom, startMin); }, [zoom, startMin, rows]);
+
+  // The free-time pill was tapped: the slot it names is brought into view
+  useEffect(() => {
+    const el = scroller.current, g = el?.querySelector<HTMLElement>('.ghost.best');
+    if (!freeTick || !el || !g) return;
+    ownScroll.current = performance.now() + 700;
+    el.scrollTo({ top: Math.max(0, g.getBoundingClientRect().top - el.getBoundingClientRect().top + el.scrollTop - el.clientHeight / 3), behavior: 'smooth' });
+  }, [freeTick]);
 
   // Open on "now" for today, else near the first booking, else at the start of the working day.
   // Switching Diena <-> Savaitė keeps the scroll position, so the same hours stay in view.
@@ -322,6 +343,18 @@ export function TimelineGrid({ dates, compact, onSwipe }: { dates: string[]; com
                 // Day view keeps one column across day flips so a dragged entry (and its gesture) stays mounted.
                 <div key={dates.length === 1 ? 'day' : `w${idx}`} class={['col', d === today ? 'today' : '', drag?.over?.date === d ? 'drop' : ''].filter(Boolean).join(' ')} data-col-date={d} data-range-start={startMin} data-rows={rows} data-testid={`col-${d}`}>
                   <Slots d={d} startMin={startMin} rows={rows} workFrom={workFrom} workTo={workTo} />
+                  {compact && free && !drag && free.slots.filter((s) => s.date === d).map((s) => {
+                    const isBest = free.best !== null && slotKey(free.best) === slotKey(s);
+                    const kada = `${hhmm(s.gap.start)}–${hhmm(s.gap.end)}`;
+                    return (
+                      <button key={slotKey(s)} class={isBest ? 'ghost best' : 'ghost'} data-testid={`free-${slotKey(s)}`} aria-label={t('free.slotAria', { kada, trukme: formatMinutes(s.gap.end - s.gap.start) })}
+                        style={{ '--top': (s.gap.start - startMin) / 15, '--len': (s.gap.end - s.gap.start) / 15, '--fit': free.minutes / 15 } as CSSProperties}
+                        onClick={(e) => freeTap(e, s, free.minutes)}>
+                        <span class="ghost-fit">{isBest ? '★ ' : '+'}{formatMinutes(free.minutes)}</span>
+                        {s.slack >= 30 && <span class="ghost-slack">{t('free.left', { trukme: formatMinutes(s.slack) })}</span>}
+                      </button>
+                    );
+                  })}
                   {[
                     ...dayEntries.map((e) => {
                       const l = lay.placed.get(e.appt.id) ?? { col: 0, cols: 1 };

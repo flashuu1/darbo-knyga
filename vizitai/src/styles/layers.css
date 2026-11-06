@@ -993,3 +993,15 @@ html[data-fps='low'] .lq-drop { transition-duration: .24s; }
 @keyframes ghost-pulse { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .ghost.best::after { animation: none; opacity: .7; } }
 html[data-fps='low'] .ghost.best::after { animation: none; opacity: .7; }
+
+/* Nustatymai: a note under a glass switch must not slide under it (notes hug the group above them by default) */
+.lq-seg.wide + .section-foot { margin-top: var(--s3); }
+/* the warning for a person who already has a visit that week: the week, small */
+.wk-map { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; padding: 0 var(--s4) var(--s3); }
+.wk-day { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: .6rem; font-weight: 700; color: var(--label-2); }
+.wk-day.new { color: var(--accent); }
+.wk-col { position: relative; width: 100%; height: 108px; border-radius: 8px; background: var(--fill); overflow: hidden; }
+.wk-day.new .wk-col { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 55%, transparent); }
+.wk-bar { position: absolute; left: 2px; right: 2px; min-height: 14px; border-radius: 4px; background: color-mix(in srgb, var(--label) 18%, transparent); font-style: normal; font-size: .56rem; font-weight: 800; line-height: 1; display: grid; place-items: center; color: #fff; overflow: hidden; }
+.wk-bar.mine { background: var(--orange); box-shadow: 0 0 0 2px color-mix(in srgb, var(--orange) 40%, transparent); z-index: 1; }
+.wk-bar.fresh { background: color-mix(in srgb, var(--accent) 22%, transparent); border: 1.5px dashed var(--accent); color: var(--accent); z-index: 2; }

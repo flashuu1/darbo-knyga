@@ -17,6 +17,10 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   { date: '2026-11-06', items: [
+    { kind: 'feature', text: 'Registruojant klientą, kuris jau turi vizitą tą pačią savaitę, parodomas įspėjimas: kada tas vizitas, mažas savaitės vaizdas su paryškintu vizitu. Galima vis tiek registruoti, parodyti savaitėje, atmesti naują įrašą arba pakeisti.' },
+    { kind: 'bugfix', text: 'Nustatymuose paaiškinimas po „Laisviausią / Tiksliausią“ nebeslepiamas po jungikliu ir sutrumpintas.' },
+  ] },
+  { build: '8771d18', date: '2026-11-06', items: [
     { kind: 'feature', text: 'Savaitės rodinyje matomi laisvi langai: punktyrinės žalios kortelės ten, kur telpa vizitas (11:00–18:00, 1 val), ir „Geriausias: ketvirtadienis 15:00“ po pavadinimu. Palietus langą atsidaro Nauja > Klientas su jau įrašytu laiku. Kita savaitė rodo savo geriausią laiką.' },
     { kind: 'feature', text: 'Nustatymai > Darbo laikas > Rekomenduojamas laikas: nuo, iki, vizito trukmė ir ką siūlyti pirmiausia (laisviausią ar tiksliausią).' },
   ] },

@@ -20,6 +20,7 @@ export function ActionSheet() {
               {shown.lines.map((l, i) => <li key={i} data-testid={`action-line-${i}`}>{l}</li>)}
             </ul>
           )}
+          {shown.node}
           {main.map((i, n) => (
             <button key={n} data-testid={`action-item-${n}`} class={i.role === 'destructive' ? 'action destructive' : 'action'} onClick={press(i.onPress)}>{i.label}</button>
           ))}

@@ -1,3 +1,4 @@
+import type { ComponentChildren } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import type { Entry } from '../db/repo';
 import { todayStr } from '../logic/time';
@@ -34,7 +35,7 @@ export interface ActionItem { label: string; role?: 'destructive' | 'cancel'; on
 export interface UiState {
   tab: Tab; view: 'day' | 'week' | 'month'; date: string;
   sheet: Sheet | null; client: string | null; toast: ToastState | null; highlight: string | null;
-  zoom: number; drag: DragState | null; action: { title?: string; lines?: string[]; items: ActionItem[] } | null;
+  zoom: number; drag: DragState | null; action: { title?: string; lines?: string[]; /** something drawn between the lines and the buttons (the small week of a warning) */ node?: ComponentChildren; items: ActionItem[] } | null;
   /** Closing the sheet named by `for` goes back to `sheet` (the day summary opens Suma and returns to itself). */
   back: { for: string; sheet: Sheet } | null;
   peek: PeekState | null;

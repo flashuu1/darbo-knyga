@@ -1,4 +1,5 @@
 import { saveFailed } from '../failure';
+import { confirmSameWeek } from '../sameWeek';
 import type { CSSProperties } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { repo, type ClientSuggestion } from '../../db/repo';
@@ -50,6 +51,7 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
   const [saving, setSaving] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   const busy = useRef(false);
+  const dupOk = useRef(false); // she has said "vis tiek" to a visit the same week
   const typed = useRef(false); // she has typed in or picked into the name field
   const matches = useLive(() => repo.suggestClients(name, MAX_SUGGESTIONS + 1), [name], [] as ClientSuggestion[]);
   // A prefilled/last service may since have been hidden: fall back to the first card.
@@ -145,6 +147,14 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
         // something already there: a pop-up says what (who, which service, from when to when) and asks, instead of a second press
         const hits = await repo.overlapsFor({ start, kind, serviceId: kind === 'client' ? sid : null, minutes: off ? offMinutes : kind === 'personal' ? chosen?.minutes ?? 30 : undefined });
         if (hits.length) { confirmOverlap(hits, () => void save(true)); return; }
+      }
+      if (kind === 'client' && !dupOk.current) {
+        // the same person already has a visit that week: show where, and ask
+        const week = await repo.visitsInWeek(name, start, prefill.from?.type === 'appt' ? prefill.from.id : undefined); // "Užregistruoti dar kartą" starts from a visit she just dealt with: that one is not news
+        if (week.mine.length) {
+          confirmSameWeek({ name, start, minutes: services.find((s) => s.id === sid)?.minutes ?? 15, week }, () => { dupOk.current = true; void save(true); }, closeSheet);
+          return;
+        }
       }
       const a = await repo.createAppointment(kind === 'client' ? { kind, name, serviceId: sid, start }
         : off ? { kind: 'personal', title: t('off.title'), minutes: offMinutes, start }

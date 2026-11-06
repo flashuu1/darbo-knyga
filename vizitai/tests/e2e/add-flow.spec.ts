@@ -66,7 +66,7 @@ test('Atgal returns to the client screen and keeps the name', async ({ page }) =
 
 test('searching "zydrune" finds Žydrūnė; tapping it links that client and goes straight to the services', async ({ page }) => {
   await openApp(page);
-  await seedAppts(page, [{ name: 'Žydrūnė', start: '2026-10-13T10:00', service: 2 }]);
+  await seedAppts(page, [{ name: 'Žydrūnė', start: '2026-10-06T10:00', service: 2 }]); // the week before: no same-week warning
   await page.getByTestId('slot-2026-10-14T11:00').click();
   await page.getByTestId('field-name').fill('zydrune');
   await expect(page.getByTestId('suggest-0')).toContainText('Žydrūnė');
@@ -79,7 +79,7 @@ test('searching "zydrune" finds Žydrūnė; tapping it links that client and goe
 
 test('typing an existing name exactly, without tapping a suggestion, links that client', async ({ page }) => {
   await openApp(page);
-  await seedAppts(page, [{ name: 'Žydrūnė', start: '2026-10-13T10:00', service: 2 }]);
+  await seedAppts(page, [{ name: 'Žydrūnė', start: '2026-10-06T10:00', service: 2 }]); // the week before: no same-week warning
   await page.getByTestId('slot-2026-10-14T11:00').click();
   await nameThenEnter(page, 'Žydrūnė');
   await page.getByTestId('btn-save').click();

@@ -4,7 +4,7 @@ import type { Appointment, CancelReason, Client, Option, OptionGroup, Service, S
 import type { VizitaiDB } from './db';
 import { DEFAULT_SETTINGS } from './seed';
 import { cleanName, foldName, ltCollator } from '../logic/names';
-import { addDays, addMinutes, datePart, minutesOfDay, nowLocal, parse, scopeRange, type Scope } from '../logic/time';
+import { addDays, addMinutes, datePart, minutesOfDay, nowLocal, parse, scopeRange, weekStart, type Scope } from '../logic/time';
 import { findOverlap, findOverlaps, minutesFor, nextFreeSlot, PERSONAL_MINUTES, SHORT_MINUTES, type Block } from '../logic/overlap';
 import { t } from '../i18n/lt';
 import { isAmountDue, isValidCents, MAX_AMOUNT_CENTS } from '../logic/amount';
@@ -366,6 +366,18 @@ export function createRepo(db: VizitaiDB) {
       if (!a) return [];
       const services = await serviceMap();
       return this.overlapsFor({ start, kind: a.kind, serviceId: a.serviceId, excludeId: id, minutes: minutesFor(a, services) });
+    },
+    /**
+     * The booked visits of the client with this name in the week (Monday to Sunday) of `start`, and everything else booked that week
+     * (so the week can be drawn). Cancelled visits and no-shows do not count. The name is matched the way a client is found when a
+     * visit is booked (case and diacritics folded). `excludeId` leaves one visit out (the one a rebooking starts from). `from` is the Monday.
+     */
+    async visitsInWeek(name: string, start: string, excludeId?: string): Promise<{ from: string; mine: Entry[]; all: Entry[] }> {
+      const from = weekStart(datePart(start));
+      const all = (await this.entriesBetween(from, addDays(from, 7))).filter((e) => e.appt.status === 'booked');
+      const client = await db.clients.where('nameKey').equals(foldName(name)).first();
+      const mine = client ? all.filter((e) => e.appt.kind === 'client' && e.appt.clientId === client.id && e.appt.id !== excludeId) : [];
+      return { from, mine, all };
     },
     async entriesBetween(fromDate: string, toDateExclusive: string): Promise<Entry[]> {
       const list = await db.appointments.where('start').between(`${fromDate}T00:00`, `${toDateExclusive}T00:00`, true, false).toArray();

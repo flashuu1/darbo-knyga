@@ -6,6 +6,7 @@ import { formatBuildTime, formatDayShort, weekdayAbbr, weekdayName } from '../..
 import { t, type Key } from '../../i18n/lt';
 import { nowLocal, snapClock, todayStr } from '../../logic/time';
 import { chooseImport, removeService, restoreSnapshot, runBackup, showToast } from '../actions';
+import { attempt, saveFailed } from '../failure';
 import { backups, type Snap } from '../../db/backups';
 import { Changelog } from '../components/Changelog';
 import { AddSlotContext, Dur, DurationEditor, EditList, Switch, type AddSlot } from '../components/EditList';
@@ -145,27 +146,29 @@ const MAX_SERVICE_MIN = 840;
 function ServicesPage() {
   const services = useServices(false);
   async function toggle(id: string, active: boolean) {
-    try { await repo.setServiceActive(id, active); } catch { showToast(t('service.lastActive')); }
+    try { await repo.setServiceActive(id, active); } catch (e) {
+      if (e instanceof Error && e.message === 'last-active') showToast(t('service.lastActive')); else saveFailed(e, () => toggle(id, active));
+    }
   }
   const by = (id: string) => services.find((s) => s.id === id)!;
   return (
     <EditList prefix="svc" addLabel={t('service.add')} note={t('service.note')}
       items={services.map((s) => ({ id: s.id, name: s.name, tint: `var(--c-${s.color})`, lead: <span class="er-dot" />, value: <Dur m={s.minutes} />, off: !s.active }))}
-      onAdd={async () => (await repo.addService(t('service.new'))).id}
-      onRename={async (id, name) => { try { await repo.updateService(id, { name }); } catch (e) { console.error(e); } }}
-      onReorder={(ids) => repo.reorderServices(ids)}
+      onAdd={() => attempt(async () => (await repo.addService(t('service.new'))).id)}
+      onRename={async (id, name) => { await attempt(() => repo.updateService(id, { name })); }}
+      onReorder={(ids) => attempt(() => repo.reorderServices(ids))}
       onRemove={(id) => removeService(by(id))}
       extra={(id, i) => <span class="er-switch"><Switch on={by(id).active} label={t('edit.shown')} testId={`svc-toggle-${i}`} onChange={(on) => void toggle(id, on)} />{t('edit.shown')}</span>}
       editor={(id, i) => {
         const s = by(id);
         return (
           <>
-            <DurationEditor prefix="svc" i={i} minutes={s.minutes} max={MAX_SERVICE_MIN} onChange={(m) => void repo.updateService(id, { minutes: m })} />
+            <DurationEditor prefix="svc" i={i} minutes={s.minutes} max={MAX_SERVICE_MIN} onChange={(m) => void attempt(() => repo.updateService(id, { minutes: m }))} />
             <div class="ed-lab">{t('edit.color')}</div>
             <div class="er-colors">
               {SERVICE_COLORS.map((c) => (
                 <button key={c} class={c === s.color ? 'swatch on' : 'swatch'} aria-label={c} aria-pressed={c === s.color} data-testid={`svc-color-${i}-${c}`} style={{ '--sc': `var(--c-${c})` } as CSSProperties}
-                  onClick={() => void repo.updateService(id, { color: c })}><span class="dot" /></button>
+                  onClick={() => void attempt(() => repo.updateService(id, { color: c }))}><span class="dot" /></button>
               ))}
             </div>
           </>
@@ -184,7 +187,7 @@ function HoursPage() {
     if (v !== raw) setTick((x) => x + 1); // remount so the field shows the snapped value even if it is unchanged
     const next = { ...settings, [field]: v };
     if (next.dayStart >= next.dayEnd) { showToast(t('hours.invalid')); setTick((x) => x + 1); return; }
-    try { await repo.updateSettings({ [field]: v }); } catch (e) { console.error(e); }
+    await attempt(() => repo.updateSettings({ [field]: v }));
   }
   const days = settings.workDays ?? [0, 1, 2, 3, 4, 5, 6];
   // Each tap reads what is saved (not what was last drawn), one after another, so quick taps never undo each other
@@ -194,7 +197,7 @@ function HoursPage() {
       const next = cur.includes(i) ? cur.filter((d) => d !== i) : [...cur, i].sort();
       if (next.length === 0) return; // at least one day stays
       await repo.updateSettings({ workDays: next });
-    }).catch((e) => console.error(e));
+    }).catch((e) => saveFailed(e, () => toggleDay(i)));
   }
   return (
     <>

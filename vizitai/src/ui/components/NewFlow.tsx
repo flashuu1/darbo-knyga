@@ -1,3 +1,4 @@
+import { saveFailed } from '../failure';
 import type { CSSProperties } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { repo, type ClientSuggestion } from '../../db/repo';
@@ -153,7 +154,7 @@ export function NewFlow({ prefill }: { prefill: { start: string; clientId?: stri
       ui.set({ sheet: null, date: datePart(a.start), ...(prefill.from?.type === 'client' ? { client: null, tab: 'calendar' as const, view: 'day' as const } : prefill.from ? { tab: 'calendar' as const } : {}) });
       highlight(a.id);
     } catch (e) {
-      console.error(e);
+      saveFailed(e, () => save(confirmed)); // the sheet stays open with everything she entered
     } finally {
       busy.current = false; setSaving(false);
     }

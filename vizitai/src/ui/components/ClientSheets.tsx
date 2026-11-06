@@ -1,3 +1,4 @@
+import { saveFailed } from '../failure';
 import { useRef, useState } from 'preact/hooks';
 import { repo } from '../../db/repo';
 import { t } from '../../i18n/lt';
@@ -63,8 +64,8 @@ export function NewClientSheet() {
       closeSheet();
       showToast(existed ? t('cl.addExists') : t('cl.added'));
     } catch (e) {
-      console.error(e);
       busy.current = false;
+      saveFailed(e, save);
     }
   }
   return (

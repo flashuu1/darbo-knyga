@@ -1,3 +1,4 @@
+import { readFailed } from './failure';
 import { liveQuery } from 'dexie';
 import { useEffect, useState } from 'preact/hooks';
 import { db } from '../db/db';
@@ -19,7 +20,7 @@ const same = (a: unknown, b: unknown) => {
 export function useLive<T>(q: () => T | Promise<T>, deps: unknown[], initial: T): T {
   const [v, setV] = useState<T>(initial);
   useEffect(() => {
-    const sub = liveQuery(q).subscribe({ next: (x) => setV((prev) => (same(prev, x) ? prev : x)), error: (e) => console.error(e) });
+    const sub = liveQuery(q).subscribe({ next: (x) => setV((prev) => (same(prev, x) ? prev : x)), error: (e) => readFailed(e) });
     return () => sub.unsubscribe();
   }, deps);
   return v;

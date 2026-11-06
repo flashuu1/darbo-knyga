@@ -1,3 +1,4 @@
+import { saveFailed } from '../failure';
 import type { CSSProperties } from 'preact';
 import { useRef } from 'preact/hooks';
 import { repo } from '../../db/repo';
@@ -37,7 +38,7 @@ export function AppointmentSheet({ id }: { id: string }) {
     if (busy.current) return;
     busy.current = true;
     closeSheet();
-    fn().catch((e) => console.error(e));
+    fn().catch((e) => saveFailed(e, fn));
   };
   const sub = [formatWhen(appt.start), service?.name, service && isClient ? t('appt.minutes', { n: service.minutes }) : undefined].filter(Boolean).join(' · ');
 
@@ -60,7 +61,7 @@ export function AppointmentSheet({ id }: { id: string }) {
         <div class="chips">
           {chips.map((s, i) => (
             <button key={s.id} data-testid={`appt-svc-${i}`} class={appt.serviceId === s.id ? 'chip on' : 'chip'} style={{ '--svc': `var(--c-${s.color})` } as CSSProperties}
-              onClick={() => repo.updateAppointment(id, { serviceId: s.id }).catch((e) => console.error(e))}>{s.name}</button>
+              onClick={() => repo.updateAppointment(id, { serviceId: s.id }).catch((e) => saveFailed(e, () => repo.updateAppointment(id, { serviceId: s.id })))}>{s.name}</button>
           ))}
         </div>
       )}

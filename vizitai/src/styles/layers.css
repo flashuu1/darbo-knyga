@@ -966,3 +966,7 @@ html[data-fps='low'] .lq-drop { transition-duration: .24s; }
 .flow-pane:first-child { touch-action: pan-y; }
 .kind-body { display: flex; flex-direction: column; }
 .kind-body > * { flex-shrink: 0; }
+
+/* a failure: red, so it is not taken for a confirmation */
+.toast.error { background: color-mix(in srgb, #8e1b14 88%, #000); }
+.toast.error button { color: #fff; font-weight: 700; padding: 0 4px; }

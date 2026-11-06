@@ -95,7 +95,7 @@ interface Props {
   items: EditItem[];
   addLabel: string;
   /** makes the new item; returns its id so the row can open with the cursor in its name */
-  onAdd: () => Promise<string>;
+  onAdd: () => Promise<string | undefined>;
   onRename: (id: string, name: string) => Promise<void>;
   /** the new order of all the ids, after a row was dragged somewhere else */
   onReorder: (ids: string[]) => Promise<void> | void;
@@ -383,7 +383,7 @@ export function EditList({ prefix, items, addLabel, onAdd, onRename, onReorder, 
   // ---------- the "+" in the page's top right ----------
   const setAdd = useContext(AddSlotContext);
   const addRef = useRef(() => {});
-  addRef.current = () => { primeKeyboard(); void onAdd().then(setFocusId); };
+  addRef.current = () => { primeKeyboard(); void onAdd().then((id) => { if (id) setFocusId(id); else (document.activeElement as HTMLElement | null)?.blur(); }); };
   useEffect(() => { setAdd({ label: addLabel, run: () => addRef.current() }); return () => setAdd(null); }, [addLabel]);
 
   useEffect(() => { // an item was just added: it opens, and its name takes the cursor, selected

@@ -7,6 +7,7 @@ import { backups, type Snap } from '../db/backups';
 import { backupFileName, BackupError, exportData, importData, parseBackup, shareBackup, type BackupFile } from '../logic/backup';
 import { fingerprint } from '../logic/snapshots';
 import { addDays, datePart, nowLocal, timePart, todayStr } from '../logic/time';
+import { attempt, isQuota, logError, saveFailed } from './failure';
 import { ui, type Origin, type Sheet } from './store';
 
 let toastId = 0;
@@ -48,7 +49,7 @@ export async function openNewToday() {
   try {
     openNew(await repo.defaultStartFor(ui.get().date));
   } catch (e) {
-    console.error(e);
+    saveFailed(e, () => openNewToday(), 'open');
     (document.activeElement as HTMLElement | null)?.blur();
   }
 }
@@ -90,10 +91,10 @@ export async function confirmDeleteClient(id: string, name: string) {
     action: {
       title: n > 0 ? t('client.deleteQVisits', { vardas: name, n }) : t('client.deleteQ', { vardas: name }),
       items: [
-        { label: t('btn.delete'), role: 'destructive' as const, onPress: () => void (async () => {
+        { label: t('btn.delete'), role: 'destructive' as const, onPress: () => void attempt(async () => {
           const snap = await repo.deleteClient(id);
           if (snap) showToast(t('client.deleted'), () => repo.restoreClient(snap));
-        })().catch((e) => console.error(e)) },
+        }) },
         { label: t('btn.keep'), role: 'cancel' as const, onPress: () => {} },
       ],
     },
@@ -110,7 +111,10 @@ export async function removeService(s: { id: string; name: string }): Promise<'r
     if (r.result === 'hidden') { showToast(t('service.hiddenInstead'), () => repo.restoreService(r.service)); return 'kept'; }
     showToast(t('edit.removed', { vardas: s.name }), () => repo.restoreService(r.service));
     return 'removed';
-  } catch { showToast(t('service.lastActive')); return 'kept'; }
+  } catch (e) {
+    if (e instanceof Error && e.message === 'last-active') showToast(t('service.lastActive')); else saveFailed(e, () => removeService(s));
+    return 'kept';
+  }
 }
 /** Removes an expense (it is not a visit, so there is nothing to cancel). Anuliuoti puts it back. */
 export async function deleteExpenseWithToast(id: string) {
@@ -224,7 +228,7 @@ export async function runBackup(again = false) {
     await repo.updateSettings({ lastBackupAt: new Date().toISOString() });
     showToast(t('backup.exported'));
   } catch (e) {
-    console.error(e);
+    logError(e);
     showToast(t('backup.error.export'));
   } finally {
     backingUp = false;
@@ -244,7 +248,7 @@ async function doImport(file: BackupFile) {
       if (back) await importData(db, parseBackup(back.json));
     });
   } catch (e) {
-    console.error(e);
+    logError(e);
     showToast(t('backup.error.format'));
   } finally {
     importing = false;
@@ -262,7 +266,7 @@ async function confirmRestore(file: BackupFile, lines?: string[]) {
 export async function restoreSnapshot(s: Snap) {
   try {
     await confirmRestore(parseBackup(s.json), [when(s.at), t('backup.snapLine', { k: s.counts.clients, v: s.counts.visits, kb: Math.max(1, Math.round(s.bytes / 1024)) }), t('backup.restoreNote')]);
-  } catch (e) { console.error(e); showToast(t('backup.error.format')); }
+  } catch (e) { logError(e); showToast(t('backup.error.format')); }
 }
 export async function chooseImport(file: File) {
   let parsed: BackupFile;
@@ -283,7 +287,7 @@ export async function autoSnapshot() {
     if (last && todayStr(new Date(last.at)) === today) return;
     const file = await exportData(db);
     await backups.save('auto', file, JSON.stringify(file));
-  } catch (e) { console.error(e); }
+  } catch (e) { logError(e); if (isQuota(e)) saveFailed(e); } // a copy in the background: only a full phone is worth interrupting her for
 }
 
 /**

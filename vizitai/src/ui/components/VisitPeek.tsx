@@ -1,3 +1,4 @@
+import { saveFailed } from '../failure';
 import type { CSSProperties } from 'preact';
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { repo } from '../../db/repo';
@@ -75,7 +76,7 @@ export function VisitPeek({ peek, leaving }: { peek: PeekState; leaving: boolean
     try {
       const { before } = await repo.setAmount(appt!.id, cents);
       showToast(t('amount.saved'), () => repo.putSnapshot(before));
-    } catch (e) { console.error(e); } finally { busy.current = false; }
+    } catch (e) { saveFailed(e, () => pay(cents)); } finally { busy.current = false; }
   }
   function other() { openAmount(appt!.id); close(); } // synchronously, so the number keyboard comes up (also to change an amount that is already in)
   /**

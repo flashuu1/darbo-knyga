@@ -1,3 +1,4 @@
+import { saveFailed } from '../failure';
 import type { CSSProperties } from 'preact';
 import { useRef } from 'preact/hooks';
 import { repo } from '../../db/repo';
@@ -33,7 +34,7 @@ export function ClientCard({ id }: { id: string }) {
       // Only revert what this save read: a name typed meanwhile (e.g. right after the phone) is kept.
       if (nameEl.current && now && nameEl.current.value === name) nameEl.current.value = now.name;
     } catch (e) {
-      console.error(e);
+      saveFailed(e, save);
     }
   };
   // Saving here as well as on change keeps an edit made just before tapping a button (no blur on iOS).
@@ -51,7 +52,7 @@ export function ClientCard({ id }: { id: string }) {
       ui.set({ client: null, tab: 'calendar', view: 'day' });
       openNew(start, { clientId: id });
     } catch (e) {
-      console.error(e);
+      saveFailed(e, book, 'open');
       (document.activeElement as HTMLElement | null)?.blur(); // drop the primed keyboard
     } finally {
       booking.current = false;

@@ -4,6 +4,7 @@ import type { Option, OptionGroup } from '../../db/types';
 import { formatAmountInput, formatEuroShort, parseAmountInput, euroSign } from '../../i18n/format';
 import { t } from '../../i18n/lt';
 import { removeOption } from '../actions';
+import { attempt } from '../failure';
 import { useOptions } from '../hooks';
 import { ClockIcon, WalletIcon } from '../icons';
 import { Dur, DurationEditor, EditList, Switch, useRows } from './EditList';
@@ -24,12 +25,12 @@ export function OptionList({ group }: { group: OptionGroup }) {
         lead: <span class="er-ic" aria-hidden="true">{personal ? <ClockIcon /> : <WalletIcon />}</span>,
         value: personal ? <Dur m={o.minutes ?? 30} /> : o.costCents != null ? formatEuroShort(o.costCents) : <span class="er-none">{t('cost.none')}</span>,
       }))}
-      onAdd={async () => (await repo.addOption(group, t('option.new'))).id}
-      onRename={async (id, name) => { try { await repo.renameOption(id, name); } catch (e) { console.error(e); } }}
-      onReorder={(ids) => repo.reorderOptions(group, ids)}
+      onAdd={() => attempt(async () => (await repo.addOption(group, t('option.new'))).id)}
+      onRename={async (id, name) => { await attempt(() => repo.renameOption(id, name)); }}
+      onReorder={(ids) => attempt(() => repo.reorderOptions(group, ids))}
       onRemove={(id) => removeOption(by(id))}
       editor={(id, i) => personal
-        ? <DurationEditor prefix={prefix} i={i} minutes={by(id).minutes ?? 30} max={720} onChange={(m) => void repo.updateOption(id, { minutes: m })} />
+        ? <DurationEditor prefix={prefix} i={i} minutes={by(id).minutes ?? 30} max={720} onChange={(m) => void attempt(() => repo.updateOption(id, { minutes: m }))} />
         : <CostEditor key={id} o={by(id)} i={i} />} />
   );
 }
@@ -59,16 +60,16 @@ function CostEditor({ o, i }: { o: Option; i: number }) {
   const turnOff = () => {
     input.current?.blur();
     flip(() => { setOn(false); setText(''); });
-    void repo.updateOption(o.id, { costCents: null });
+    void attempt(() => repo.updateOption(o.id, { costCents: null }));
   };
   const edit = (v: string) => {
     setText(v);
     if (v.trim() === '') { // she emptied it: no fixed amount, and she is done here
-      input.current?.blur(); void repo.updateOption(o.id, { costCents: null }); fold();
+      input.current?.blur(); void attempt(() => repo.updateOption(o.id, { costCents: null })); fold();
       return;
     }
     const c = parseAmountInput(v);
-    if (c !== null && c > 0) void repo.updateOption(o.id, { costCents: c });
+    if (c !== null && c > 0) void attempt(() => repo.updateOption(o.id, { costCents: c }));
   };
   const left = () => {
     if (Date.now() - pressing.current < 700) return; // she is pressing the switch: that press decides

@@ -1,3 +1,4 @@
+import { installFailureNet, logError } from './ui/failure';
 import { render } from 'preact';
 import './styles.css';
 import './styles/layers.css';
@@ -33,9 +34,10 @@ async function boot() {
     await db.settings.update('settings', { persistGranted: await requestPersistence() });
   }
   // Cancelled visits only stay for a week: tidy up at launch and every time the app comes back to the front.
-  const tidy = () => { import('./db/repo').then(({ repo }) => repo.purgeCancelled()).catch((e) => console.error(e)); };
+  const tidy = () => { import('./db/repo').then(({ repo }) => repo.purgeCancelled()).catch((e) => logError(e)); };
   tidy();
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') tidy(); });
+  installFailureNet(); // a failed write that nobody wrapped still shows up
   render(<App />, root);
   void import('./ui/actions').then(({ autoSnapshot }) => { window.setTimeout(() => void autoSnapshot(), 3000); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') void autoSnapshot(); }); });
   startFrameMonitor(); // notices Low Power Mode (30 Hz) and simplifies the animations while it lasts

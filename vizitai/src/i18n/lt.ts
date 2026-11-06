@@ -87,6 +87,8 @@ export const lt = {
   'amount.zero.title': 'Nunulinti sumą? Vizitas vėl taps „Nepatvirtinta“ ir lauks sumos.', 'amount.zero.confirm': 'Nunulinti', 'amount.positive': 'Įveskite sumą didesnę už 0',
   'amount.log.title': 'Sumos pakeitimai', 'amount.log.cleared': 'nunulinta',
   'option.minutes': 'Trukmė (min.)',
+  'fail.save': 'Nepavyko išsaugoti', 'fail.open': 'Nepavyko atidaryti', 'fail.read': 'Nepavyko perskaityti duomenų', 'fail.retry': 'Bandyti dar kartą',
+  'fail.quota': 'Telefone nepakanka vietos: nieko neišsaugota',
   'unit.min': 'min', 'unit.hour': 'val', 'edit.name': 'Pavadinimas', 'edit.duration': 'Trukmė', 'edit.color': 'Spalva', 'edit.shown': 'Rodoma',
   'edit.removed': 'Ištrinta: {vardas}',  'edit.shorter': 'Trumpiau', 'edit.longer': 'Ilgiau',
   'service.note': 'Palieskite paslaugą, kad ją pakeistumėte. Palaikykite eilutę ir tempkite: pakeisite vietą (ta pati tvarka rodoma registruojant), o numetę ant šiukšlinės pašalinsite. Paslėpta paslauga nebesiūloma, bet senų vizitų neprarandate.',

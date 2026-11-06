@@ -1,3 +1,4 @@
+import { saveFailed } from '../failure';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { repo, type Entry } from '../../db/repo';
 import { formatDayLong, formatDayShort, formatEuro, monthName } from '../../i18n/format';
@@ -51,7 +52,7 @@ export function SummarySheet({ scope, date }: { scope: Scope; date: string }) {
       const { before } = await repo.setAmount(e.appt.id, cents);
       showToast(t('amount.saved'), () => repo.putSnapshot(before));
     } catch (err) {
-      console.error(err);
+      saveFailed(err, () => pay(e, cents));
     } finally {
       busy.current.delete(e.appt.id);
     }

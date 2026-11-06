@@ -16,7 +16,11 @@ export interface ChangeEntry {
 }
 
 export const CHANGELOG: ChangeEntry[] = [
-  { date: '2026-11-04', items: [
+  { date: '2026-11-06', items: [
+    { kind: 'feature', text: 'Jei kas nors neišsisaugo (pilna atmintis, klaida), dabar tai matote: raudonas pranešimas „Nepavyko išsaugoti“ su mygtuku „Bandyti dar kartą“, o tai, ką darėte, lieka kaip buvo. Anksčiau 25 vietose klaida buvo užrašoma tik paslėptame žurnale.' },
+    { kind: 'bugfix', text: 'Paslaugos paslėpimas dėl atminties klaidos nebeįvardijamas kaip „turi likti bent viena paslauga“.' },
+  ] },
+  { build: 'ae5eba4', date: '2026-11-04', items: [
     { kind: 'bugfix', text: 'Naujos išlaidos suma jau nebeslepiama po mėlynu mygtuku, kai pakyla klaviatūra: laukas ir jo pastaba nustumiami virš mygtuko.' },
     { kind: 'bugfix', text: 'Visuose sumų laukuose žymeklis visada lieka gale, todėl apsirikus paskutinį skaitmenį galima ištrinti.' },
   ] },

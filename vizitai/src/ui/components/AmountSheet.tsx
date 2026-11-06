@@ -1,3 +1,4 @@
+import { saveFailed } from '../failure';
 import type { CSSProperties } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { repo } from '../../db/repo';
@@ -47,7 +48,7 @@ export function AmountSheet({ id }: { id: string }) {
     if (!valid || busy.current) return;
     if (clearing) {
       ui.set({ action: { title: t('amount.zero.title'), items: [
-        { label: t('amount.zero.confirm'), role: 'destructive', onPress: () => { void saveAmountWithToast(id, null).catch((e) => console.error(e)); } },
+        { label: t('amount.zero.confirm'), role: 'destructive', onPress: () => { void saveAmountWithToast(id, null).catch((e) => saveFailed(e, () => saveAmountWithToast(id, null))); } },
         { label: t('btn.keep'), role: 'cancel', onPress: () => {} },
       ] } });
       return;
@@ -60,7 +61,7 @@ export function AmountSheet({ id }: { id: string }) {
         setSaved({ before, cents });
       })
       : saveAmountWithToast(id, clearing ? null : cents);
-    run.catch((e) => console.error(e)).finally(() => { busy.current = false; });
+    run.catch((e) => saveFailed(e, confirm)).finally(() => { busy.current = false; });
   };
   // Ne (or closing the sheet): the amount stays, Anuliuoti is offered
   const done = () => {

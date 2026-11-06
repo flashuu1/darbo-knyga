@@ -129,6 +129,18 @@ test.describe('a person who already has a visit that week', () => {
   });
 });
 
+test('a visit from Monday that is still waiting for its amount counts the same: booking her again on Friday warns, and lists it', async ({ page }) => {
+  await openApp(page, '2026-10-15T12:00:00'); // Thursday
+  const [id] = await seedAppts(page, [{ name: 'Ona Petraitė', start: '2026-10-12T10:00' }]); // Monday, no amount ever entered
+  await expect.poll(() => page.evaluate(async (x) => ((await (window as any).__vizitai.repo.getAppointment(x)) as any).amountCents ?? null, id)).toBeNull();
+  await book(page, 'Ona Petraitė', '2026-10-16', '14:00');
+  await expect(page.getByTestId('action-title')).toHaveText('Ona jau turi vizitą šioje savaitėje');
+  await expect(page.getByTestId('action-line-0')).toContainText('pirmadienis');
+  await expect(page.getByTestId(`same-week-mine-${id}`)).toBeVisible();
+  await page.getByTestId('action-item-0').click(); // vis tiek
+  await expect.poll(() => count(page)).toBe(2);
+});
+
 test('after "Taip, užregistruoti dar kartą" the visit she has just paid is not news: no warning for it', async ({ page }) => {
   await openApp(page, NOW);
   const [id] = await seedAppts(page, [{ name: 'Ona Petraitė', start: '2026-10-14T08:00' }]);
